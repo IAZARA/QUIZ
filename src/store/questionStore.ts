@@ -406,8 +406,8 @@ export const useQuestionStore = create<QuestionState>()((set, get) => {
           const updatedQuestion = {
             ...originalQuestion,
             ...result.question,
-            is_active: true, // Mantener la pregunta activa para mostrar los resultados
-            votingClosed: true,
+            is_active: false, // Marcar la pregunta como inactiva para que el admin pueda iniciar otra votación
+            votingClosed: true, // Mantener votingClosed en true para que la audiencia siga viendo la respuesta
             correct_option: correctOption
           };
           

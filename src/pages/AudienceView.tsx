@@ -26,7 +26,7 @@ export default function AudienceView() {
       setSelectedOption(null);
       setHasVoted(false);
     }
-  }, [currentQuestion?._id]); // Solo se ejecuta cuando cambia el ID de la pregunta
+  }, [currentQuestion, currentQuestion?._id]); // Se ejecuta cuando cambia la pregunta o su ID
 
   // Ya no necesitamos este efecto porque el temporizador se maneja en el store
   // El tiempo se actualiza automáticamente a través del estado compartido
