@@ -19,14 +19,15 @@ export default function AudienceView() {
     }
   }, [initialized, isConnecting]);
 
-  // Reiniciar el estado de selección y voto cuando cambia la pregunta activa
+  // Reiniciar el estado de selección y voto cuando cambia la pregunta activa o su estado
   useEffect(() => {
-    if (currentQuestion) {
-      // Reiniciar el estado cuando cambia la pregunta
-      setSelectedOption(null);
-      setHasVoted(false);
-    }
-  }, [currentQuestion, currentQuestion?._id]); // Se ejecuta cuando cambia la pregunta o su ID
+    // Reiniciar el estado cuando:
+    // 1. Cambia la pregunta (nuevo ID o nueva instancia)
+    // 2. La pregunta cambia de estado (is_active cambia)
+    // 3. La votación se abre nuevamente (votingClosed cambia)
+    setSelectedOption(null);
+    setHasVoted(false);
+  }, [currentQuestion?._id, currentQuestion?.is_active, currentQuestion?.votingClosed]);
 
   // Ya no necesitamos este efecto porque el temporizador se maneja en el store
   // El tiempo se actualiza automáticamente a través del estado compartido
@@ -50,6 +51,11 @@ export default function AudienceView() {
   }, []);
 
   const handleVote = async (option: string) => {
+    // Verificar si se puede votar:
+    // - Debe haber una pregunta activa
+    // - El usuario no debe haber votado ya
+    // - La pregunta debe estar activa
+    // - La votación no debe estar cerrada
     if (!currentQuestion || hasVoted || !currentQuestion.is_active || currentQuestion.votingClosed) return;
 
     setSelectedOption(option);
