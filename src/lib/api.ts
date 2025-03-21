@@ -174,6 +174,11 @@ export const clearView = async () => {
 // Subir imagen
 export const uploadImage = async (file: File) => {
   try {
+    // Verificar el tamaño del archivo
+    if (file.size > 19 * 1024 * 1024) { // 19MB para estar seguros
+      throw new Error('El archivo es demasiado grande. El tamaño máximo es de 19MB.');
+    }
+    
     const formData = new FormData();
     formData.append('image', file);
     
@@ -184,7 +189,12 @@ export const uploadImage = async (file: File) => {
     });
     
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
+    // Manejar errores específicos
+    if (error.response && error.response.status === 413) {
+      console.error('Error: El archivo es demasiado grande');
+      throw new Error('El archivo es demasiado grande. El tamaño máximo es de 19MB.');
+    }
     console.error('Error al subir la imagen:', error);
     throw error;
   }

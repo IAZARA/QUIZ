@@ -11,6 +11,7 @@ export default function AdminDashboard() {
   const [showCheatSheet, setShowCheatSheet] = useState<Record<string, boolean>>({});
   const [question, setQuestion] = useState({
     content: '',
+    case: '',
     option_a: '',
     option_b: '',
     option_c: '',
@@ -64,6 +65,7 @@ export default function AdminDashboard() {
     if (editingQuestion) {
       await updateQuestion(editingQuestion, {
         content: question.content,
+        case: question.case,
         option_a: question.option_a,
         option_b: question.option_b,
         option_c: question.option_c,
@@ -75,6 +77,7 @@ export default function AdminDashboard() {
     } else {
       await createQuestion({
         content: question.content,
+        case: question.case,
         option_a: question.option_a,
         option_b: question.option_b,
         option_c: question.option_c,
@@ -84,7 +87,7 @@ export default function AdminDashboard() {
       });
     }
     setShowForm(false);
-    setQuestion({ content: '', option_a: '', option_b: '', option_c: '', correct_answer: '', explanation: '', explanation_image: '' });
+    setQuestion({ content: '', case: '', option_a: '', option_b: '', option_c: '', correct_answer: '', explanation: '', explanation_image: '' });
   };
 
   useEffect(() => {
@@ -96,6 +99,7 @@ export default function AdminDashboard() {
   interface QuestionWithId {
     _id: string;
     content: string;
+    case?: string;
     option_a: string;
     option_b: string;
     option_c: string;
@@ -109,6 +113,7 @@ export default function AdminDashboard() {
   const handleEdit = (q: QuestionWithId) => {
     setQuestion({
       content: q.content,
+      case: q.case || '',
       option_a: q.option_a,
       option_b: q.option_b,
       option_c: q.option_c,
@@ -208,7 +213,7 @@ export default function AdminDashboard() {
             <button
               onClick={() => {
                 setEditingQuestion(null);
-                setQuestion({ content: '', option_a: '', option_b: '', option_c: '', correct_answer: '', explanation: '', explanation_image: '' });
+                setQuestion({ content: '', case: '', option_a: '', option_b: '', option_c: '', correct_answer: '', explanation: '', explanation_image: '' });
                 setShowForm(true);
               }}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
@@ -243,6 +248,19 @@ export default function AdminDashboard() {
                 {editingQuestion ? 'Editar Pregunta' : 'Crear Nueva Pregunta'}
               </h3>
               <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+                <div>
+                  <label htmlFor="case" className="block text-sm font-medium text-gray-700">
+                    Caso (opcional)
+                  </label>
+                  <textarea
+                    id="case"
+                    rows={2}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    value={question.case}
+                    onChange={(e) => setQuestion({ ...question, case: e.target.value })}
+                    placeholder="Describe el caso o contexto para la pregunta..."
+                  />
+                </div>
                 <div>
                   <label htmlFor="content" className="block text-sm font-medium text-gray-700">
                     Pregunta
@@ -364,6 +382,11 @@ export default function AdminDashboard() {
                           setIsUploading(true);
                           setUploadError('');
                           
+                          // Comprobar tamaño del archivo
+                          if (file.size > 19 * 1024 * 1024) {
+                            throw new Error('El archivo es demasiado grande. El tamaño máximo es de 19MB.');
+                          }
+                          
                           const result = await uploadImage(file);
                           setQuestion({ ...question, explanation_image: result.imageUrl });
                           
@@ -371,9 +394,10 @@ export default function AdminDashboard() {
                           if (fileInputRef.current) {
                             fileInputRef.current.value = '';
                           }
-                        } catch (error) {
+                        } catch (error: any) {
                           console.error('Error al subir la imagen:', error);
-                          setUploadError('Error al subir la imagen. Inténtalo de nuevo.');
+                          const errorMessage = error.message || 'Error al subir la imagen. Inténtalo de nuevo.';
+                          setUploadError(errorMessage);
                         } finally {
                           setIsUploading(false);
                         }
@@ -419,7 +443,7 @@ export default function AdminDashboard() {
                     onClick={() => {
                       setShowForm(false);
                       setEditingQuestion(null);
-                      setQuestion({ content: '', option_a: '', option_b: '', option_c: '', correct_answer: '', explanation: '', explanation_image: '' });
+                      setQuestion({ content: '', case: '', option_a: '', option_b: '', option_c: '', correct_answer: '', explanation: '', explanation_image: '' });
                     }}
                     className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
@@ -454,6 +478,11 @@ export default function AdminDashboard() {
                     <div className="flex-grow">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="text-lg font-medium text-gray-900">
+                          {q.case && (
+                            <div className="mb-2 text-sm text-gray-600 font-normal">
+                              <strong>Caso:</strong> {q.case}
+                            </div>
+                          )}
                           {q.content}
                         </h4>
                         <div className="flex items-center space-x-2">

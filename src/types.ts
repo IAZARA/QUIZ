@@ -3,12 +3,14 @@
 // Tipo para las preguntas
 export interface Question {
   _id: string;
+  case?: string; // Caso opcional para proporcionar contexto a la pregunta
   content: string;
   option_a: string;
   option_b: string;
   option_c: string;
   correct_option?: string;
   explanation?: string;
+  explanation_image?: string;
   is_active: boolean;
   votingClosed?: boolean;
   timer?: number;

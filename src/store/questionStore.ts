@@ -6,6 +6,7 @@ import { connectSocket } from '../lib/api';
 interface Question {
   _id: string;
   content: string;
+  case?: string; // Caso o contexto opcional para la pregunta
   option_a: string;
   option_b: string;
   option_c: string;
@@ -22,6 +23,7 @@ interface Question {
 // Tipo para actualizar preguntas (incluye endTime)
 interface QuestionInput {
   content?: string;
+  case?: string;
   option_a?: string;
   option_b?: string;
   option_c?: string;
