@@ -1,11 +1,7 @@
 #!/bin/bash
 
-# Script para desplegar la aplicación Quiz en DigitalOcean
-echo "Preparando la aplicación para despliegue..."
-
-# Construir la aplicación para producción
-echo "Construyendo la aplicación..."
-npm run build
+# Script para desplegar la aplicación Quiz en DigitalOcean usando GitHub
+echo "Preparando instrucciones para despliegue desde GitHub..."
 
 # Crear un archivo para el servicio PM2
 echo "Creando archivo de configuración para PM2..."
@@ -30,28 +26,33 @@ EOL
 
 # Crear un archivo .env para producción
 echo "Creando archivo .env para producción..."
-cat > .env << EOL
+cat > .env.example << EOL
 MONGODB_URI=mongodb://localhost:27017/quiz
 ADMIN_PASSWORD=admin123
 NODE_ENV=production
 PORT=3000
 EOL
 
-# Comprimir todo para subir al servidor
-echo "Comprimiendo archivos para subir al servidor..."
-tar -czf quiz-app.tar.gz dist server package.json package-lock.json ecosystem.config.js .env
+# Subir los cambios a GitHub
+echo "Subiendo los archivos de configuración a GitHub..."
+git add ecosystem.config.js .env.example
+git commit -m "Agregar archivos de configuración para producción"
+git push origin main
 
-echo "Archivo quiz-app.tar.gz listo para subir al servidor."
-echo "Usa el siguiente comando para subir el archivo al servidor:"
-echo "scp quiz-app.tar.gz root@143.244.155.115:/root/"
-
-echo "Luego, conéctate al servidor y ejecuta los siguientes comandos:"
-echo "ssh root@143.244.155.115"
-echo "mkdir -p /var/www/quiz-app"
-echo "tar -xzf quiz-app.tar.gz -C /var/www/quiz-app"
-echo "cd /var/www/quiz-app"
-echo "npm install --production"
-echo "npm install -g pm2"
-echo "pm2 start ecosystem.config.js"
-echo "pm2 save"
-echo "pm2 startup"
+echo "Archivos de configuración subidos a GitHub."
+echo "Para desplegar la aplicación, sigue estos pasos:"
+echo "1. Conéctate al servidor:"
+echo "   ssh root@143.244.155.115"
+echo "2. Clona el repositorio:"
+echo "   git clone https://github.com/IAZARA/QUIZ.git /var/www/quiz-app"
+echo "3. Configura la aplicación:"
+echo "   cd /var/www/quiz-app"
+echo "   cp .env.example .env"
+echo "   npm install"
+echo "4. Construye la aplicación:"
+echo "   npm run build"
+echo "5. Inicia la aplicación:"
+echo "   npm install -g pm2"
+echo "   pm2 start ecosystem.config.js"
+echo "   pm2 save"
+echo "   pm2 startup"

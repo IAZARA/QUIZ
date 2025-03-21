@@ -1,11 +1,15 @@
 #!/bin/bash
 
-# Script para configurar el servidor en DigitalOcean
+# Script para configurar el servidor en DigitalOcean y desplegar desde GitHub
 echo "Configurando el servidor para la aplicación Quiz..."
 
 # Actualizar el sistema
 echo "Actualizando el sistema..."
 apt update && apt upgrade -y
+
+# Instalar Git
+echo "Instalando Git..."
+apt install -y git
 
 # Instalar Node.js y npm
 echo "Instalando Node.js y npm..."
@@ -79,5 +83,40 @@ ufw allow 'Nginx Full'
 ufw allow OpenSSH
 ufw enable
 
-echo "¡Configuración del servidor completada!"
-echo "Ahora puedes desplegar la aplicación siguiendo las instrucciones del script deploy.sh"
+# Clonar el repositorio desde GitHub
+echo "Clonando el repositorio desde GitHub..."
+mkdir -p /var/www
+git clone https://github.com/IAZARA/QUIZ.git /var/www/quiz-app
+
+# Configurar la aplicación
+echo "Configurando la aplicación..."
+cd /var/www/quiz-app
+cp .env.example .env
+npm install
+
+# Construir la aplicación
+echo "Construyendo la aplicación..."
+npm run build
+
+# Crear carpeta de uploads si no existe
+mkdir -p /var/www/quiz-app/uploads
+
+# Iniciar la aplicación con PM2
+echo "Iniciando la aplicación con PM2..."
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup
+
+echo "¡Configuración del servidor y despliegue completados!"
+echo "La aplicación está disponible en: https://iazarate.com"
+
+# Instrucciones para actualizar la aplicación
+echo "
+Para actualizar la aplicación en el futuro, ejecuta:
+
+cd /var/www/quiz-app
+git pull
+npm install
+npm run build
+pm2 restart quiz-app
+"

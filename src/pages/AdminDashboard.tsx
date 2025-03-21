@@ -405,8 +405,11 @@ export default function AdminDashboard() {
                           className="max-h-40 max-w-full object-contain rounded mx-auto"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = 'https://via.placeholder.com/400x200?text=Error+al+cargar+imagen';
-                            target.className = 'max-h-40 max-w-full object-contain rounded mx-auto border border-red-300';
+                            // En lugar de cargar una imagen externa, simplemente ocultamos la imagen y mostramos un mensaje
+                            target.style.display = 'none';
+                            target.parentElement?.insertAdjacentHTML('beforeend', 
+                              '<div class="p-2 text-center text-red-400 border border-red-300 rounded">Error al cargar la imagen</div>'
+                            );
                           }}
                         />
                       </div>

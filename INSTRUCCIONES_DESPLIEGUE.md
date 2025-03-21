@@ -1,29 +1,17 @@
-# Instrucciones para desplegar la aplicación Quiz en DigitalOcean
+# Instrucciones para desplegar la aplicación Quiz en DigitalOcean desde GitHub
 
-Este documento contiene instrucciones paso a paso para desplegar la aplicación Quiz en un droplet de DigitalOcean y configurarla con el dominio iazarate.com.
+Este documento contiene instrucciones paso a paso para desplegar la aplicación Quiz en un droplet de DigitalOcean desde GitHub y configurarla con el dominio iazarate.com.
 
 ## Requisitos previos
 
 - Un droplet de DigitalOcean (ya tienes: 143.244.155.115)
 - Acceso SSH al droplet como usuario root
 - Dominio configurado (iazarate.com)
+- Repositorio GitHub configurado (https://github.com/IAZARA/QUIZ.git)
 
-## Paso 1: Preparar la aplicación para despliegue
+## Opción 1: Despliegue automático (recomendado)
 
-1. Ejecuta el script de despliegue en tu máquina local:
-
-```bash
-cd /Users/macbook/Documents/QUIZ
-./deploy.sh
-```
-
-2. Sube el archivo comprimido al servidor:
-
-```bash
-scp quiz-app.tar.gz root@143.244.155.115:/root/
-```
-
-## Paso 2: Configurar el servidor
+Esta opción utiliza el script de configuración del servidor para automatizar todo el proceso de despliegue.
 
 1. Conéctate al servidor:
 
@@ -31,55 +19,154 @@ scp quiz-app.tar.gz root@143.244.155.115:/root/
 ssh root@143.244.155.115
 ```
 
-2. Sube el script de configuración del servidor:
+2. Descarga el script de configuración del servidor directamente desde GitHub:
 
 ```bash
-scp server-setup.sh root@143.244.155.115:/root/
+curl -O https://raw.githubusercontent.com/IAZARA/QUIZ/main/server-setup.sh
+chmod +x server-setup.sh
 ```
 
 3. Ejecuta el script de configuración del servidor:
 
 ```bash
-chmod +x server-setup.sh
 ./server-setup.sh
 ```
 
-Este script realizará las siguientes acciones:
+Este script realizará automáticamente todas las siguientes acciones:
 - Actualizar el sistema
-- Instalar Node.js y npm
+- Instalar Git, Node.js y npm
 - Instalar MongoDB
 - Instalar PM2 (gestor de procesos para Node.js)
 - Instalar y configurar Nginx
 - Configurar HTTPS con Let's Encrypt
 - Configurar el firewall
+- Clonar el repositorio desde GitHub
+- Configurar y construir la aplicación
+- Iniciar la aplicación con PM2
 
-## Paso 3: Desplegar la aplicación
+## Opción 2: Despliegue manual paso a paso
 
-1. Crea el directorio para la aplicación:
+Si prefieres tener más control sobre el proceso de despliegue, puedes seguir estos pasos manualmente.
+
+### Paso 1: Configurar el servidor
+
+1. Conéctate al servidor:
 
 ```bash
-mkdir -p /var/www/quiz-app
+ssh root@143.244.155.115
 ```
 
-2. Extrae el archivo comprimido:
+2. Actualiza el sistema e instala las dependencias necesarias:
 
 ```bash
-tar -xzf quiz-app.tar.gz -C /var/www/quiz-app
+apt update && apt upgrade -y
+apt install -y git curl
 ```
 
-3. Instala las dependencias:
+3. Instala Node.js y npm:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt install -y nodejs
+```
+
+4. Instala MongoDB:
+
+```bash
+apt install -y gnupg
+curl -fsSL https://pgp.mongodb.com/server-6.0.asc | gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+apt update
+apt install -y mongodb-org
+systemctl start mongod
+systemctl enable mongod
+```
+
+5. Instala PM2 globalmente:
+
+```bash
+npm install -g pm2
+```
+
+6. Instala y configura Nginx:
+
+```bash
+apt install -y nginx
+```
+
+### Paso 2: Desplegar la aplicación desde GitHub
+
+1. Clona el repositorio:
+
+```bash
+mkdir -p /var/www
+git clone https://github.com/IAZARA/QUIZ.git /var/www/quiz-app
+```
+
+2. Configura la aplicación:
 
 ```bash
 cd /var/www/quiz-app
-npm install --production
+cp .env.example .env
+npm install
 ```
 
-4. Inicia la aplicación con PM2:
+3. Construye la aplicación:
+
+```bash
+npm run build
+```
+
+4. Crea la carpeta de uploads si no existe:
+
+```bash
+mkdir -p /var/www/quiz-app/uploads
+```
+
+5. Inicia la aplicación con PM2:
 
 ```bash
 pm2 start ecosystem.config.js
 pm2 save
 pm2 startup
+```
+
+### Paso 3: Configurar Nginx y HTTPS
+
+1. Crea la configuración de Nginx para la aplicación:
+
+```bash
+cat > /etc/nginx/sites-available/quiz-app << EOL
+server {
+    listen 80;
+    server_name iazarate.com www.iazarate.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
+EOL
+```
+
+2. Habilita el sitio y reinicia Nginx:
+
+```bash
+ln -s /etc/nginx/sites-available/quiz-app /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+nginx -t
+systemctl restart nginx
+```
+
+3. Configura HTTPS con Let's Encrypt:
+
+```bash
+apt install -y certbot python3-certbot-nginx
+certbot --nginx -d iazarate.com -d www.iazarate.com --non-interactive --agree-tos --email admin@iazarate.com
 ```
 
 ## Paso 4: Verificar la instalación

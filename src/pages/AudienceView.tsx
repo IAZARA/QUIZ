@@ -380,8 +380,11 @@ export default function AudienceView() {
                             className="max-w-full rounded-lg shadow-lg border border-white/10 object-contain max-h-[300px] mx-auto"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
-                              target.src = 'https://via.placeholder.com/400x200?text=Error+al+cargar+imagen';
-                              target.className = 'max-w-full rounded-lg shadow-lg border border-red-400/30 object-contain max-h-[300px] mx-auto';
+                              // En lugar de cargar una imagen externa, simplemente ocultamos la imagen y mostramos un mensaje
+                              target.style.display = 'none';
+                              target.parentElement?.insertAdjacentHTML('beforeend', 
+                                '<div class="p-4 text-center text-red-400 border border-red-400/30 rounded-lg">Error al cargar la imagen</div>'
+                              );
                             }}
                           />
                         </div>
