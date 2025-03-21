@@ -19,14 +19,33 @@ export default function AudienceView() {
     }
   }, [initialized, isConnecting]);
 
+  // Cargar estado de voto desde localStorage cuando cambia la pregunta
+  useEffect(() => {
+    if (currentQuestion) {
+      const hasVotedInStorage = localStorage.getItem('hasVoted_' + currentQuestion._id) === 'true';
+      const selectedOptionInStorage = localStorage.getItem('selectedOption_' + currentQuestion._id);
+      
+      console.log('Estado de voto cargado:', {
+        id: currentQuestion._id,
+        hasVotedInStorage,
+        selectedOptionInStorage,
+        correct_option: currentQuestion.correct_option
+      });
+      
+      if (hasVotedInStorage && selectedOptionInStorage) {
+        setHasVoted(true);
+        setSelectedOption(selectedOptionInStorage);
+      } else {
+        setHasVoted(false);
+        setSelectedOption(null);
+      }
+    }
+  }, [currentQuestion?._id, currentQuestion?.correct_option]);
+
   // Reiniciar el estado de selección y voto cuando cambia la pregunta activa o su estado
   useEffect(() => {
-    // Reiniciar el estado cuando:
-    // 1. Cambia la pregunta (nuevo ID o nueva instancia)
-    // 2. La pregunta cambia de estado (is_active cambia)
-    // 3. La votación se abre nuevamente (votingClosed cambia)
-    setSelectedOption(null);
-    setHasVoted(false);
+    // Este efecto se mantiene por compatibilidad, pero ahora el estado principal viene del localStorage
+    // y se controla en el efecto de arriba
   }, [currentQuestion?._id, currentQuestion?.is_active, currentQuestion?.votingClosed]);
 
   // Ya no necesitamos este efecto porque el temporizador se maneja en el store
@@ -58,9 +77,26 @@ export default function AudienceView() {
     // - La votación no debe estar cerrada
     if (!currentQuestion || hasVoted || !currentQuestion.is_active || currentQuestion.votingClosed) return;
 
+    // Guardar el estado de voto en localStorage inmediatamente
+    localStorage.setItem('hasVoted_' + currentQuestion._id, 'true');
+    localStorage.setItem('selectedOption_' + currentQuestion._id, option);
+    
+    // Actualizar el estado local
     setSelectedOption(option);
     setHasVoted(true);
-    await submitVote(currentQuestion._id, option);
+    
+    console.log('Voto registrado localmente:', {
+      id: currentQuestion._id,
+      selectedOption: option,
+      hasVoted: true
+    });
+    
+    try {
+      await submitVote(currentQuestion._id, option);
+    } catch (error) {
+      console.error('Error al enviar voto al servidor:', error);
+      // Incluso si falla, mantenemos el voto local
+    }
   };
 
   const calculateStats = () => {
@@ -363,68 +399,69 @@ export default function AudienceView() {
               )}
 
               {(currentQuestion.votingClosed || !currentQuestion.is_active) && currentQuestion.correct_option && (
-                <div className="bg-gradient-to-br from-green-900/40 to-green-800/20 border-2 border-green-400/50 rounded-lg p-6 mt-6 animate-fadeIn relative overflow-hidden shadow-lg shadow-green-500/10">
-                  <div className="absolute -inset-2 bg-green-500/10 blur-xl"></div>
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-green-300"></div>
-                  <div className="absolute -top-10 -right-10 w-20 h-20 bg-green-400/20 blur-2xl rounded-full"></div>
-                  <div className="text-green-300 font-bold mb-3 text-xl flex items-center relative z-10">
-                    <div className="bg-green-500 rounded-full p-2 mr-3 shadow-lg shadow-green-500/20">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    
-                    {/* Mensaje personalizado basado en si el usuario contestó correctamente o no */}
-                    {hasVoted && selectedOption !== currentQuestion.correct_option ? (
-                      <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-300 to-red-100">
-                        <span className="text-red-300">X Incorrecto.</span> La respuesta correcta es la opción {currentQuestion.correct_option}
-                      </span>
-                    ) : (
+                <>
+                  {/* Mensaje completamente separado de la tarjeta verde */}
+                  <div className={`w-80 mx-auto text-center py-4 px-8 rounded-full font-bold text-xl shadow-xl mb-5 ${
+                    (!hasVoted && !selectedOption) ? 'bg-blue-500 text-white shadow-blue-500/50' :
+                    (selectedOption?.toUpperCase() === currentQuestion.correct_option?.toUpperCase()
+                      ? 'bg-green-500 text-white shadow-green-500/50' 
+                      : 'bg-red-500 text-white shadow-red-500/50')
+                  }`}>
+                    {(!hasVoted && !selectedOption) 
+                      ? 'Resultado de la pregunta' 
+                      : (selectedOption?.toUpperCase() === currentQuestion.correct_option?.toUpperCase()
+                          ? 'Tu respuesta es correcta' 
+                          : 'Tu respuesta es incorrecta')
+                    }
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-full"></div>
+                  </div>
+                
+                  <div className="bg-gradient-to-br from-green-900/40 to-green-800/20 border-2 border-green-400/50 rounded-lg p-6 animate-fadeIn relative overflow-hidden shadow-lg shadow-green-500/10">
+                    <div className="absolute -inset-2 bg-green-500/10 blur-xl"></div>
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-green-300"></div>
+                    <div className="absolute -top-10 -right-10 w-20 h-20 bg-green-400/20 blur-2xl rounded-full"></div>
+                    <div className="text-green-300 font-bold mb-3 text-xl flex items-center relative z-10">
+                      <div className="bg-green-500 rounded-full p-2 mr-3 shadow-lg shadow-green-500/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
                       <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-green-100">
                         La respuesta correcta es la opción {currentQuestion.correct_option}
                       </span>
+                    </div>
+                    {(currentQuestion.explanation || currentQuestion.explanation_image) && (
+                      <div className="text-green-200 mt-4 bg-green-900/20 p-6 rounded-lg border border-green-400/30 relative overflow-hidden">
+                        <div className="absolute -inset-2 bg-gradient-to-r from-green-500/10 to-blue-500/10 blur-xl"></div>
+                        <div className="relative z-10">
+                          <div className="font-bold text-xl mb-3 bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-blue-300">Explicación:</div>
+                          
+                          {currentQuestion.explanation && (
+                            <div className="text-white/90 leading-relaxed mb-4">
+                              {typeof currentQuestion.explanation === 'object' 
+                                ? JSON.stringify(currentQuestion.explanation) 
+                                : String(currentQuestion.explanation)}
+                            </div>
+                          )}
+                          {currentQuestion.explanation_image && (
+                            <div className="mt-4">
+                              <img 
+                                src={currentQuestion.explanation_image} 
+                                alt="Imagen explicativa" 
+                                className="max-w-full rounded-lg shadow-lg border border-white/10 object-contain max-h-[300px] mx-auto"
+                                onError={(e) => {
+                                  // Solo ocultar la imagen sin mostrar mensaje de error
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
-                  {(currentQuestion.explanation || currentQuestion.explanation_image) && (
-                    <div className="text-green-200 mt-4 bg-green-900/20 p-6 rounded-lg border border-green-400/30 relative overflow-hidden">
-                      <div className="absolute -inset-2 bg-gradient-to-r from-green-500/10 to-blue-500/10 blur-xl"></div>
-                      <div className="relative z-10">
-                        <div className="font-bold text-xl mb-3 bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-blue-300">Explicación:</div>
-                        
-                        {/* Mensaje destacado para respuesta incorrecta del usuario */}
-                        {hasVoted && selectedOption !== currentQuestion.correct_option && (
-                          <div className="mb-4 p-3 bg-red-500/20 border-l-4 border-red-500 rounded-r-lg">
-                            <p className="text-red-200 font-medium">
-                              Has seleccionado la opción {selectedOption}, que es incorrecta. La opción correcta es la {currentQuestion.correct_option}.
-                            </p>
-                          </div>
-                        )}
-                        
-                        {currentQuestion.explanation && (
-                          <div className="text-white/90 leading-relaxed mb-4">
-                            {typeof currentQuestion.explanation === 'object' 
-                              ? JSON.stringify(currentQuestion.explanation) 
-                              : String(currentQuestion.explanation)}
-                          </div>
-                        )}
-                        {currentQuestion.explanation_image && (
-                          <div className="mt-4">
-                            <img 
-                              src={currentQuestion.explanation_image} 
-                              alt="Imagen explicativa" 
-                              className="max-w-full rounded-lg shadow-lg border border-white/10 object-contain max-h-[300px] mx-auto"
-                              onError={(e) => {
-                                // Solo ocultar la imagen sin mostrar mensaje de error
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                </>
               )}
 
               {showResults && (

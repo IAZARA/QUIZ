@@ -36,29 +36,37 @@ interface QuestionInput {
   votingClosed?: boolean;
 }
 
-interface QuestionState {
+interface Votes {
+  [key: string]: number;
+}
+
+export interface QuestionState {
   questions: Question[];
   currentQuestion: Question | null;
-  votes: Record<string, number>;
+  votes: Votes;
+  hasVoted: boolean;
+  selectedOption: string | null;
   timeRemaining: number | null;
+  initialized: boolean;
   loading: boolean;
   error: string | null;
-  initialized: boolean;
-  // Acciones
+  
+  // Funciones
   initialize: () => Promise<void>;
-  setCurrentQuestion: (question: Question | null) => void;
   createQuestion: (question: Omit<Question, '_id' | 'is_active' | 'created_at'>) => Promise<void>;
-  updateQuestion: (id: string, question: QuestionInput) => Promise<void>;
-  startVoting: (questionId: string) => Promise<void>;
-  stopVoting: (questionId: string, correctOption: string) => Promise<void>;
-  closeVoting: (questionId: string) => Promise<void>;
+  updateQuestion: (id: string, updates: Partial<Question>) => Promise<void>;
+  deleteQuestion: (id: string) => Promise<void>;
+  startVoting: (id: string) => Promise<void>;
+  stopVoting: (id: string, correctOption?: string) => Promise<void>;
+  closeVoting: (id: string) => Promise<void>;
   submitVote: (questionId: string, option: string) => Promise<void>;
-  deleteQuestion: (questionId: string) => Promise<void>;
-  updateQuestionTimer: (questionId: string, timer: number) => Promise<void>;
+  setHasVoted: (value: boolean) => void;
+  setSelectedOption: (option: string | null) => void;
+  updateQuestionTimer: (id: string, seconds: number) => Promise<void>;
   setTimeRemaining: (time: number | null) => void;
   checkTimeRemaining: () => void;
   fetchActiveQuestion: () => Promise<void>;
-  clearView: () => Promise<void>; // Nueva función para limpiar la vista
+  clearView: () => Promise<void>;
 }
 
 // Crear el store
@@ -108,6 +116,10 @@ export const useQuestionStore = create<QuestionState>()((set, get) => {
     
     // Cuando comienza una votación
     socket.on('voting_started', ({ question, votes }: { question: Question, votes: { total: number, counts: Record<string, number> } }) => {
+      // Verificar si el usuario ya ha votado para esta pregunta
+      const hasVoted = localStorage.getItem('hasVoted_' + question._id) === 'true';
+      const selectedOption = localStorage.getItem('selectedOption_' + question._id);
+      
       set(state => ({
         currentQuestion: question,
         votes: votes.counts,
@@ -115,7 +127,10 @@ export const useQuestionStore = create<QuestionState>()((set, get) => {
         // Actualizar también la lista de preguntas para reflejar el cambio de estado
         questions: state.questions.map(q => 
           q._id === question._id ? { ...q, is_active: true, votingClosed: false } : q
-        )
+        ),
+        // Recuperar estado de voto para esta pregunta si existe
+        hasVoted: hasVoted,
+        selectedOption: selectedOption
       }));
       
       // Iniciar el temporizador también para los clientes de la audiencia
@@ -148,26 +163,35 @@ export const useQuestionStore = create<QuestionState>()((set, get) => {
     
     // Cuando se detiene una votación y se establece la respuesta correcta
     socket.on('voting_stopped', ({ question, votes }: { question: Question, votes: { total: number, counts: Record<string, number> } }) => {
+      // Verificar si el usuario ya ha votado para esta pregunta
+      const hasVoted = localStorage.getItem('hasVoted_' + question._id) === 'true';
+      const selectedOption = localStorage.getItem('selectedOption_' + question._id);
+      
       // Asegurarnos de que tenemos toda la información de la pregunta, incluida la explicación
       set(state => {
-        // Buscar la pregunta original para obtener la explicación si no viene en el evento
-        const originalQuestion = state.questions.find(q => q._id === question._id);
-        const mergedQuestion = {
-          ...originalQuestion,
-          ...question,
-          // Asegurarnos de que estos campos estén correctamente establecidos
-          is_active: false,
-          votingClosed: true
-        };
+        // Encontrar la pregunta completa en el estado
+        const existingQuestion = state.questions.find(q => q._id === question._id);
         
         return {
-          currentQuestion: mergedQuestion,
+          currentQuestion: {
+            ...question,
+            // Asegurarnos de que la explicación se mantiene si existe
+            explanation: question.explanation || existingQuestion?.explanation,
+            explanation_image: question.explanation_image || existingQuestion?.explanation_image,
+          },
           votes: votes.counts,
           timeRemaining: null,
           // Actualizar también la lista de preguntas para reflejar el cambio de estado
           questions: state.questions.map(q => 
-            q._id === question._id ? mergedQuestion : q
-          )
+            q._id === question._id ? { 
+              ...q, 
+              votingClosed: true, 
+              correct_option: question.correct_option 
+            } : q
+          ),
+          // Recuperar estado de voto para esta pregunta si existe
+          hasVoted: hasVoted,
+          selectedOption: selectedOption
         };
       });
     });
@@ -186,6 +210,8 @@ export const useQuestionStore = create<QuestionState>()((set, get) => {
     questions: [],
     currentQuestion: null,
     votes: {},
+    hasVoted: false,
+    selectedOption: null,
     timeRemaining: null,
     loading: false,
     error: null,
@@ -259,18 +285,17 @@ export const useQuestionStore = create<QuestionState>()((set, get) => {
     },
     
     // Establecer la pregunta actual
-    setCurrentQuestion: (question) => set({ currentQuestion: question }),
+    setCurrentQuestion: (question: Question | null) => set({ currentQuestion: question }),
     
     // Crear una nueva pregunta
     createQuestion: async (question) => {
       set({ loading: true, error: null });
       try {
-        const newQuestion = await api.createQuestion(question);
-        set(state => ({ 
-          questions: [...state.questions, newQuestion],
-          loading: false
-        }));
-        return newQuestion;
+        // Llamar a la API para crear la pregunta
+        await api.createQuestion(question);
+        // No actualizamos el estado aquí, ya que se actualizará a través del evento socket.io
+        set({ loading: false });
+        // Ya no retornamos la nueva pregunta
       } catch (error) {
         console.error('Error al crear pregunta:', error);
         set({ error: 'Error al crear la pregunta', loading: false });
@@ -279,10 +304,10 @@ export const useQuestionStore = create<QuestionState>()((set, get) => {
     },
     
     // Actualizar una pregunta
-    updateQuestion: async (id, questionUpdate) => {
+    updateQuestion: async (id, updates) => {
       set({ loading: true, error: null });
       try {
-        const updatedQuestion = await api.updateQuestion(id, questionUpdate);
+        const updatedQuestion = await api.updateQuestion(id, updates);
         set(state => {
           // Actualizar la pregunta en la lista de preguntas
           const updatedQuestions = state.questions.map(q =>
@@ -454,11 +479,17 @@ export const useQuestionStore = create<QuestionState>()((set, get) => {
       try {
         const result = await api.submitVote(questionId, option);
         
-        // Actualizar los votos en el estado
+        // Actualizar los votos en el estado y marcar que el usuario ha votado
         set(state => ({
           loading: false,
-          votes: { ...state.votes, ...result.votes.counts }
+          votes: { ...state.votes, ...result.votes.counts },
+          hasVoted: true,
+          selectedOption: option
         }));
+        
+        // Guardar en localStorage para persistencia entre recargas
+        localStorage.setItem('hasVoted_' + questionId, 'true');
+        localStorage.setItem('selectedOption_' + questionId, option);
         
         return result;
       } catch (error) {
@@ -533,6 +564,12 @@ export const useQuestionStore = create<QuestionState>()((set, get) => {
       } catch (error) {
         console.error('Error al limpiar la vista:', error);
       }
-    }
+    },
+    
+    // Establecer el estado hasVoted
+    setHasVoted: (value) => set({ hasVoted: value }),
+    
+    // Establecer la opción seleccionada
+    setSelectedOption: (option) => set({ selectedOption: option }),
   };
 });
