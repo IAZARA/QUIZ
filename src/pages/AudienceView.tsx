@@ -379,12 +379,9 @@ export default function AudienceView() {
                             alt="Imagen explicativa" 
                             className="max-w-full rounded-lg shadow-lg border border-white/10 object-contain max-h-[300px] mx-auto"
                             onError={(e) => {
+                              // Solo ocultar la imagen sin mostrar mensaje de error
                               const target = e.target as HTMLImageElement;
-                              // En lugar de cargar una imagen externa, simplemente ocultamos la imagen y mostramos un mensaje
                               target.style.display = 'none';
-                              target.parentElement?.insertAdjacentHTML('beforeend', 
-                                '<div class="p-4 text-center text-red-400 border border-red-400/30 rounded-lg">Error al cargar la imagen</div>'
-                              );
                             }}
                           />
                         </div>
