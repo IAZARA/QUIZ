@@ -402,16 +402,33 @@ export default function AudienceView() {
                 <>
                   {/* Mensaje completamente separado de la tarjeta verde */}
                   <div className={`w-80 mx-auto text-center py-4 px-8 rounded-full font-bold text-xl shadow-xl mb-5 ${
-                    (!hasVoted && !selectedOption) ? 'bg-blue-500 text-white shadow-blue-500/50' :
-                    (selectedOption?.toUpperCase() === currentQuestion.correct_option?.toUpperCase()
-                      ? 'bg-green-500 text-white shadow-green-500/50' 
-                      : 'bg-red-500 text-white shadow-red-500/50')
+                    // Si hay votos (especialmente si solo hay una opción con votos), podemos determinar si el usuario votó
+                    // y si votó correcta o incorrectamente
+                    Object.keys(votes).length > 0 && Object.entries(votes).some(([option, count]) => 
+                      count > 0 && option.toUpperCase() !== currentQuestion.correct_option?.toUpperCase())
+                      ? 'bg-red-500 text-white shadow-red-500/50' 
+                      : Object.keys(votes).length > 0 && Object.entries(votes).some(([option, count]) => 
+                        count > 0 && option.toUpperCase() === currentQuestion.correct_option?.toUpperCase())
+                        ? 'bg-green-500 text-white shadow-green-500/50'
+                        : (!hasVoted && !selectedOption)
+                          ? 'bg-blue-500 text-white shadow-blue-500/50'
+                          : (selectedOption?.toUpperCase() === currentQuestion.correct_option?.toUpperCase()
+                            ? 'bg-green-500 text-white shadow-green-500/50' 
+                            : 'bg-red-500 text-white shadow-red-500/50')
                   }`}>
-                    {(!hasVoted && !selectedOption) 
-                      ? 'Resultado de la pregunta' 
-                      : (selectedOption?.toUpperCase() === currentQuestion.correct_option?.toUpperCase()
-                          ? 'Tu respuesta es correcta' 
-                          : 'Tu respuesta es incorrecta')
+                    {
+                      // Mismo patrón para el texto que mostramos
+                      Object.keys(votes).length > 0 && Object.entries(votes).some(([option, count]) => 
+                        count > 0 && option.toUpperCase() !== currentQuestion.correct_option?.toUpperCase())
+                        ? 'Tu respuesta es incorrecta'
+                        : Object.keys(votes).length > 0 && Object.entries(votes).some(([option, count]) => 
+                          count > 0 && option.toUpperCase() === currentQuestion.correct_option?.toUpperCase())
+                          ? 'Tu respuesta es correcta'
+                          : (!hasVoted && !selectedOption)
+                            ? 'Resultado de la pregunta'
+                            : (selectedOption?.toUpperCase() === currentQuestion.correct_option?.toUpperCase()
+                                ? 'Tu respuesta es correcta' 
+                                : 'Tu respuesta es incorrecta')
                     }
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-full"></div>
                   </div>
