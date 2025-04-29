@@ -1,575 +1,373 @@
 import { create } from 'zustand';
-import * as api from '../lib/api';
-import { connectSocket } from '../lib/api';
+import { QuestionState, Question, Votes } from '../types';
+import io from 'socket.io-client';
+import { useQuizConfigStore } from './quizConfigStore';
 
-// Definición de tipos
-interface Question {
-  _id: string;
-  content: string;
-  case?: string; // Caso o contexto opcional para la pregunta
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  correct_option?: string;
-  explanation?: string;
-  explanation_image?: string; // URL de la imagen para la explicación
-  is_active: boolean;
-  timer?: number;
-  endTime?: Date | null;
-  votingClosed?: boolean;
-  created_at?: Date;
-}
+let socket: ReturnType<typeof io> | null = null;
 
-// Tipo para actualizar preguntas (incluye endTime)
-interface QuestionInput {
-  content?: string;
-  case?: string;
-  option_a?: string;
-  option_b?: string;
-  option_c?: string;
-  correct_option?: string;
-  explanation?: string;
-  explanation_image?: string;
-  is_active?: boolean;
-  timer?: number;
-  endTime?: Date | null;
-  votingClosed?: boolean;
-}
-
-interface Votes {
-  [key: string]: number;
-}
-
-export interface QuestionState {
-  questions: Question[];
-  currentQuestion: Question | null;
-  votes: Votes;
-  hasVoted: boolean;
-  selectedOption: string | null;
-  timeRemaining: number | null;
-  initialized: boolean;
-  loading: boolean;
-  error: string | null;
+export const useQuestionStore = create<QuestionState>((set, get) => ({
+  questions: [],
+  currentQuestion: null,
+  votes: { a: 0, b: 0, c: 0 },
+  hasVoted: false,
+  timeRemaining: null,
+  initialized: false,
   
-  // Funciones
-  initialize: () => Promise<void>;
-  createQuestion: (question: Omit<Question, '_id' | 'is_active' | 'created_at'>) => Promise<void>;
-  updateQuestion: (id: string, updates: Partial<Question>) => Promise<void>;
-  deleteQuestion: (id: string) => Promise<void>;
-  startVoting: (id: string) => Promise<void>;
-  stopVoting: (id: string, correctOption?: string) => Promise<void>;
-  closeVoting: (id: string) => Promise<void>;
-  submitVote: (questionId: string, option: string) => Promise<void>;
-  setHasVoted: (value: boolean) => void;
-  setSelectedOption: (option: string | null) => void;
-  updateQuestionTimer: (id: string, seconds: number) => Promise<void>;
-  setTimeRemaining: (time: number | null) => void;
-  checkTimeRemaining: () => void;
-  fetchActiveQuestion: () => Promise<void>;
-  clearView: () => Promise<void>;
-}
-
-// Crear el store
-export const useQuestionStore = create<QuestionState>()((set, get) => {
-  // Inicializar socket.io
-  const socket = connectSocket();
+  initialize: async () => {
+    try {
+      if (!socket) {
+        // Conectar al servidor Socket.io usando el proxy
+        socket = io({
+          path: '/socket.io',
+          autoConnect: true,
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+        });
   
   // Configurar listeners de socket
-  if (socket) {
-    // Cuando se limpia la vista
-    socket.on('clear_view', () => {
-      set({
-        currentQuestion: null,
-        votes: {},
-        timeRemaining: null
-      });
-    });
-    
-    // Cuando se crea una nueva pregunta
-    socket.on('question_created', (question: Question) => {
-      set(state => ({
-        questions: [...state.questions, question]
+        socket.on('question_created', (newQuestion: Question) => {
+          set((state) => ({
+            ...state,
+            questions: [newQuestion, ...state.questions]
       }));
     });
     
-    // Cuando se actualiza una pregunta
     socket.on('question_updated', (updatedQuestion: Question) => {
-      set(state => ({
+          set((state) => ({
+            ...state,
         questions: state.questions.map(q => 
           q._id === updatedQuestion._id ? updatedQuestion : q
         ),
-        currentQuestion: state.currentQuestion?._id === updatedQuestion._id 
-          ? updatedQuestion 
-          : state.currentQuestion
+            currentQuestion: state.currentQuestion?._id === updatedQuestion._id ? 
+              updatedQuestion : state.currentQuestion
       }));
     });
     
-    // Cuando se elimina una pregunta
-    socket.on('question_deleted', (questionId: string) => {
-      set(state => ({
-        questions: state.questions.filter(q => q._id !== questionId),
-        currentQuestion: state.currentQuestion?._id === questionId 
-          ? null 
-          : state.currentQuestion
+        socket.on('question_deleted', (id: string) => {
+          set((state) => ({
+            ...state,
+            questions: state.questions.filter(q => q._id !== id),
+            currentQuestion: state.currentQuestion?._id === id ? null : state.currentQuestion
       }));
     });
     
-    // Cuando comienza una votación
-    socket.on('voting_started', ({ question, votes }: { question: Question, votes: { total: number, counts: Record<string, number> } }) => {
-      // Verificar si el usuario ya ha votado para esta pregunta
-      const hasVoted = localStorage.getItem('hasVoted_' + question._id) === 'true';
-      const selectedOption = localStorage.getItem('selectedOption_' + question._id);
-      
-      set(state => ({
-        currentQuestion: question,
-        votes: votes.counts,
-        timeRemaining: question.timer || null,
-        // Actualizar también la lista de preguntas para reflejar el cambio de estado
-        questions: state.questions.map(q => 
-          q._id === question._id ? { ...q, is_active: true, votingClosed: false } : q
-        ),
-        // Recuperar estado de voto para esta pregunta si existe
-        hasVoted: hasVoted,
-        selectedOption: selectedOption
-      }));
-      
-      // Iniciar el temporizador también para los clientes de la audiencia
-      if (question.timer) {
-        const timerInterval = setInterval(() => {
-          const currentTimeRemaining = get().timeRemaining;
-          
-          if (currentTimeRemaining === null || currentTimeRemaining <= 0) {
-            clearInterval(timerInterval);
-            return;
-          }
-          
-          set({ timeRemaining: currentTimeRemaining - 1 });
-        }, 1000);
-      }
-    });
-    
-    // Cuando se cierra una votación
-    socket.on('voting_closed', ({ question, votes }: { question: Question, votes: { total: number, counts: Record<string, number> } }) => {
-      set(state => ({
-        currentQuestion: question,
-        votes: votes.counts,
-        timeRemaining: null,
-        // Actualizar también la lista de preguntas para reflejar el cambio de estado
-        questions: state.questions.map(q => 
-          q._id === question._id ? { ...q, votingClosed: true } : q
-        )
-      }));
-    });
-    
-    // Cuando se detiene una votación y se establece la respuesta correcta
-    socket.on('voting_stopped', ({ question, votes }: { question: Question, votes: { total: number, counts: Record<string, number> } }) => {
-      // Verificar si el usuario ya ha votado para esta pregunta
-      const hasVoted = localStorage.getItem('hasVoted_' + question._id) === 'true';
-      const selectedOption = localStorage.getItem('selectedOption_' + question._id);
-      
-      // Asegurarnos de que tenemos toda la información de la pregunta, incluida la explicación
-      set(state => {
-        // Encontrar la pregunta completa en el estado
-        const existingQuestion = state.questions.find(q => q._id === question._id);
+        socket.on('voting_started', (data: { question: Question, votes: { total: number, counts: Record<string, number> } }) => {
+          const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
+          set({
+            currentQuestion: data.question,
+            votes: votesData,
+            hasVoted: false,
+            timeRemaining: data.question.timer || 30
+          });
+        });
         
-        return {
-          currentQuestion: {
-            ...question,
-            // Asegurarnos de que la explicación se mantiene si existe
-            explanation: question.explanation || existingQuestion?.explanation,
-            explanation_image: question.explanation_image || existingQuestion?.explanation_image,
-          },
-          votes: votes.counts,
-          timeRemaining: null,
-          // Actualizar también la lista de preguntas para reflejar el cambio de estado
-          questions: state.questions.map(q => 
-            q._id === question._id ? { 
-              ...q, 
-              votingClosed: true, 
-              correct_option: question.correct_option 
-            } : q
-          ),
-          // Recuperar estado de voto para esta pregunta si existe
-          hasVoted: hasVoted,
-          selectedOption: selectedOption
-        };
+        socket.on('voting_stopped', (data: { question: Question, votes: { total: number, counts: Record<string, number> } }) => {
+          const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
+          set({
+            currentQuestion: data.question,
+            votes: votesData,
+            timeRemaining: null
+          });
+        });
+    
+        socket.on('voting_closed', (data: { question: Question, votes: { total: number, counts: Record<string, number> } }) => {
+          const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
+          set({
+            currentQuestion: data.question,
+            votes: votesData,
+            timeRemaining: null
+          });
+        });
+    
+        socket.on('vote_submitted', (data: { question_id: string, votes: { total: number, counts: Record<string, number> } }) => {
+          set((state) => {
+            if (state.currentQuestion?._id === data.question_id) {
+              const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
+              return {
+                ...state,
+                votes: votesData
+              };
+            }
+            return state;
+          });
+        });
+        
+        socket.on('clear_view', () => {
+          set({
+            currentQuestion: null,
+            votes: { a: 0, b: 0, c: 0 },
+            hasVoted: false,
+            timeRemaining: null
       });
     });
     
-    // Cuando se recibe un nuevo voto
-    socket.on('vote_submitted', ({ question_id, votes }: { question_id: string, votes: { total: number, counts: Record<string, number> } }) => {
-      const { currentQuestion } = get();
-      if (currentQuestion && currentQuestion._id === question_id) {
-        set({ votes: votes.counts });
+        socket.on('quiz_config_updated', () => {
+          // Actualizar la configuración global
+          useQuizConfigStore.getState().getConfig();
+        });
       }
-    });
-  }
-  
-  return {
-    // Estado
-    questions: [],
-    currentQuestion: null,
-    votes: {},
-    hasVoted: false,
-    selectedOption: null,
-    timeRemaining: null,
-    loading: false,
-    error: null,
-    initialized: false,
-    
-    // Inicializar el store
-    initialize: async () => {
-      if (get().initialized) return;
       
-      set({ loading: true, error: null });
-      try {
-        // Cargar preguntas y eliminar duplicados
-        const allQuestions = await api.getQuestions();
-        
-        // Eliminar posibles duplicados por ID
-        const uniqueQuestions = [];
-        const seenIds = new Set();
-        
-        for (const q of allQuestions) {
-          if (!seenIds.has(q._id)) {
-            seenIds.add(q._id);
-            uniqueQuestions.push(q);
-          } else {
-            console.warn(`Pregunta duplicada detectada con ID: ${q._id}`);
-          }
-        }
-        
-        // Cargar pregunta activa y votos
-        const { question, votes } = await api.getActiveQuestion();
+      // Obtener todas las preguntas
+      const response = await fetch('/api/questions');
+      if (!response.ok) throw new Error('Error al cargar preguntas');
+      const questions: Question[] = await response.json();
+      
+      // Obtener pregunta activa
+      const activeResponse = await fetch('/api/questions/active');
+      if (!activeResponse.ok) throw new Error('Error al cargar pregunta activa');
+      const activeData = await activeResponse.json();
+      
+      const votesData: Votes = { a: 0, b: 0, c: 0, ...(activeData.votes?.counts || {}) };
         
         set({ 
-          questions: uniqueQuestions, 
-          currentQuestion: question, 
-          votes: votes?.counts || {},
-          timeRemaining: question?.timer ? question.timer : null,
-          initialized: true,
-          loading: false 
-        });
+        questions, 
+        currentQuestion: activeData.question,
+        votes: votesData,
+        timeRemaining: activeData.question?.timer || null,
+        initialized: true
+      });
         
-        // Si hay una pregunta activa con temporizador, iniciar el temporizador
-        if (question?.timer && question.is_active && !question.votingClosed) {
-          const checkInterval = setInterval(() => {
-            get().checkTimeRemaining();
-          }, 1000);
-          
-          setTimeout(() => {
-            clearInterval(checkInterval);
-          }, (question.timer * 1000) + 1000);
+      // Iniciar el temporizador si hay uno configurado
+      if (activeData.question?.timer && !activeData.question.votingClosed) {
+        const endTime = new Date(activeData.question.endTime);
+        const now = new Date();
+        const remainingMilliseconds = Math.max(0, endTime.getTime() - now.getTime());
+        set({ timeRemaining: Math.ceil(remainingMilliseconds / 1000) });
         }
       } catch (error) {
-        console.error('Error al inicializar:', error);
-        set({ error: 'Error al cargar los datos', loading: false });
-      }
-    },
+      console.error('Error initializing store:', error);
+      throw error;
+    }
+  },
     
-    // Obtener la pregunta activa
-    fetchActiveQuestion: async () => {
-      set({ loading: true, error: null });
-      try {
-        const { question, votes } = await api.getActiveQuestion();
-        set({ 
-          currentQuestion: question, 
-          votes: votes?.counts || {},
-          timeRemaining: question?.timer ? question.timer : null,
-          loading: false 
-        });
+  createQuestion: async (question) => {
+    try {
+      const response = await fetch('/api/questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(question),
+      });
+      
+      if (!response.ok) throw new Error('Error creating question');
+      
+      const newQuestion = await response.json();
+      set((state) => ({
+        ...state,
+        questions: [newQuestion, ...state.questions]
+      }));
       } catch (error) {
-        console.error('Error al obtener pregunta activa:', error);
-        set({ error: 'Error al cargar la pregunta activa', loading: false });
-      }
-    },
-    
-    // Establecer la pregunta actual
-    setCurrentQuestion: (question: Question | null) => set({ currentQuestion: question }),
-    
-    // Crear una nueva pregunta
-    createQuestion: async (question) => {
-      set({ loading: true, error: null });
-      try {
-        // Llamar a la API para crear la pregunta
-        await api.createQuestion(question);
-        // No actualizamos el estado aquí, ya que se actualizará a través del evento socket.io
-        set({ loading: false });
-        // Ya no retornamos la nueva pregunta
-      } catch (error) {
-        console.error('Error al crear pregunta:', error);
-        set({ error: 'Error al crear la pregunta', loading: false });
+      console.error('Error creating question:', error);
         throw error;
       }
     },
     
-    // Actualizar una pregunta
     updateQuestion: async (id, updates) => {
-      set({ loading: true, error: null });
-      try {
-        const updatedQuestion = await api.updateQuestion(id, updates);
-        set(state => {
-          // Actualizar la pregunta en la lista de preguntas
-          const updatedQuestions = state.questions.map(q =>
-            q._id === id ? updatedQuestion : q
-          );
-          
-          // Si la pregunta actual es la que estamos actualizando, actualizarla también
-          const updatedCurrentQuestion = state.currentQuestion?._id === id
-            ? updatedQuestion
-            : state.currentQuestion;
-            
-          return {
-            questions: updatedQuestions,
-            currentQuestion: updatedCurrentQuestion,
-            loading: false
-          };
-        });
-        return updatedQuestion;
-      } catch (error) {
-        console.error('Error al actualizar pregunta:', error);
-        set({ error: 'Error al actualizar la pregunta', loading: false });
-        throw error;
-      }
-    },
-    
-    // Iniciar votación
-    startVoting: async (questionId) => {
-      set({ loading: true, error: null });
-      try {
-        const result = await api.startVoting(questionId);
-        
-        // Actualizar el estado con la pregunta actualizada
-        set(state => {
-          // Buscar la pregunta en el estado actual
-          const updatedQuestions = state.questions.map(q => 
-            q._id === questionId 
-              ? { ...q, is_active: true, votingClosed: false }
-              : q
-          );
-          
-          const activeQuestion = updatedQuestions.find(q => q._id === questionId);
-          
-          // Establecer el tiempo restante si hay un temporizador
-          // Usar el valor del temporizador de la pregunta actualizada
-          const timeRemaining = activeQuestion?.timer || null;
-          
-          return {
-            loading: false,
-            questions: updatedQuestions,
-            currentQuestion: activeQuestion || state.currentQuestion,
-            timeRemaining
-          };
-        });
-        
-        // Iniciar el temporizador si hay uno configurado
-        const updatedQuestion = get().questions.find(q => q._id === questionId);
-        if (updatedQuestion && updatedQuestion.timer) {
-          // Establecer la hora de finalización
-          const endTime = new Date(Date.now() + updatedQuestion.timer * 1000);
-          
-          // Actualizar la pregunta con la hora de finalización
-          await api.updateQuestion(questionId, { endTime });
-          
-          // Emitir un evento de consola para depuración
-          console.log(`Temporizador iniciado: ${updatedQuestion.timer} segundos`);
-          console.log(`Hora de finalización: ${endTime.toISOString()}`);
-          
-          // Crear un intervalo global para el temporizador
-          const timerInterval = setInterval(() => {
-            // Calcular el tiempo restante basado en la hora actual y la hora de finalización
-            const now = Date.now();
-            const endTimeMs = endTime.getTime();
-            const remainingMs = Math.max(0, endTimeMs - now);
-            const remainingSeconds = Math.ceil(remainingMs / 1000);
-            
-            // Actualizar el tiempo restante en el estado
-            set({ timeRemaining: remainingSeconds });
-            
-            // Si el tiempo llega a 0, cerrar la votación
-            if (remainingSeconds <= 0) {
-              get().closeVoting(questionId);
-              clearInterval(timerInterval);
-            }
-          }, 500); // Verificar cada medio segundo para mayor precisión
-        }
-        
-        return result;
-      } catch (error) {
-        console.error('Error al iniciar votación:', error);
-        set({ error: 'Error al iniciar la votación', loading: false });
-        throw error;
-      }
-    },
-    
-    // Detener votación y establecer respuesta correcta
-    stopVoting: async (questionId, correctOption) => {
-      set({ loading: true, error: null });
-      try {
-        // Asegurarse de que tenemos una opción correcta válida
-        if (!correctOption || !['A', 'B', 'C'].includes(correctOption)) {
-          // Si no hay opción correcta válida, buscar la pregunta actual
-          const currentQuestions = get().questions;
-          const currentQuestion = currentQuestions.find(q => q._id === questionId);
-          
-          // Si la pregunta tiene una opción correcta predefinida, usarla
-          if (currentQuestion?.correct_option) {
-            correctOption = currentQuestion.correct_option;
-          } else {
-            // Si no hay opción correcta, usar 'A' por defecto
-            correctOption = 'A';
-          }
-        }
-        
-        // Llamar a la API para detener la votación
-        const result = await api.stopVoting(questionId, correctOption);
-        
-        // Actualizar el estado con la pregunta actualizada
-        set(state => {
-          // Buscar la pregunta original para mantener la explicación
-          const originalQuestion = state.questions.find(q => q._id === questionId);
-          
-          // Combinar la pregunta original con la actualizada para mantener todos los campos
-          const updatedQuestion = {
-            ...originalQuestion,
-            ...result.question,
-            is_active: false, // Marcar la pregunta como inactiva para que el admin pueda iniciar otra votación
-            votingClosed: true, // Mantener votingClosed en true para que la audiencia siga viendo la respuesta
-            correct_option: correctOption
-          };
-          
-          // Actualizar la lista de preguntas
-          const updatedQuestions = state.questions.map(q => 
-            q._id === questionId ? updatedQuestion : q
-          );
-          
-          return {
-            loading: false,
-            timeRemaining: null,
-            currentQuestion: updatedQuestion,
-            questions: updatedQuestions,
-            votes: { ...state.votes, ...result.votes.counts }
-          };
-        });
-        
-        return result;
-      } catch (error) {
-        console.error('Error al detener votación:', error);
-        set({ error: 'Error al detener la votación', loading: false });
-        throw error;
-      }
-    },
-    
-    // Cerrar votación sin mostrar respuesta correcta
-    closeVoting: async (questionId) => {
-      set({ loading: true, error: null });
-      try {
-        await api.closeVoting(questionId);
-        set({ loading: false, timeRemaining: null });
-      } catch (error) {
-        console.error('Error al cerrar votación:', error);
-        set({ error: 'Error al cerrar la votación', loading: false });
-        throw error;
-      }
-    },
-    
-    // Enviar un voto
-    submitVote: async (questionId, option) => {
-      set({ loading: true, error: null });
-      try {
-        const result = await api.submitVote(questionId, option);
-        
-        // Actualizar los votos en el estado y marcar que el usuario ha votado
-        set(state => ({
-          loading: false,
-          votes: { ...state.votes, ...result.votes.counts },
-          hasVoted: true,
-          selectedOption: option
-        }));
-        
-        // Guardar en localStorage para persistencia entre recargas
-        localStorage.setItem('hasVoted_' + questionId, 'true');
-        localStorage.setItem('selectedOption_' + questionId, option);
-        
-        return result;
-      } catch (error) {
-        console.error('Error al enviar voto:', error);
-        set({ error: 'Error al enviar el voto', loading: false });
-        throw error;
-      }
-    },
-    
-    // Eliminar una pregunta
-    deleteQuestion: async (questionId) => {
-      set({ loading: true, error: null });
-      try {
-        await api.deleteQuestion(questionId);
-        set(state => ({
-          questions: state.questions.filter(q => q._id !== questionId),
-          currentQuestion: state.currentQuestion?._id === questionId ? null : state.currentQuestion,
-          loading: false
-        }));
-      } catch (error) {
-        console.error('Error al eliminar pregunta:', error);
-        set({ error: 'Error al eliminar la pregunta', loading: false });
-        throw error;
-      }
-    },
-    
-    // Actualizar el temporizador de una pregunta
-    updateQuestionTimer: async (questionId, timer) => {
-      set({ loading: true, error: null });
-      try {
-        await api.updateQuestion(questionId, { timer });
-        set(state => ({
-          questions: state.questions.map(q =>
-            q._id === questionId ? { ...q, timer } : q
-          ),
-          loading: false
-        }));
-      } catch (error) {
-        console.error('Error al actualizar temporizador:', error);
-        set({ error: 'Error al actualizar el temporizador', loading: false });
-        throw error;
-      }
-    },
-    
-    // Establecer tiempo restante
-    setTimeRemaining: (time) => set({ timeRemaining: time }),
-    
-    // Verificar tiempo restante
-    checkTimeRemaining: () => {
-      const { currentQuestion, closeVoting, timeRemaining } = get();
+    try {
+      const response = await fetch(`/api/questions/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
       
-      // Solo verificar si hay una pregunta activa y no cerrada
-      if (currentQuestion?.is_active && !currentQuestion.votingClosed) {
-        if (timeRemaining !== null && timeRemaining > 0) {
-          // No decrementamos aquí porque ya lo hacemos en el intervalo de startVoting
-          // Solo verificamos si debemos cerrar la votación
-          if (timeRemaining <= 0) {
-            closeVoting(currentQuestion._id);
-          }
-        } else if (timeRemaining === 0) {
-          // Si el tiempo ya llegó a cero, cerrar la votación
-          closeVoting(currentQuestion._id);
-        }
+      if (!response.ok) throw new Error('Error updating question');
+      
+      const updatedQuestion = await response.json();
+      set((state) => ({
+        ...state,
+        questions: state.questions.map(q => 
+          q._id === updatedQuestion._id ? updatedQuestion : q
+        ),
+        currentQuestion: state.currentQuestion?._id === updatedQuestion._id ? 
+          updatedQuestion : state.currentQuestion
+      }));
+      } catch (error) {
+      console.error('Error updating question:', error);
+        throw error;
       }
     },
     
-    // Limpiar la vista de audiencia
+  deleteQuestion: async (id) => {
+    try {
+      const response = await fetch(`/api/questions/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) throw new Error('Error deleting question');
+      
+      set((state) => ({
+        ...state,
+        questions: state.questions.filter(q => q._id !== id),
+        currentQuestion: state.currentQuestion?._id === id ? null : state.currentQuestion
+      }));
+      } catch (error) {
+      console.error('Error deleting question:', error);
+        throw error;
+      }
+    },
+    
+  startVoting: async (id) => {
+    try {
+      const response = await fetch(`/api/questions/${id}/start`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) throw new Error('Error starting voting');
+      
+      const updatedQuestion = await response.json();
+      
+      set({
+            currentQuestion: updatedQuestion,
+        hasVoted: false,
+        votes: { a: 0, b: 0, c: 0 },
+        timeRemaining: updatedQuestion.timer || 30
+      });
+      } catch (error) {
+      console.error('Error starting voting:', error);
+        throw error;
+      }
+    },
+    
+  stopVoting: async (id, correctOption) => {
+    try {
+      const response = await fetch(`/api/questions/${id}/stop`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ correctOption }),
+      });
+      
+      if (!response.ok) throw new Error('Error stopping voting');
+      
+      const data = await response.json();
+      const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
+      
+      set({
+        currentQuestion: data.question,
+        votes: votesData,
+        timeRemaining: null
+      });
+      } catch (error) {
+      console.error('Error stopping voting:', error);
+        throw error;
+      }
+    },
+    
+    submitVote: async (questionId, option) => {
+    try {
+      // Verificar que la pregunta aún está activa
+      const state = get();
+      if (!state.currentQuestion || state.currentQuestion._id !== questionId || state.currentQuestion.votingClosed) {
+        throw new Error('No se puede votar en esta pregunta');
+      }
+      
+      const participant = JSON.parse(localStorage.getItem('quiz_participant') || '{}');
+      if (!participant || !participant._id) {
+        throw new Error('Debes iniciar sesión para votar');
+      }
+      
+      const response = await fetch(`/api/questions/${questionId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ option, voter_id: participant._id }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al enviar voto');
+      }
+      
+      const data = await response.json();
+      const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
+      
+      set({
+        votes: votesData,
+        hasVoted: true
+      });
+      // La interfaz QuestionState espera que submitVote devuelva Promise<void>
+      } catch (error) {
+      console.error('Error submitting vote:', error);
+        throw error;
+      }
+    },
+    
+  setHasVoted: (value) => {
+    set({ hasVoted: value });
+  },
+  
+  updateQuestionTimer: async (id, seconds) => {
+    try {
+      set((state) => {
+        const updatedQuestions = state.questions.map(q => 
+          q._id === id ? { ...q, timer: seconds } : q
+        );
+        
+        const updatedCurrentQuestion = state.currentQuestion && state.currentQuestion._id === id
+          ? { ...state.currentQuestion, timer: seconds }
+          : state.currentQuestion;
+        
+        return {
+          ...state,
+          questions: updatedQuestions,
+          currentQuestion: updatedCurrentQuestion
+        };
+      });
+      
+      // Guardar cambio en el servidor
+      await fetch(`/api/questions/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ timer: seconds }),
+      });
+      } catch (error) {
+      console.error('Error updating timer:', error);
+      }
+    },
+    
+    checkTimeRemaining: () => {
+    const { currentQuestion, timeRemaining } = get();
+      
+    if (currentQuestion && !currentQuestion.votingClosed && timeRemaining !== null && timeRemaining > 0) {
+      set({ timeRemaining: timeRemaining - 1 });
+        } else if (timeRemaining === 0) {
+      // El temporizador ha terminado
+      set({ timeRemaining: null });
+      }
+    },
+    
     clearView: async () => {
       try {
-        await api.clearView();
-        // La actualización del estado se maneja en el listener de socket.io
+      const response = await fetch('/api/questions/clear', {
+        method: 'POST',
+      });
+      
+      if (!response.ok) throw new Error('Error clearing view');
+      
+      set({
+        currentQuestion: null,
+        votes: { a: 0, b: 0, c: 0 },
+        hasVoted: false,
+        timeRemaining: null
+      });
       } catch (error) {
-        console.error('Error al limpiar la vista:', error);
-      }
-    },
-    
-    // Establecer el estado hasVoted
-    setHasVoted: (value) => set({ hasVoted: value }),
-    
-    // Establecer la opción seleccionada
-    setSelectedOption: (option) => set({ selectedOption: option }),
-  };
-});
+      console.error('Error clearing view:', error);
+      throw error;
+    }
+  }
+}));
+
+// Efecto global para actualizar el temporizador cada segundo
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    useQuestionStore.getState().checkTimeRemaining();
+  }, 1000);
+}

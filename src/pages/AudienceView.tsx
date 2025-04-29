@@ -1,23 +1,36 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuestionStore } from '../store/questionStore';
-import { Clock, QrCode, X } from 'lucide-react';
+import { useParticipantStore } from '../store/participantStore';
+import { useQuizConfigStore } from '../store/quizConfigStore';
+import { Clock, QrCode, X, Check } from 'lucide-react';
 import TimerSound from '../components/TimerSound';
 import QRCode from 'react-qr-code';
 
 export default function AudienceView() {
-  const { currentQuestion, submitVote, votes, timeRemaining, initialized } = useQuestionStore();
+  const { 
+    currentQuestion, 
+    votes, 
+    submitVote, 
+    hasVoted,
+    setHasVoted,
+    timeRemaining
+  } = useQuestionStore();
+  
+  const { config, getConfig } = useQuizConfigStore();
+  const { currentParticipant, logout } = useParticipantStore();
+  
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [hasVoted, setHasVoted] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(!initialized);
+  const [submitting, setSubmitting] = useState(false);
+  const [showTimer, setShowTimer] = useState(false);
+  const [timerWarning, setTimerWarning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
   const [animationClass, setAnimationClass] = useState('');
 
+  // Cargar la configuración del quiz
   useEffect(() => {
-    // Update connection status based on store initialization
-    if (initialized && isConnecting) {
-      setIsConnecting(false);
-    }
-  }, [initialized, isConnecting]);
+    getConfig();
+  }, [getConfig]);
 
   // Cargar estado de voto desde localStorage cuando cambia la pregunta
   useEffect(() => {
@@ -40,16 +53,13 @@ export default function AudienceView() {
         setSelectedOption(null);
       }
     }
-  }, [currentQuestion?._id, currentQuestion?.correct_option]);
+  }, [currentQuestion, currentQuestion?._id, currentQuestion?.correct_option, setHasVoted]);
 
   // Reiniciar el estado de selección y voto cuando cambia la pregunta activa o su estado
   useEffect(() => {
     // Este efecto se mantiene por compatibilidad, pero ahora el estado principal viene del localStorage
     // y se controla en el efecto de arriba
   }, [currentQuestion?._id, currentQuestion?.is_active, currentQuestion?.votingClosed]);
-
-  // Ya no necesitamos este efecto porque el temporizador se maneja en el store
-  // El tiempo se actualiza automáticamente a través del estado compartido
 
   // Efecto para cambiar la clase de animación cada 5 segundos
   useEffect(() => {
@@ -69,6 +79,42 @@ export default function AudienceView() {
     return () => clearInterval(interval);
   }, []);
 
+  // Activar/desactivar el sonido del temporizador cuando queden pocos segundos
+  useEffect(() => {
+    if (!currentQuestion) return;
+    
+    if (timeRemaining !== null && timeRemaining <= 5 && timeRemaining > 0) {
+      setTimerWarning(true);
+      setShowTimer(true);
+    } else {
+      setTimerWarning(false);
+      if (timeRemaining === null || timeRemaining === 0) {
+        setShowTimer(false);
+      }
+    }
+  }, [timeRemaining, currentQuestion]);
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const calculateStats = () => {
+    const totalVotes = Object.values(votes).reduce((sum, count) => sum + count, 0);
+    
+    // Si no hay pregunta activa o está cerrada, mostrar los resultados
+    const showResultsCondition = !currentQuestion || 
+                                currentQuestion.votingClosed || 
+                                (config.showRankings && hasVoted);
+    
+    const statsData = ['a', 'b', 'c'].map(option => {
+      const count = votes[option] || 0;
+      const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+      return { option, count, percentage, showPercentage: showResultsCondition };
+    });
+    
+    return { stats: statsData, totalVotes, showResults: showResultsCondition };
+  };
+
   const handleVote = async (option: string) => {
     // Verificar si se puede votar:
     // - Debe haber una pregunta activa
@@ -84,6 +130,7 @@ export default function AudienceView() {
     // Actualizar el estado local
     setSelectedOption(option);
     setHasVoted(true);
+    setSubmitting(true);
     
     console.log('Voto registrado localmente:', {
       id: currentQuestion._id,
@@ -95,34 +142,14 @@ export default function AudienceView() {
       await submitVote(currentQuestion._id, option);
     } catch (error) {
       console.error('Error al enviar voto al servidor:', error);
+      setError('Error al enviar voto al servidor. Tu voto fue guardado localmente.');
       // Incluso si falla, mantenemos el voto local
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const calculateStats = () => {
-    const totalVotes = Object.values(votes).reduce((sum, count) => sum + count, 0);
-    const stats = ['A', 'B', 'C'].map(option => {
-      const count = votes[option] || 0;
-      const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-      return { option, count, percentage };
-    });
-    return { stats, totalVotes };
-  };
-
   // Pantalla de conexión
-  if (isConnecting) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-950 to-blue-900 flex items-center justify-center">
-        <div className="text-center text-white">
-          <h2 className="text-2xl font-semibold mb-4">
-            Conectando con el servidor...
-          </h2>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
-        </div>
-      </div>
-    );
-  }
-
   if (!currentQuestion) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-950 to-blue-900 flex flex-col items-center justify-center relative overflow-hidden">
@@ -202,304 +229,179 @@ export default function AudienceView() {
     );
   }
 
-  const { stats, totalVotes } = calculateStats();
-  const showResults = !currentQuestion.is_active || currentQuestion.votingClosed;
+  // Obtenemos los datos de la función calculateStats
+  const { stats, showResults } = calculateStats();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-950 to-blue-900 relative">
-      <div className="absolute top-4 right-4 z-20">
-        <button 
-          onClick={() => setShowQR(!showQR)}
-          className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-all shadow-lg shadow-blue-500/20 backdrop-blur-sm border border-white/10 relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-50"></div>
-          <div className="relative z-10">
-            {showQR ? <X className="h-6 w-6 text-white" /> : <QrCode className="h-6 w-6 text-white" />}
-          </div>
-        </button>
-      </div>
-      
-      {showQR && (
-        <div className="absolute top-16 right-4 bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-2xl animate-fadeIn z-50 relative overflow-hidden">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-indigo-500 blur-sm opacity-50 rounded-xl"></div>
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-          <div className="relative z-10">
-            <div className="p-2 bg-white rounded-lg shadow-inner mb-2">
-              <QRCode 
-                value="https://iazarate.com" 
-                size={150} 
-                className="mx-auto"
-              />
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+          <h1 className="text-xl font-bold text-gray-900">Quiz en vivo</h1>
+          {currentParticipant && (
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-gray-700">
+                Participante: {currentParticipant.name}
+              </span>
+              <button 
+                onClick={handleLogout}
+                className="text-sm text-red-600 hover:text-red-800"
+              >
+                Salir
+              </button>
             </div>
-            <p className="mt-2 text-center text-gray-600 text-sm font-medium flex items-center justify-center">
-              <span className="mr-1">iazarate.com</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </p>
-          </div>
+          )}
         </div>
-      )}
-      
-      <TimerSound 
-        timeRemaining={timeRemaining} 
-        isActive={currentQuestion.is_active && !currentQuestion.votingClosed}
-      />
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="mb-6 flex flex-col items-center justify-center">
-          <img 
-            src="/escudo.png" 
-            alt="Escudo" 
-            className="h-20 mb-2 drop-shadow-2xl animate-fadeIn"
-          />
-        </div>
-        <div className="bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl p-8 text-white border border-white/10 relative overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-400/10 blur-3xl rounded-full z-0"></div>
-          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-400/10 blur-3xl rounded-full z-0"></div>
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
-          <div className="relative z-10">
-            {currentQuestion.case && (
-              <div className="mb-4 w-full bg-blue-900/40 p-4 rounded-lg border border-blue-400/20 shadow-inner">
-                <h3 className="text-xl font-medium text-blue-200 mb-2">Caso:</h3>
-                <p className="text-white/90">{currentQuestion.case}</p>
-              </div>
-            )}
-            <div className="flex justify-between items-start mb-8">
-              <h2 className="text-3xl font-bold">
-                {currentQuestion.content}
-              </h2>
-              {timeRemaining !== null && !currentQuestion.votingClosed && (
-                <div className={`flex items-center p-2 rounded-lg ${
-                  timeRemaining <= 5 
-                    ? 'text-red-400 text-xl font-bold animate-pulse bg-red-500/10 border border-red-400/30'
-                    : 'text-blue-200 bg-blue-500/10 border border-blue-400/30'
-                }`}>
-                  <div className="relative mr-2">
-                    <div className="absolute -inset-1 bg-blue-500/30 blur-md rounded-full"></div>
-                    <Clock className={`h-6 w-6 relative ${timeRemaining > 0 ? 'animate-spin-slow' : ''}`} />
-                  </div>
-                  <span className="relative">
-                    <span className={`absolute -inset-1 ${timeRemaining <= 5 ? 'bg-red-500/20' : 'bg-blue-500/20'} blur-md rounded-lg`}></span>
-                    <span className="relative font-bold" data-testid="timer-display">{timeRemaining} {timeRemaining === 1 ? 'segundo restante' : 'segundos restantes'}</span>
+      </header>
+
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {currentQuestion ? (
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            {/* Temporizador */}
+            {timeRemaining !== null && (
+              <div className={`p-4 ${timerWarning ? 'bg-red-100' : 'bg-blue-50'} flex items-center justify-between border-b`}>
+                <div className="flex items-center">
+                  <Clock className={`h-5 w-5 ${timerWarning ? 'text-red-600' : 'text-blue-500'} mr-2`} />
+                  <span className={`font-medium ${timerWarning ? 'text-red-600' : 'text-blue-700'}`}>
+                    Tiempo restante: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
                   </span>
                 </div>
+                {showTimer && <TimerSound warning={timerWarning} />}
+              </div>
+            )}
+            
+            <div className="px-4 py-5 sm:p-6">
+              {/* Contenido de la pregunta */}
+              <h2 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                {currentQuestion.content}
+              </h2>
+              
+              {currentQuestion.case && (
+                <div className="bg-gray-50 rounded-md p-4 mb-6 text-sm text-gray-700 whitespace-pre-wrap">
+                  {currentQuestion.case}
+                </div>
               )}
-            </div>
+              
+              {/* Opciones */}
+              <div className="space-y-4 mb-6">
+                {['a', 'b', 'c'].map((option) => {
+                  const optionKey = `option_${option}` as keyof typeof currentQuestion;
+                  const optionContent = currentQuestion[optionKey] as string;
+                  const statForOption = stats.find(s => s.option === option);
+                  const isCorrect = currentQuestion.votingClosed && 
+                                    currentQuestion.correct_option?.toLowerCase() === option;
+                  const isSelected = selectedOption === option;
 
-            <div className="space-y-4">
-              {['A', 'B', 'C'].map((option) => {
-                const optionContent = currentQuestion[`option_${option.toLowerCase()}` as keyof typeof currentQuestion];
-                const isSelected = selectedOption === option;
-                const isCorrect = currentQuestion.correct_option === option;
-                const stat = stats.find(s => s.option === option);
-
-                return (
-                  <div key={option} className="space-y-2">
+                  return (
                     <button
-                      onClick={() => handleVote(option)}
-                      disabled={hasVoted || !currentQuestion.is_active || currentQuestion.votingClosed}
-                      className={`w-full p-6 text-left rounded-lg transition-all transform hover:scale-[1.01] relative overflow-hidden ${
-                        isSelected
-                          ? 'bg-blue-600/50 border-2 border-blue-400 shadow-lg shadow-blue-500/20'
-                          : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
-                      } ${
-                        showResults && isCorrect
-                          ? 'bg-green-600/50 border-2 border-green-400 shadow-lg shadow-green-500/20'
-                          : ''
-                      } ${
-                        showResults && !isCorrect && currentQuestion.correct_option
-                          ? 'bg-red-600/30 border-2 border-red-400/50 shadow-lg shadow-red-500/20'
-                          : ''
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      key={option}
+                      onClick={() => !hasVoted && !currentQuestion.votingClosed && handleVote(option)}
+                      disabled={hasVoted || currentQuestion.votingClosed || submitting}
+                      className={`w-full text-left p-4 rounded-md flex items-start relative
+                        ${hasVoted || currentQuestion.votingClosed ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50'}
+                        ${isSelected && !hasVoted ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
+                        ${hasVoted && isSelected ? 'bg-blue-50 border border-blue-200' : ''}
+                        ${isCorrect ? 'bg-green-50 border border-green-200' : ''}
+                        ${!isCorrect && hasVoted && isSelected && currentQuestion.votingClosed ? 'bg-red-50 border border-red-200' : ''}
+                        ${!isSelected && !isCorrect ? 'border border-gray-200' : ''}
+                        ${showResults ? 'relative' : ''}
+                      `}
                     >
-                      {/* Efecto de fondo para la opción seleccionada o correcta */}
-                      {(isSelected || (showResults && isCorrect)) && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
-                      )}
-                      
-                      <div className="flex justify-between items-center relative z-10">
+                      <div className="flex-1">
                         <div className="flex items-center">
-                          <span className={`font-bold text-lg mr-2 ${showResults && isCorrect ? 'text-green-300' : 'bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200'}`}>
-                            {option}.
+                          <span className={`flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full mr-3 text-sm
+                            ${isCorrect ? 'bg-green-500 text-white' : 
+                              isSelected && hasVoted && !isCorrect && currentQuestion.votingClosed ? 'bg-red-500 text-white' : 
+                              isSelected ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}
+                          `}>
+                            {option.toUpperCase()}
                           </span>
-                          <span className="font-medium">
-                            {String(optionContent || '')}
+                          <span className={`font-medium ${isCorrect ? 'text-green-700' : 
+                            isSelected && hasVoted && !isCorrect && currentQuestion.votingClosed ? 'text-red-700' : 'text-gray-700'}`}>
+                            {optionContent}
                           </span>
-                        </div>
-                        {showResults && (
-                          <div className="text-right">
-                            <span className="text-sm font-bold text-blue-200">
-                              {stat?.percentage}%
+                          {isCorrect && (
+                            <span className="ml-2 text-green-600 flex items-center">
+                              <Check className="h-4 w-4 mr-1" />
+                              Correcta
                             </span>
-                            <span className="text-xs text-gray-300 ml-1">({stat?.count} votos)</span>
+                          )}
                           </div>
-                        )}
                       </div>
                       
-                      {/* Indicador visual para la opción seleccionada */}
-                      {isSelected && !showResults && (
-                        <div className="absolute top-2 right-2 h-3 w-3 rounded-full bg-blue-400 animate-pulse"></div>
+                      {statForOption?.showPercentage && (
+                        <div className="mt-1 text-sm text-gray-500">
+                          {statForOption.count} votos ({statForOption.percentage}%)
+                        </div>
                       )}
                       
-                      {/* Indicador visual para la respuesta correcta */}
-                      {showResults && isCorrect && (
-                        <div className="absolute -right-1 -top-1 bg-green-500 text-white p-1 rounded-bl-lg rounded-tr-lg text-xs font-bold">✓ Correcta</div>
-                      )}
-                      
-                      {/* Indicador visual para respuestas incorrectas */}
-                      {showResults && !isCorrect && currentQuestion.correct_option && (
-                        <div className="absolute -right-1 -top-1 bg-red-500 text-white p-1 rounded-bl-lg rounded-tr-lg text-xs font-bold">✗ Incorrecta</div>
-                      )}
-                      
-                      {showResults && (
-                        <div className="mt-3 h-3 bg-white/10 rounded-full overflow-hidden shadow-inner">
+                      {statForOption?.showPercentage && (
+                        <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
                           <div
-                            className={`h-full transition-all duration-1000 ${
-                              isCorrect ? 'bg-gradient-to-r from-green-500 to-green-300' : 
-                              (showResults && currentQuestion.correct_option ? 'bg-gradient-to-r from-red-500 to-red-300' : 'bg-gradient-to-r from-blue-500 to-blue-300')
-                            } relative`}
-                            style={{ width: `${stat?.percentage || 0}%` }}
-                          >
-                            {(stat?.percentage ?? 0) > 15 && (
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine"></div>
-                            )}
-                          </div>
+                            className={`h-2.5 rounded-full ${isCorrect ? 'bg-green-500' : 'bg-blue-500'}`}
+                            style={{ width: `${statForOption.percentage}%` }}
+                          ></div>
                         </div>
                       )}
                     </button>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            <div className="mt-8">
-              {hasVoted && currentQuestion.is_active && !currentQuestion.votingClosed && (
-                <div className="text-green-300 font-medium text-center text-lg bg-green-500/10 p-4 rounded-lg border border-green-400/30 animate-pulse-slow relative overflow-hidden">
-                  <div className="absolute -inset-2 bg-green-500/10 blur-xl"></div>
-                  <div className="relative z-10 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    ¡Tu voto ha sido registrado!
-                  </div>
+              {/* Botón de enviar */}
+              {!hasVoted && !currentQuestion.votingClosed && (
+                <button
+                  onClick={() => selectedOption && handleVote(selectedOption)}
+                  disabled={!selectedOption || submitting}
+                  className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Enviando...' : 'Enviar respuesta'}
+                </button>
+              )}
+              
+              {error && (
+                <div className="mt-4 p-4 bg-red-50 rounded-md text-sm text-red-700">
+                  {error}
                 </div>
               )}
 
-              {hasVoted && (currentQuestion.votingClosed || !currentQuestion.is_active) && !currentQuestion.correct_option && (
-                <div className="text-blue-200 text-center text-lg bg-blue-500/10 p-4 rounded-lg border border-blue-400/30 relative overflow-hidden">
-                  <div className="absolute -inset-2 bg-blue-500/10 blur-xl"></div>
-                  <div className="relative z-10 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-blue-400 animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    La votación ha terminado. Esperando la respuesta correcta...
-                  </div>
+              {hasVoted && !currentQuestion.votingClosed && (
+                <div className="mt-4 p-4 bg-green-50 rounded-md text-sm text-green-700 flex items-center">
+                  <Check className="h-4 w-4 mr-2" />
+                  Tu respuesta ha sido registrada. Esperando resultados...
                 </div>
               )}
 
-              {(currentQuestion.votingClosed || !currentQuestion.is_active) && currentQuestion.correct_option && (
-                <>
-                  {/* Mensaje completamente separado de la tarjeta verde */}
-                  <div className={`w-80 mx-auto text-center py-4 px-8 rounded-full font-bold text-xl shadow-xl mb-5 ${
-                    // Si hay votos (especialmente si solo hay una opción con votos), podemos determinar si el usuario votó
-                    // y si votó correcta o incorrectamente
-                    Object.keys(votes).length > 0 && Object.entries(votes).some(([option, count]) => 
-                      count > 0 && option.toUpperCase() !== currentQuestion.correct_option?.toUpperCase())
-                      ? 'bg-red-500 text-white shadow-red-500/50' 
-                      : Object.keys(votes).length > 0 && Object.entries(votes).some(([option, count]) => 
-                        count > 0 && option.toUpperCase() === currentQuestion.correct_option?.toUpperCase())
-                        ? 'bg-green-500 text-white shadow-green-500/50'
-                        : (!hasVoted && !selectedOption)
-                          ? 'bg-blue-500 text-white shadow-blue-500/50'
-                          : (selectedOption?.toUpperCase() === currentQuestion.correct_option?.toUpperCase()
-                            ? 'bg-green-500 text-white shadow-green-500/50' 
-                            : 'bg-red-500 text-white shadow-red-500/50')
-                  }`}>
-                    {
-                      // Mismo patrón para el texto que mostramos
-                      Object.keys(votes).length > 0 && Object.entries(votes).some(([option, count]) => 
-                        count > 0 && option.toUpperCase() !== currentQuestion.correct_option?.toUpperCase())
-                        ? 'Tu respuesta es incorrecta'
-                        : Object.keys(votes).length > 0 && Object.entries(votes).some(([option, count]) => 
-                          count > 0 && option.toUpperCase() === currentQuestion.correct_option?.toUpperCase())
-                          ? 'Tu respuesta es correcta'
-                          : (!hasVoted && !selectedOption)
-                            ? 'Resultado de la pregunta'
-                            : (selectedOption?.toUpperCase() === currentQuestion.correct_option?.toUpperCase()
-                                ? 'Tu respuesta es correcta' 
-                                : 'Tu respuesta es incorrecta')
-                    }
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-full"></div>
-                  </div>
-                
-                  <div className="bg-gradient-to-br from-green-900/40 to-green-800/20 border-2 border-green-400/50 rounded-lg p-6 animate-fadeIn relative overflow-hidden shadow-lg shadow-green-500/10">
-                    <div className="absolute -inset-2 bg-green-500/10 blur-xl"></div>
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-green-300"></div>
-                    <div className="absolute -top-10 -right-10 w-20 h-20 bg-green-400/20 blur-2xl rounded-full"></div>
-                    <div className="text-green-300 font-bold mb-3 text-xl flex items-center relative z-10">
-                      <div className="bg-green-500 rounded-full p-2 mr-3 shadow-lg shadow-green-500/20">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-green-100">
-                        La respuesta correcta es la opción {currentQuestion.correct_option}
-                      </span>
-                    </div>
-                    {(currentQuestion.explanation || currentQuestion.explanation_image) && (
-                      <div className="text-green-200 mt-4 bg-green-900/20 p-6 rounded-lg border border-green-400/30 relative overflow-hidden">
-                        <div className="absolute -inset-2 bg-gradient-to-r from-green-500/10 to-blue-500/10 blur-xl"></div>
-                        <div className="relative z-10">
-                          <div className="font-bold text-xl mb-3 bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-blue-300">Explicación:</div>
-                          
-                          {currentQuestion.explanation && (
-                            <div className="text-white/90 leading-relaxed mb-4">
-                              {typeof currentQuestion.explanation === 'object' 
-                                ? JSON.stringify(currentQuestion.explanation) 
-                                : String(currentQuestion.explanation)}
-                            </div>
-                          )}
+              {currentQuestion.votingClosed && currentQuestion.explanation && (
+                <div className="mt-6 p-4 bg-yellow-50 rounded-md border border-yellow-200">
+                  <h3 className="text-sm font-medium text-yellow-800 mb-2">Explicación:</h3>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{currentQuestion.explanation}</p>
+                  
                           {currentQuestion.explanation_image && (
                             <div className="mt-4">
                               <img 
                                 src={currentQuestion.explanation_image} 
-                                alt="Imagen explicativa" 
-                                className="max-w-full rounded-lg shadow-lg border border-white/10 object-contain max-h-[300px] mx-auto"
-                                onError={(e) => {
-                                  // Solo ocultar la imagen sin mostrar mensaje de error
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
+                        alt="Explicación"
+                        className="max-w-full h-auto rounded-md"
                               />
                             </div>
                           )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {showResults && (
-                <div className="mt-6 text-sm text-center">
-                  <div className="inline-flex items-center px-4 py-2 bg-blue-500/10 rounded-full border border-blue-400/30 shadow-inner">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span className="font-bold text-blue-200">
-                      Total de votos: <span className="text-white">{totalVotes}</span>
-                    </span>
-                  </div>
                 </div>
               )}
             </div>
           </div>
+        ) : (
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:p-6 text-center">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                Esperando a que comience la siguiente pregunta...
+              </h2>
+              <p className="text-gray-500">
+                El presentador iniciará la próxima pregunta en breve. Mantén esta página abierta.
+              </p>
         </div>
       </div>
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white/50 text-xs bg-white/5 px-4 py-2 rounded-full backdrop-blur-sm">
-        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-200 to-indigo-200">iazarate.com</span> © {new Date().getFullYear()}
-      </div>
+        )}
+      </main>
     </div>
   );
 }

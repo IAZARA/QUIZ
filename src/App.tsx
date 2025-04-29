@@ -1,16 +1,37 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router-dom';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import AudienceView from './pages/AudienceView';
+import Registration from './pages/Registration';
 import { useAuthStore } from './store/authStore';
 import { useQuestionStore } from './store/questionStore';
+import { useParticipantStore } from './store/participantStore';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+// Definir future flags para eliminar advertencias
+const router = {
+  basename: "/",
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true
+  }
+};
+
+function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   
   if (!isAuthenticated) {
     return <Navigate to="/admin" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function ProtectedParticipantRoute({ children }: { children: React.ReactNode }) {
+  const isRegistered = useParticipantStore((state) => state.isRegistered);
+  
+  if (!isRegistered) {
+    return <Navigate to="/register" replace />;
   }
 
   return <>{children}</>;
@@ -76,20 +97,28 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <BrowserRouter future={router.future} basename={router.basename}>
       <Routes>
-        <Route path="/" element={<AudienceView />} />
+        <Route 
+          path="/" 
+          element={
+            <ProtectedParticipantRoute>
+              <AudienceView />
+            </ProtectedParticipantRoute>
+          } 
+        />
+        <Route path="/register" element={<Registration />} />
         <Route path="/admin" element={<AdminLogin />} />
         <Route 
           path="/dashboard" 
           element={
-            <ProtectedRoute>
+            <ProtectedAdminRoute>
               <AdminDashboard />
-            </ProtectedRoute>
+            </ProtectedAdminRoute>
           } 
         />
-        {/* Redirigir cualquier ruta no encontrada a la página principal */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Redirigir cualquier ruta no encontrada */}
+        <Route path="*" element={<Navigate to="/register" replace />} />
       </Routes>
     </BrowserRouter>
   );

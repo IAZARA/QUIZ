@@ -1,15 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 
 interface TimerSoundProps {
-  timeRemaining: number | null;
-  isActive: boolean;
+  warning: boolean;
 }
 
-export default function TimerSound({ timeRemaining, isActive }: TimerSoundProps) {
+export default function TimerSound({ warning }: TimerSoundProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (isActive && timeRemaining !== null && timeRemaining <= 10 && timeRemaining > 0) {
+    if (warning) {
       audioRef.current?.play();
     } else {
       audioRef.current?.pause();
@@ -17,7 +16,7 @@ export default function TimerSound({ timeRemaining, isActive }: TimerSoundProps)
         audioRef.current.currentTime = 0;
       }
     }
-  }, [timeRemaining, isActive]);
+  }, [warning]);
 
   return (
     <audio

@@ -1,0 +1,101 @@
+PRD: Sistema de Quiz Competitivo
+Objetivo
+Transformar el sistema de quiz interactivo en un juego competitivo, donde los participantes puedan registrarse con su nombre, responder preguntas, acumular puntos por respuestas correctas y competir en un ranking basado en precisión y tiempo de respuesta. El administrador podrá controlar cuándo mostrar los resultados y el ranking.
+
+Funcionalidades principales
+Registro de participantes:
+Los participantes deben ingresar su nombre antes de comenzar el quiz.
+Validar que los nombres sean únicos para evitar confusiones en el ranking.
+Sistema de puntuación:
+Cada respuesta correcta otorga puntos.
+El tiempo de respuesta influye en la puntuación:
+Responder más rápido otorga más puntos.
+Si el tiempo excede el límite establecido por el administrador, no se otorgan puntos.
+Ranking en tiempo real:
+Mostrar un ranking de los participantes basado en:
+Puntos acumulados.
+Tiempo total de respuesta.
+El ranking debe actualizarse en tiempo real o cuando el administrador lo decida.
+Control del administrador:
+El administrador puede:
+Configurar el tiempo límite para cada pregunta.
+Iniciar y detener el quiz.
+Mostrar el ranking en cualquier momento.
+Reiniciar el juego para una nueva ronda.
+Interfaz de usuario:
+Participantes:
+Pantalla para ingresar el nombre.
+Pantalla para responder preguntas.
+Visualización de su puntuación al final del quiz.
+Administrador:
+Panel para configurar el tiempo límite y las preguntas.
+Botón para mostrar el ranking.
+Visualización del ranking en tiempo real.
+Persistencia de datos:
+Guardar los nombres de los participantes, sus respuestas y sus puntuaciones en una base de datos.
+Permitir al administrador exportar los resultados del quiz (por ejemplo, en formato CSV).
+Requisitos técnicos
+Frontend:
+Framework: React.js (ya está implementado en tu proyecto).
+Estilo: Tailwind CSS (ya configurado en tu proyecto).
+Backend:
+Base de datos: MongoDB o Supabase (ya tienes configuraciones para ambas).
+API para manejar:
+Registro de participantes.
+Envío de respuestas.
+Cálculo de puntuaciones.
+Generación del ranking.
+Tiempo real:
+Usar WebSockets o Supabase Realtime para actualizar el ranking en tiempo real.
+Autenticación ligera:
+No es necesario un sistema de autenticación completo, pero cada participante debe tener un identificador único (por ejemplo, un nombre o un código generado al azar).
+Despliegue:
+Servidor: Usar el script deploy.sh para desplegar en un servidor (por ejemplo, en Vercel o Heroku).
+Base de datos: Configurar MongoDB Atlas o Supabase para almacenar los datos.
+Criterios de éxito
+Los participantes pueden registrarse con su nombre y responder preguntas.
+El sistema calcula correctamente los puntos basados en las respuestas y el tiempo.
+El ranking se actualiza correctamente y se muestra cuando el administrador lo decide.
+El administrador puede configurar el tiempo límite y reiniciar el juego.
+Los datos de los participantes y sus puntuaciones se guardan en la base de datos.
+Tareas principales
+Aquí tienes una lista de tareas que puedes usar para implementar estas funcionalidades:
+
+Registro de participantes:
+Crear un formulario para que los participantes ingresen su nombre.
+Validar que el nombre sea único.
+Guardar los nombres en la base de datos.
+Sistema de puntuación:
+Modificar la lógica de las preguntas para calcular puntos basados en:
+Respuestas correctas.
+Tiempo de respuesta.
+Guardar las puntuaciones en la base de datos.
+Ranking en tiempo real:
+Crear una API para calcular y devolver el ranking.
+Implementar WebSockets o Supabase Realtime para actualizar el ranking en tiempo real.
+Control del administrador:
+Agregar opciones en el panel de administrador para:
+Configurar el tiempo límite.
+Mostrar el ranking.
+Reiniciar el juego.
+Interfaz de usuario:
+Diseñar la pantalla de registro para los participantes.
+Modificar la pantalla de preguntas para mostrar el tiempo restante.
+Crear una pantalla para mostrar el ranking.
+Persistencia de datos:
+Configurar la base de datos para almacenar:
+Nombres de los participantes.
+Respuestas y tiempos.
+Puntuaciones.
+Agregar una opción para exportar los resultados.
+Ejemplo de flujo de trabajo
+Inicio del juego:
+Los participantes ingresan su nombre y esperan a que el administrador inicie el quiz.
+Durante el quiz:
+Los participantes responden preguntas.
+El sistema calcula los puntos en función de las respuestas y el tiempo.
+Final del juego:
+El administrador muestra el ranking.
+Los participantes ven su posición en el ranking.
+Reinicio:
+El administrador reinicia el juego para una nueva ronda.

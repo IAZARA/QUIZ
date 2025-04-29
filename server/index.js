@@ -208,6 +208,168 @@ app.delete('/api/upload/:filename', async (req, res) => {
   }
 });
 
+// Registrar un participante
+app.post('/api/participants', async (req, res) => {
+  try {
+    const { name } = req.body;
+    
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'El nombre es requerido' 
+      });
+    }
+    
+    // Verificar si el nombre ya existe
+    const existingParticipant = await db.collection('participants').findOne({ 
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
+    });
+    
+    if (existingParticipant) {
+      return res.status(409).json({ 
+        success: false, 
+        message: 'Ya existe un participante con este nombre' 
+      });
+    }
+    
+    // Crear nuevo participante
+    const participant = {
+      name: name.trim(),
+      points: 0,
+      totalTime: 0,
+      created_at: new Date()
+    };
+    
+    const result = await db.collection('participants').insertOne(participant);
+    const newParticipant = { ...participant, _id: result.insertedId };
+    
+    res.status(201).json(newParticipant);
+    
+    // Notificar a todos los clientes sobre el nuevo participante
+    io.emit('participant_registered', newParticipant);
+    
+  } catch (error) {
+    console.error('Error al registrar participante:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al registrar participante'
+    });
+  }
+});
+
+// Obtener todos los participantes
+app.get('/api/participants', async (req, res) => {
+  try {
+    const participants = await db.collection('participants')
+      .find({})
+      .sort({ points: -1, totalTime: 1 })
+      .toArray();
+      
+    res.json(participants);
+  } catch (error) {
+    console.error('Error al obtener participantes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener participantes'
+    });
+  }
+});
+
+// Obtener configuración del quiz
+app.get('/api/admin/config', async (req, res) => {
+  try {
+    // Buscar la configuración existente, si no existe, crear una por defecto
+    let config = await db.collection('quiz_config').findOne({});
+    
+    // Si no hay configuración, devolver valores por defecto
+    if (!config) {
+      config = {
+        defaultTimer: 30,
+        showRankings: true,
+        allowJoinDuringQuiz: true,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+    }
+    
+    res.json(config);
+  } catch (error) {
+    console.error('Error al obtener configuración del quiz:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener configuración del quiz'
+    });
+  }
+});
+
+// Guardar configuración del quiz
+app.post('/api/admin/config', async (req, res) => {
+  try {
+    const { defaultTimer, showRankings, allowJoinDuringQuiz } = req.body;
+    
+    // Validar los campos requeridos
+    if (defaultTimer === undefined || showRankings === undefined || allowJoinDuringQuiz === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Faltan campos requeridos en la configuración'
+      });
+    }
+    
+    // Validar que el timer sea un número positivo
+    if (typeof defaultTimer !== 'number' || defaultTimer < 5 || defaultTimer > 300) {
+      return res.status(400).json({
+        success: false,
+        message: 'El timer debe ser un número entre 5 y 300 segundos'
+      });
+    }
+    
+    // Buscar configuración existente
+    const existingConfig = await db.collection('quiz_config').findOne({});
+    
+    let config;
+    
+    if (existingConfig) {
+      // Actualizar configuración existente
+      await db.collection('quiz_config').updateOne(
+        { _id: existingConfig._id },
+        { 
+          $set: {
+            defaultTimer,
+            showRankings,
+            allowJoinDuringQuiz,
+            updated_at: new Date()
+          }
+        }
+      );
+      
+      config = await db.collection('quiz_config').findOne({ _id: existingConfig._id });
+    } else {
+      // Crear nueva configuración
+      const newConfig = {
+        defaultTimer,
+        showRankings,
+        allowJoinDuringQuiz,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+      
+      const result = await db.collection('quiz_config').insertOne(newConfig);
+      config = { ...newConfig, _id: result.insertedId };
+    }
+    
+    // Notificar a todos los clientes que la configuración ha cambiado
+    io.emit('quiz_config_updated', config);
+    
+    res.json(config);
+  } catch (error) {
+    console.error('Error al guardar configuración del quiz:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al guardar configuración del quiz'
+    });
+  }
+});
+
 // Iniciar votación
 app.post('/api/questions/:id/start', async (req, res) => {
   try {
@@ -221,7 +383,14 @@ app.post('/api/questions/:id/start', async (req, res) => {
     
     // Activar la pregunta seleccionada
     const question = await db.collection('questions').findOne({ _id: new ObjectId(id) });
-    const endTime = question.timer ? new Date(Date.now() + (question.timer * 1000)) : null;
+    
+    // Obtener configuración del quiz para usar el timer por defecto si no se especifica en la pregunta
+    const quizConfig = await db.collection('quiz_config').findOne({});
+    const defaultTimer = quizConfig ? quizConfig.defaultTimer : 30;
+    
+    // Usar el timer específico de la pregunta o el timer por defecto de la configuración
+    const timer = question.timer || defaultTimer;
+    const endTime = timer ? new Date(Date.now() + (timer * 1000)) : null;
     
     await db.collection('questions').updateOne(
       { _id: new ObjectId(id) },
@@ -230,7 +399,8 @@ app.post('/api/questions/:id/start', async (req, res) => {
           is_active: true, 
           correct_option: null, 
           endTime, 
-          votingClosed: false 
+          votingClosed: false,
+          timer // Asegurar que la pregunta tenga un timer definido
         } 
       }
     );
@@ -244,7 +414,7 @@ app.post('/api/questions/:id/start', async (req, res) => {
     
     // Si hay temporizador, programar cierre automático
     if (endTime) {
-      const timeoutMs = question.timer * 1000;
+      const timeoutMs = timer * 1000;
       setTimeout(async () => {
         const currentQuestion = await db.collection('questions').findOne({ _id: new ObjectId(id) });
         if (currentQuestion && currentQuestion.is_active && !currentQuestion.votingClosed) {
@@ -420,6 +590,31 @@ app.post('/api/questions/clear', async (req, res) => {
   } catch (error) {
     console.error('Error al limpiar la vista:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Eliminar todos los participantes (reiniciar sesión)
+app.post('/api/admin/reset-session', async (req, res) => {
+  try {
+    // Eliminar todos los participantes
+    await db.collection('participants').deleteMany({});
+    
+    // Eliminar todos los votos
+    await db.collection('votes').deleteMany({});
+    
+    // Notificar a los clientes que se ha reiniciado la sesión
+    io.emit('session_reset');
+    
+    res.json({
+      success: true,
+      message: 'Sesión reiniciada correctamente'
+    });
+  } catch (error) {
+    console.error('Error al reiniciar la sesión:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al reiniciar la sesión'
+    });
   }
 });
 

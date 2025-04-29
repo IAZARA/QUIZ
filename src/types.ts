@@ -17,6 +17,25 @@ export interface Question {
   created_at: Date;
 }
 
+// Tipo para la configuración del quiz
+export interface QuizConfig {
+  _id?: string;
+  defaultTimer: number; // Tiempo en segundos para responder cada pregunta
+  showRankings: boolean; // Mostrar ranking de participantes
+  allowJoinDuringQuiz: boolean; // Permitir que nuevos participantes se unan durante el quiz
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+// Tipo para el estado de la configuración del quiz
+export interface QuizConfigState {
+  config: QuizConfig;
+  isLoading: boolean;
+  saveConfig: (config: Partial<QuizConfig>) => Promise<boolean>;
+  getConfig: () => Promise<void>;
+  resetConfig: () => void;
+}
+
 // Tipo para los votos
 export interface Votes {
   a: number;
@@ -46,6 +65,24 @@ export interface AuthState {
   signOut: () => void;
 }
 
+// Tipo para el participante
+export interface Participant {
+  _id?: string;
+  name: string;
+  points?: number;
+  totalTime?: number;
+  created_at?: Date;
+}
+
+// Tipo para el estado de participantes
+export interface ParticipantState {
+  currentParticipant: Participant | null;
+  isRegistered: boolean;
+  registerParticipant: (name: string) => Promise<boolean>;
+  logout: () => void;
+  resetSession: () => void;
+}
+
 // Tipo para el estado de las preguntas
 export interface QuestionState {
   questions: Question[];
@@ -66,4 +103,5 @@ export interface QuestionState {
   setHasVoted: (value: boolean) => void;
   updateQuestionTimer: (id: string, seconds: number) => Promise<void>;
   checkTimeRemaining: () => void;
+  clearView: () => Promise<void>;
 }
