@@ -42,19 +42,27 @@ const ParticipantRanking: React.FC<ParticipantRankingProps> = ({ className = '' 
 
   // Actualizar cuando cambie la pregunta activa o el tiempo restante llegue a cero
   useEffect(() => {
-    // Si la pregunta está activa y el tiempo llega a cero o si la pregunta cambia a null
-    // (se detiene la votación), actualizar los participantes
-    if ((currentQuestion && timeRemaining === 0) || (!currentQuestion && timeRemaining === null)) {
+    // Actualizar inmediatamente cuando:
+    // 1. La pregunta activa cambia 
+    // 2. El temporizador llega a cero
+    // 3. Se detiene la votación
+    if (
+      currentQuestion?.votingClosed || 
+      (currentQuestion && timeRemaining === 0) || 
+      (!currentQuestion && timeRemaining === null)
+    ) {
+      console.log('Actualizando ranking por cambio en estado de pregunta');
       loadParticipants();
     }
-  }, [currentQuestion, timeRemaining]);
+  }, [currentQuestion, timeRemaining, currentQuestion?.votingClosed]);
 
-  // Configurar actualización automática
+  // Configurar actualización automática periódica
   useEffect(() => {
-    // Actualizar cada 10 segundos
+    // Actualizar cada 5 segundos en lugar de 10 para mayor precisión
     const interval = window.setInterval(() => {
+      console.log('Actualizando ranking automáticamente');
       loadParticipants();
-    }, 10000);
+    }, 5000);
     
     setRefreshInterval(interval);
     
@@ -190,7 +198,7 @@ const ParticipantRanking: React.FC<ParticipantRankingProps> = ({ className = '' 
       )}
       
       <div className="mt-4 text-xs text-gray-500">
-        <p>El ranking se actualiza automáticamente cada 10 segundos. Última actualización: {new Date().toLocaleTimeString()}</p>
+        <p>El ranking se actualiza automáticamente cada 5 segundos. Última actualización: {new Date().toLocaleTimeString()}</p>
       </div>
     </div>
   );

@@ -463,13 +463,41 @@ app.post('/api/questions/:id/stop', async (req, res) => {
       }
     );
     
+    // Obtener todos los votos de esta pregunta
+    const votes = await db.collection('votes').find({ question_id: id }).toArray();
+    
+    // Actualizar los puntos de los participantes con respuestas correctas
+    for (const vote of votes) {
+      // Si la opción seleccionada por el participante coincide con la correcta
+      if (vote.option.toUpperCase() === correctOption.toUpperCase()) {
+        // Actualizar el participante sumando un punto y registrando respuesta correcta
+        await db.collection('participants').updateOne(
+          { _id: new ObjectId(vote.voter_id) },
+          { 
+            $inc: { 
+              points: 1,              // Incrementar puntos
+              correctAnswers: 1,      // Incrementar respuestas correctas
+              totalAnswers: 1         // Incrementar total de respuestas
+            }
+          }
+        );
+        console.log(`Punto sumado al participante ${vote.voter_id} por respuesta correcta`);
+      } else {
+        // Solo incrementar el total de respuestas para respuestas incorrectas
+        await db.collection('participants').updateOne(
+          { _id: new ObjectId(vote.voter_id) },
+          { $inc: { totalAnswers: 1 } }
+        );
+      }
+    }
+    
     const updatedQuestion = await db.collection('questions').findOne({ _id: new ObjectId(id) });
-    const votes = await getVotesForQuestion(id);
+    const votesData = await getVotesForQuestion(id);
     
     console.log(`Votación detenida para la pregunta ${id}. Respuesta correcta: ${correctOption}`);
     
-    res.json({ question: updatedQuestion, votes });
-    io.emit('voting_stopped', { question: updatedQuestion, votes });
+    res.json({ question: updatedQuestion, votes: votesData });
+    io.emit('voting_stopped', { question: updatedQuestion, votes: votesData });
   } catch (error) {
     console.error('Error al detener la votación:', error);
     res.status(500).json({ error: error.message });
@@ -498,13 +526,33 @@ app.post('/api/questions/:id/vote', async (req, res) => {
       return res.status(400).json({ error: 'Ya has votado en esta pregunta' });
     }
     
+    // Calcular el tiempo de respuesta si hay un temporizador configurado
+    let responseTime = 0;
+    if (question.timer && question.endTime) {
+      const endTime = new Date(question.endTime);
+      const now = new Date();
+      responseTime = Math.round((question.timer - Math.max(0, (endTime.getTime() - now.getTime()) / 1000)));
+      
+      // Evitar tiempos negativos o mayores que el timer
+      responseTime = Math.max(0, Math.min(question.timer, responseTime));
+      
+      console.log(`Tiempo de respuesta para el participante ${voter_id}: ${responseTime}s`);
+    }
+    
     // Registrar el voto
     await db.collection('votes').insertOne({
       question_id: id,
       option,
       voter_id,
+      responseTime,
       created_at: new Date()
     });
+    
+    // Actualizar el tiempo total del participante
+    await db.collection('participants').updateOne(
+      { _id: new ObjectId(voter_id) },
+      { $inc: { totalTime: responseTime } }
+    );
     
     const votes = await getVotesForQuestion(id);
     res.json({ success: true, votes });
