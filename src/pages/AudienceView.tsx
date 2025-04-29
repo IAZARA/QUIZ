@@ -35,25 +35,36 @@ export default function AudienceView() {
   // Cargar estado de voto desde localStorage cuando cambia la pregunta
   useEffect(() => {
     if (currentQuestion) {
-      const hasVotedInStorage = localStorage.getItem('hasVoted_' + currentQuestion._id) === 'true';
-      const selectedOptionInStorage = localStorage.getItem('selectedOption_' + currentQuestion._id);
+      // Limpiar siempre la selección para preguntas nuevas
+      setSelectedOption(null);
+      setHasVoted(false);
       
-      console.log('Estado de voto cargado:', {
+      // Solo cargar el estado de localStorage si el usuario realmente ha votado anteriormente
+      const voteKey = 'hasVoted_' + currentQuestion._id;
+      const optionKey = 'selectedOption_' + currentQuestion._id;
+      
+      const hasVotedInStorage = localStorage.getItem(voteKey) === 'true';
+      const selectedOptionInStorage = localStorage.getItem(optionKey);
+      
+      console.log('Estado de voto al cargar:', {
         id: currentQuestion._id,
         hasVotedInStorage,
-        selectedOptionInStorage,
-        correct_option: currentQuestion.correct_option
+        selectedOptionInStorage
       });
       
-      if (hasVotedInStorage && selectedOptionInStorage) {
+      // Sólo restaurar el estado de voto si realmente existe en localStorage Y los dos valores son válidos
+      if (hasVotedInStorage && selectedOptionInStorage && ['a', 'b', 'c'].includes(selectedOptionInStorage)) {
         setHasVoted(true);
         setSelectedOption(selectedOptionInStorage);
       } else {
-        setHasVoted(false);
+        // Asegurarnos de que no haya ninguna opción seleccionada
+        localStorage.removeItem(voteKey);
+        localStorage.removeItem(optionKey);
         setSelectedOption(null);
+        setHasVoted(false);
       }
     }
-  }, [currentQuestion, currentQuestion?._id, currentQuestion?.correct_option, setHasVoted]);
+  }, [currentQuestion, setHasVoted]);
 
   // Reiniciar el estado de selección y voto cuando cambia la pregunta activa o su estado
   useEffect(() => {
@@ -123,27 +134,36 @@ export default function AudienceView() {
     // - La votación no debe estar cerrada
     if (!currentQuestion || hasVoted || !currentQuestion.is_active || currentQuestion.votingClosed) return;
 
-    // Guardar el estado de voto en localStorage inmediatamente
-    localStorage.setItem('hasVoted_' + currentQuestion._id, 'true');
-    localStorage.setItem('selectedOption_' + currentQuestion._id, option);
+    // Normalizar la opción a minúscula para consistencia
+    const normalizedOption = option.toLowerCase();
     
-    // Actualizar el estado local
-    setSelectedOption(option);
-    setHasVoted(true);
-    setSubmitting(true);
-    
-    console.log('Voto registrado localmente:', {
-      id: currentQuestion._id,
-      selectedOption: option,
-      hasVoted: true
-    });
+    // Solo actualizar el estado visual después de verificar que es una opción válida
+    if (['a', 'b', 'c'].includes(normalizedOption)) {
+      setSelectedOption(normalizedOption);
+    } else {
+      return; // No continuar si la opción no es válida
+    }
     
     try {
-      await submitVote(currentQuestion._id, option);
+      // Enviar voto al servidor
+      await submitVote(currentQuestion._id, normalizedOption);
+      
+      // Sólo guardar en localStorage tras éxito en el servidor
+      localStorage.setItem('hasVoted_' + currentQuestion._id, 'true');
+      localStorage.setItem('selectedOption_' + currentQuestion._id, normalizedOption);
+      
+      // Actualizar el estado global
+      setHasVoted(true);
+      
+      console.log('Voto registrado correctamente:', {
+        id: currentQuestion._id,
+        selectedOption: normalizedOption
+      });
     } catch (error) {
-      console.error('Error al enviar voto al servidor:', error);
-      setError('Error al enviar voto al servidor. Tu voto fue guardado localmente.');
-      // Incluso si falla, mantenemos el voto local
+      console.error('Error al enviar voto:', error);
+      setError('Error al enviar tu voto. Intenta de nuevo.');
+      // Revertir la selección visual si falla
+      setSelectedOption(null);
     } finally {
       setSubmitting(false);
     }

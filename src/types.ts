@@ -71,6 +71,8 @@ export interface Participant {
   name: string;
   points?: number;
   totalTime?: number;
+  correctAnswers?: number;
+  totalAnswers?: number;
   created_at?: Date;
 }
 
@@ -91,6 +93,7 @@ export interface QuestionState {
   hasVoted: boolean;
   timeRemaining: number | null;
   initialized: boolean;
+  lastSelectedOption: string | null;
   
   // Funciones
   initialize: () => Promise<void>;
@@ -104,4 +107,5 @@ export interface QuestionState {
   updateQuestionTimer: (id: string, seconds: number) => Promise<void>;
   checkTimeRemaining: () => void;
   clearView: () => Promise<void>;
+  clearUserVoteState: () => void;
 }

@@ -12,6 +12,7 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
   hasVoted: false,
   timeRemaining: null,
   initialized: false,
+  lastSelectedOption: null,
   
   initialize: async () => {
     try {
@@ -60,6 +61,28 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
             hasVoted: false,
             timeRemaining: data.question.timer || 30
           });
+          
+          // Limpiar cualquier selección previa en localStorage para la nueva pregunta
+          try {
+            // Obtener el participante actual
+            const participantData = localStorage.getItem('quiz_participant');
+            if (participantData) {
+              const participant = JSON.parse(participantData);
+              
+              // Limpiar todas las claves de votación para esta pregunta
+              const voteStorageKey = `vote_${data.question._id}`;
+              const hasVotedKey = `hasVoted_${data.question._id}`;
+              const selectedOptionKey = `selectedOption_${data.question._id}`;
+              
+              localStorage.removeItem(voteStorageKey);
+              localStorage.removeItem(hasVotedKey);
+              localStorage.removeItem(selectedOptionKey);
+              
+              console.log(`Limpiado estado de votación previo para pregunta ${data.question._id}`);
+            }
+          } catch (error) {
+            console.error("Error al limpiar datos de votación previa:", error);
+          }
         });
         
         socket.on('voting_stopped', (data: { question: Question, votes: { total: number, counts: Record<string, number> } }) => {
@@ -220,17 +243,54 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
       
       const updatedQuestion = await response.json();
       
-      set({
-            currentQuestion: updatedQuestion,
-        hasVoted: false,
-        votes: { a: 0, b: 0, c: 0 },
-        timeRemaining: updatedQuestion.timer || 30
-      });
+      // Limpiar todas las claves de localStorage relacionadas con esta pregunta
+      try {
+        const voteStorageKey = `vote_${id}`;
+        const hasVotedKey = `hasVoted_${id}`;
+        const selectedOptionKey = `selectedOption_${id}`;
+        
+        localStorage.removeItem(voteStorageKey);
+        localStorage.removeItem(hasVotedKey);
+        localStorage.removeItem(selectedOptionKey);
+        
+        console.log(`Limpiado estado de votación previo para pregunta ${id} desde startVoting`);
       } catch (error) {
-      console.error('Error starting voting:', error);
-        throw error;
+        console.error("Error al limpiar datos de votación previa:", error);
       }
-    },
+      
+      // Limpiar el estado de votación del usuario
+      get().clearUserVoteState();
+      
+      // Actualizar el estado local para que:
+      // 1. Esta pregunta esté activa
+      // 2. Todas las demás preguntas estén inactivas
+      set((state) => {
+        // Actualizar todas las preguntas, asegurando que solo la actual esté activa
+        const updatedQuestions = state.questions.map(q => 
+          q._id === id 
+            ? { ...q, is_active: true, votingClosed: false } 
+            : { ...q, is_active: false }
+        );
+        
+        return {
+          ...state,
+          questions: updatedQuestions,
+          currentQuestion: {
+            ...updatedQuestion,
+            is_active: true,
+            votingClosed: false
+          },
+          hasVoted: false, // Asegurarse de que el usuario no haya votado aún
+          lastSelectedOption: null, // Limpiar la última opción seleccionada
+          votes: { a: 0, b: 0, c: 0 },
+          timeRemaining: updatedQuestion.timer || 30
+        };
+      });
+    } catch (error) {
+      console.error('Error starting voting:', error);
+      throw error;
+    }
+  },
     
   stopVoting: async (id, correctOption) => {
     try {
@@ -247,16 +307,26 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
       const data = await response.json();
       const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
       
-      set({
-        currentQuestion: data.question,
-        votes: votesData,
-        timeRemaining: null
+      // Actualizar el estado local para que la pregunta deje de estar activa inmediatamente
+      set((state) => {
+        // Actualizar la pregunta específica en la lista de preguntas
+        const updatedQuestions = state.questions.map(q => 
+          q._id === id ? { ...q, is_active: false, votingClosed: true } : q
+        );
+        
+        return {
+          ...state,
+          questions: updatedQuestions,
+          currentQuestion: data.question ? { ...data.question, is_active: false, votingClosed: true } : null,
+          votes: votesData,
+          timeRemaining: null
+        };
       });
-      } catch (error) {
+    } catch (error) {
       console.error('Error stopping voting:', error);
-        throw error;
-      }
-    },
+      throw error;
+    }
+  },
     
     submitVote: async (questionId, option) => {
     try {
@@ -270,13 +340,19 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
       if (!participant || !participant._id) {
         throw new Error('Debes iniciar sesión para votar');
       }
-      
+
+      // Normalizar la opción para que sea mayúscula (caso insensitivo)
+      const normalizedOption = option.toUpperCase();
+
       const response = await fetch(`/api/questions/${questionId}/vote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ option, voter_id: participant._id }),
+        body: JSON.stringify({ 
+          option: normalizedOption, 
+          voter_id: participant._id 
+        }),
       });
       
       if (!response.ok) {
@@ -285,15 +361,40 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
       }
       
       const data = await response.json();
-      const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
       
-      set({
-        votes: votesData,
-        hasVoted: true
+      // Asegurarnos de que los contadores de votos estén correctos
+      const votesData: Votes = { 
+        a: 0, 
+        b: 0, 
+        c: 0,
+        A: 0,
+        B: 0, 
+        C: 0,
+        ...data.votes.counts 
+      };
+      
+      console.log("Votos actualizados:", votesData);
+      
+      // Actualizar el estado con los nuevos votos
+      set((state) => {
+        return {
+          ...state,
+          votes: votesData,
+          hasVoted: true,
+          lastSelectedOption: normalizedOption
+        };
       });
-      // La interfaz QuestionState espera que submitVote devuelva Promise<void>
+      
+      // Guardar en localStorage la opción seleccionada para esta pregunta específica
+      try {
+        const voteStorageKey = `vote_${questionId}`;
+        localStorage.setItem(voteStorageKey, normalizedOption);
       } catch (error) {
-      console.error('Error submitting vote:', error);
+        console.error("Error al guardar voto en localStorage:", error);
+      }
+      
+      } catch (error) {
+        console.error('Error submitting vote:', error);
         throw error;
       }
     },
@@ -341,6 +442,18 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
         } else if (timeRemaining === 0) {
       // El temporizador ha terminado
       set({ timeRemaining: null });
+      
+      // Cuando el temporizador llega a cero, marcamos la pregunta como finalizada
+      if (currentQuestion && !currentQuestion.votingClosed) {
+        // Realizar una actualización silenciosa para cambiar el estado visual
+        set(state => ({
+          ...state,
+          currentQuestion: currentQuestion ? {
+            ...currentQuestion,
+            votingClosed: true
+          } : null
+        }));
+      }
       }
     },
     
@@ -352,15 +465,52 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
       
       if (!response.ok) throw new Error('Error clearing view');
       
-      set({
-        currentQuestion: null,
-        votes: { a: 0, b: 0, c: 0 },
-        hasVoted: false,
-        timeRemaining: null
+      // Actualizar el estado para desactivar todas las preguntas activas
+      set((state) => {
+        // Marcar todas las preguntas activas como inactivas
+        const updatedQuestions = state.questions.map(q => 
+          q.is_active ? { ...q, is_active: false, votingClosed: true } : q
+        );
+        
+        return {
+          ...state,
+          questions: updatedQuestions,
+          currentQuestion: null,
+          votes: { a: 0, b: 0, c: 0 },
+          hasVoted: false,
+          timeRemaining: null
+        };
       });
       } catch (error) {
       console.error('Error clearing view:', error);
       throw error;
+    }
+  },
+  
+  // Añadir función para limpiar el estado de votación de usuario
+  clearUserVoteState: () => {
+    set(state => ({
+      ...state,
+      hasVoted: false,
+      lastSelectedOption: null
+    }));
+    
+    // Si hay una pregunta activa, limpiar su estado de votación específico
+    const { currentQuestion } = get();
+    if (currentQuestion) {
+      try {
+        const voteStorageKey = `vote_${currentQuestion._id}`;
+        const hasVotedKey = `hasVoted_${currentQuestion._id}`;
+        const selectedOptionKey = `selectedOption_${currentQuestion._id}`;
+        
+        localStorage.removeItem(voteStorageKey);
+        localStorage.removeItem(hasVotedKey);
+        localStorage.removeItem(selectedOptionKey);
+        
+        console.log(`Limpiado estado de votación para pregunta actual ${currentQuestion._id}`);
+      } catch (error) {
+        console.error("Error al limpiar datos de votación:", error);
+      }
     }
   }
 }));

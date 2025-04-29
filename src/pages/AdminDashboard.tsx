@@ -138,18 +138,35 @@ export default function AdminDashboard() {
   const handleStartVoting = async (questionId: string) => {
     try {
       await startVotingAction(questionId);
+      // Verificar si la acción fue exitosa y actualizar interfaz
+      showNotification('Votación iniciada correctamente', 'success');
     } catch (error) {
       console.error('Error al iniciar la votación:', error);
+      showNotification('Error al iniciar la votación', 'error');
     }
   };
+
+  // Modificar la función para que se ejecute automáticamente cuando el temporizador llega a cero
+  useEffect(() => {
+    // Si el tiempo restante llega a cero, detener automáticamente la votación
+    if (timeRemaining === 0 && currentQuestion) {
+      const correctOption = currentQuestion.correct_option || 'A';
+      stopVoting(currentQuestion._id, correctOption);
+      showNotification(`Tiempo agotado. Respuesta correcta mostrada: ${correctOption}`, 'info');
+    }
+  }, [timeRemaining, currentQuestion]);
 
   const calculateStats = () => {
     const totalVotes = Object.values(votes).reduce((sum, count) => sum + count, 0);
     const stats = ['A', 'B', 'C'].map(option => {
-      const count = votes[option] || 0;
+      // Sumar los votos de mayúsculas y minúsculas para cada opción
+      const count = (votes[option] || 0) + (votes[option.toLowerCase()] || 0);
       const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
       return { option, count, percentage };
     });
+    
+    console.log("Estadísticas calculadas:", stats, "Total votos:", totalVotes, "Estado de votos:", votes);
+    
     return { stats, totalVotes };
   };
 
@@ -276,14 +293,14 @@ export default function AdminDashboard() {
                   onClick={async () => {
                     try {
                       await clearView();
-                      showNotification('Vista de audiencia limpiada correctamente', 'success');
+                      showNotification('Vista de audiencia limpiada y todas las preguntas activas detenidas', 'success');
                     } catch (error) {
                       console.error('Error al limpiar la vista:', error);
                       showNotification('Error al limpiar la vista', 'error');
                     }
                   }}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700"
-                  title="Limpiar la vista de audiencia y mostrar la pantalla principal"
+                  title="Limpiar la vista de audiencia, detener todas las preguntas activas y mostrar la pantalla principal"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Limpiar Vista de Audiencia
@@ -702,15 +719,30 @@ export default function AdminDashboard() {
                                   // Siempre usar la opción correcta ya configurada
                                   // Si la pregunta tiene una respuesta correcta configurada, usarla directamente
                                   if (q.correct_option) {
-                                    stopVoting(q._id, q.correct_option);
-                                    // Mostrar notificación temporal de éxito
-                                    showNotification(`Respuesta correcta mostrada: ${q.correct_option}`, 'success');
+                                    stopVoting(q._id, q.correct_option)
+                                      .then(() => {
+                                        // Mostrar notificación temporal de éxito
+                                        showNotification(`Respuesta correcta mostrada: ${q.correct_option}`, 'success');
+                                        
+                                        // Eliminar la solicitud a una API que no existe
+                                        // El sistema ya actualiza las puntuaciones automáticamente al detener la votación
+                                      })
+                                      .catch(error => {
+                                        console.error('Error al detener la votación:', error);
+                                        showNotification('Error al detener la votación', 'error');
+                                      });
                                   } else {
                                     // Si por alguna razón no tiene respuesta correcta configurada
                                     // (esto no debería ocurrir si se creó correctamente)
                                     // Usar opción A por defecto
-                                    stopVoting(q._id, 'A');
-                                    showNotification('Respuesta mostrada: Opción A (por defecto)', 'info');
+                                    stopVoting(q._id, 'A')
+                                      .then(() => {
+                                        showNotification('Respuesta mostrada: Opción A (por defecto)', 'info');
+                                      })
+                                      .catch(error => {
+                                        console.error('Error:', error);
+                                        showNotification('Error al detener la votación', 'error');
+                                      });
                                   }
                                 }}
                                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"

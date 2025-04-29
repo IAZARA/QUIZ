@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Participant } from '../types';
+import { useQuestionStore } from '../store/questionStore';
 
 type ParticipantRankingProps = {
   className?: string;
@@ -10,11 +11,16 @@ const ParticipantRanking: React.FC<ParticipantRankingProps> = ({ className = '' 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
+  
+  // Obtener el estado de la pregunta activa para actualizar cuando cambie
+  const { currentQuestion, timeRemaining } = useQuestionStore();
 
   // Función para cargar los participantes
   const loadParticipants = async () => {
     try {
-      const response = await fetch('/api/participants');
+      setLoading(true);
+      // Usar endpoint con más detalles de puntuación
+      const response = await fetch('/api/participants?detailed=true');
       if (!response.ok) {
         throw new Error(`Error al cargar participantes: ${response.status}`);
       }
@@ -33,6 +39,15 @@ const ParticipantRanking: React.FC<ParticipantRankingProps> = ({ className = '' 
   useEffect(() => {
     loadParticipants();
   }, []);
+
+  // Actualizar cuando cambie la pregunta activa o el tiempo restante llegue a cero
+  useEffect(() => {
+    // Si la pregunta está activa y el tiempo llega a cero o si la pregunta cambia a null
+    // (se detiene la votación), actualizar los participantes
+    if ((currentQuestion && timeRemaining === 0) || (!currentQuestion && timeRemaining === null)) {
+      loadParticipants();
+    }
+  }, [currentQuestion, timeRemaining]);
 
   // Configurar actualización automática
   useEffect(() => {
@@ -121,6 +136,9 @@ const ParticipantRanking: React.FC<ParticipantRankingProps> = ({ className = '' 
                   Puntos
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Resp. Correctas
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tiempo Total
                 </th>
               </tr>
@@ -152,6 +170,11 @@ const ParticipantRanking: React.FC<ParticipantRankingProps> = ({ className = '' 
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="text-sm text-gray-900 font-semibold">
                       {participant.points || 0}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="text-sm text-gray-600">
+                      {participant.correctAnswers || 0}/{participant.totalAnswers || 0}
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
