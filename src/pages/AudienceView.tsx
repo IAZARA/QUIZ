@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useQuestionStore } from '../store/questionStore';
 import { useParticipantStore } from '../store/participantStore';
 import { useQuizConfigStore } from '../store/quizConfigStore';
-import { Clock, QrCode, X, Check } from 'lucide-react';
+import { Clock, QrCode, X, Check, Award } from 'lucide-react';
 import TimerSound from '../components/TimerSound';
 import QRCode from 'react-qr-code';
+import ParticipantRanking from '../components/ParticipantRanking';
+import io from 'socket.io-client';
 
 export default function AudienceView() {
   const { 
@@ -16,7 +18,7 @@ export default function AudienceView() {
     timeRemaining
   } = useQuestionStore();
   
-  const { config, getConfig } = useQuizConfigStore();
+  const { config, getConfig, isRankingVisible } = useQuizConfigStore();
   const { currentParticipant, logout } = useParticipantStore();
   
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -31,6 +33,37 @@ export default function AudienceView() {
   useEffect(() => {
     getConfig();
   }, [getConfig]);
+  
+  // Escuchar eventos de Socket.IO para mostrar/ocultar el ranking
+  useEffect(() => {
+    // Crear un nuevo socket para escuchar eventos
+    const socket = io({
+      path: '/socket.io',
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+    
+    // Evento para mostrar el ranking
+    socket.on('show_ranking', () => {
+      console.log('Recibido evento para mostrar ranking');
+      useQuizConfigStore.setState({ isRankingVisible: true });
+    });
+    
+    // Evento para ocultar el ranking
+    socket.on('hide_ranking', () => {
+      console.log('Recibido evento para ocultar ranking');
+      useQuizConfigStore.setState({ isRankingVisible: false });
+    });
+    
+    return () => {
+      // Limpiar listeners al desmontar
+      socket.off('show_ranking');
+      socket.off('hide_ranking');
+      socket.disconnect();
+    };
+  }, []);
 
   // Cargar estado de voto desde localStorage cuando cambia la pregunta
   useEffect(() => {
@@ -301,6 +334,18 @@ export default function AudienceView() {
                 </div>
               )}
               
+              {/* Mensaje cuando no se seleccionó ninguna opción y la votación está cerrada */}
+              {!selectedOption && currentQuestion.votingClosed && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <div className="flex items-center text-yellow-700">
+                    <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="font-medium">No seleccionaste ninguna opción para esta pregunta.</span>
+                  </div>
+                </div>
+              )}
+              
               {/* Opciones */}
               <div className="space-y-4 mb-6">
                 {['a', 'b', 'c'].map((option) => {
@@ -319,27 +364,27 @@ export default function AudienceView() {
                       className={`w-full text-left p-4 rounded-md flex items-start relative
                         ${hasVoted || currentQuestion.votingClosed ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50'}
                         ${isSelected && !hasVoted ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
-                        ${hasVoted && isSelected ? 'bg-blue-50 border border-blue-200' : ''}
-                        ${isCorrect ? 'bg-green-50 border border-green-200' : ''}
+                        ${hasVoted && isSelected && !currentQuestion.votingClosed ? 'bg-blue-50 border border-blue-200' : ''}
+                        ${isCorrect && currentQuestion.votingClosed ? 'bg-green-50 border border-green-200' : ''}
                         ${!isCorrect && hasVoted && isSelected && currentQuestion.votingClosed ? 'bg-red-50 border border-red-200' : ''}
-                        ${!isSelected && !isCorrect ? 'border border-gray-200' : ''}
+                        ${!isSelected ? 'border border-gray-200' : ''}
                         ${showResults ? 'relative' : ''}
                       `}
                     >
                       <div className="flex-1">
                         <div className="flex items-center">
                           <span className={`flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full mr-3 text-sm
-                            ${isCorrect ? 'bg-green-500 text-white' : 
+                            ${isCorrect && currentQuestion.votingClosed ? 'bg-green-500 text-white' : 
                               isSelected && hasVoted && !isCorrect && currentQuestion.votingClosed ? 'bg-red-500 text-white' : 
                               isSelected ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}
                           `}>
                             {option.toUpperCase()}
                           </span>
-                          <span className={`font-medium ${isCorrect ? 'text-green-700' : 
+                          <span className={`font-medium ${isCorrect && currentQuestion.votingClosed ? 'text-green-700' : 
                             isSelected && hasVoted && !isCorrect && currentQuestion.votingClosed ? 'text-red-700' : 'text-gray-700'}`}>
                             {optionContent}
                           </span>
-                          {isCorrect && (
+                          {isCorrect && currentQuestion.votingClosed && (
                             <span className="ml-2 text-green-600 flex items-center">
                               <Check className="h-4 w-4 mr-1" />
                               Correcta
@@ -357,7 +402,11 @@ export default function AudienceView() {
                       {statForOption?.showPercentage && (
                         <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
                           <div
-                            className={`h-2.5 rounded-full ${isCorrect ? 'bg-green-500' : 'bg-blue-500'}`}
+                            className={`h-2.5 rounded-full ${isCorrect && currentQuestion.votingClosed ? 'bg-green-500' : 
+                              isSelected && hasVoted && !isCorrect && currentQuestion.votingClosed ? 'bg-red-500' : 
+                              isSelected ? 'bg-blue-500' : 
+                              statForOption.percentage > 50 ? 'bg-yellow-500' : 
+                              statForOption.percentage > 20 ? 'bg-orange-500' : 'bg-blue-500'}`}
                             style={{ width: `${statForOption.percentage}%` }}
                           ></div>
                         </div>
@@ -422,6 +471,35 @@ export default function AudienceView() {
       </div>
         )}
       </main>
+
+      {/* Modal para mostrar la clasificación si está habilitada y visible */}
+      {config.showRankings && isRankingVisible && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn transition-all duration-300">
+          <div 
+            className="bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200"
+            style={{ maxWidth: '95vw' }}
+          >
+            <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
+              <h3 className="text-xl font-semibold flex items-center text-gray-800">
+                <Award className="h-6 w-6 mr-2 text-yellow-500" />
+                Clasificación Actual
+              </h3>
+              <button 
+                onClick={() => useQuizConfigStore.setState({ isRankingVisible: false })}
+                className="text-gray-400 hover:text-gray-600 transition-colors duration-200 rounded-full hover:bg-gray-100 p-1"
+                aria-label="Cerrar clasificación"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="rounded-lg overflow-hidden">
+              <ParticipantRanking className="shadow-none border-0 bg-transparent" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contenedor para el QR Code (modal) */}
     </div>
   );
 }

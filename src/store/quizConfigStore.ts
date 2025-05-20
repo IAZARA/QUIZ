@@ -34,7 +34,37 @@ const validateConfig = (config: Partial<QuizConfig>): { isValid: boolean; error?
 export const useQuizConfigStore = create<QuizConfigState>((set, get) => ({
   config: DEFAULT_CONFIG,
   isLoading: false,
+  isRankingVisible: false, // Nuevo estado para controlar la visibilidad
+
+  // Nuevas acciones para mostrar/ocultar el ranking
+  showRanking: () => {
+    // Emitir evento al servidor para que todos los clientes vean el ranking
+    fetch('/api/admin/show-ranking', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }).catch(error => {
+      console.error('Error al mostrar el ranking:', error);
+    });
+    
+    set({ isRankingVisible: true });
+  },
   
+  hideRanking: () => {
+    // Emitir evento al servidor para que todos los clientes oculten el ranking
+    fetch('/api/admin/hide-ranking', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }).catch(error => {
+      console.error('Error al ocultar el ranking:', error);
+    });
+    
+    set({ isRankingVisible: false });
+  },
+
   getConfig: async () => {
     try {
       set({ isLoading: true });

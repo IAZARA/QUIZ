@@ -176,16 +176,14 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
       
       if (!response.ok) throw new Error('Error creating question');
       
+      // No actualizamos el estado aquí, dejamos que el evento 'question_created' lo maneje
       const newQuestion = await response.json();
-      set((state) => ({
-        ...state,
-        questions: [newQuestion, ...state.questions]
-      }));
-      } catch (error) {
+      return newQuestion;
+    } catch (error) {
       console.error('Error creating question:', error);
-        throw error;
-      }
-    },
+      throw error;
+    }
+  },
     
     updateQuestion: async (id, updates) => {
     try {

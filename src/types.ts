@@ -31,6 +31,9 @@ export interface QuizConfig {
 export interface QuizConfigState {
   config: QuizConfig;
   isLoading: boolean;
+  isRankingVisible: boolean;
+  showRanking: () => void;
+  hideRanking: () => void;
   saveConfig: (config: Partial<QuizConfig>) => Promise<boolean>;
   getConfig: () => Promise<void>;
   resetConfig: () => void;

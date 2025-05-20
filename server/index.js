@@ -666,6 +666,69 @@ app.post('/api/admin/reset-session', async (req, res) => {
   }
 });
 
+// Endpoint para limpiar la vista de la audiencia
+app.post('/api/admin/clear-view', async (req, res) => {
+  try {
+    // Emitir evento para limpiar la vista
+    io.emit('clear_view', { 
+      message: 'Vista limpiada por el administrador' 
+    });
+    
+    res.json({
+      success: true,
+      message: 'Vista limpiada correctamente'
+    });
+  } catch (error) {
+    console.error('Error al limpiar la vista:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al limpiar la vista'
+    });
+  }
+});
+
+// Endpoint para mostrar la clasificación a todos los participantes
+app.post('/api/admin/show-ranking', async (req, res) => {
+  try {
+    // Emitir evento para mostrar la clasificación
+    io.emit('show_ranking', { 
+      message: 'Clasificación mostrada por el administrador' 
+    });
+    
+    res.json({
+      success: true,
+      message: 'Clasificación mostrada correctamente'
+    });
+  } catch (error) {
+    console.error('Error al mostrar la clasificación:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al mostrar la clasificación'
+    });
+  }
+});
+
+// Endpoint para ocultar la clasificación a todos los participantes
+app.post('/api/admin/hide-ranking', async (req, res) => {
+  try {
+    // Emitir evento para ocultar la clasificación
+    io.emit('hide_ranking', { 
+      message: 'Clasificación ocultada por el administrador' 
+    });
+    
+    res.json({
+      success: true,
+      message: 'Clasificación ocultada correctamente'
+    });
+  } catch (error) {
+    console.error('Error al ocultar la clasificación:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al ocultar la clasificación'
+    });
+  }
+});
+
 // Socket.io para tiempo real
 io.on('connection', (socket) => {
   console.log('Usuario conectado:', socket.id);

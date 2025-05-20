@@ -85,13 +85,21 @@ const ParticipantRanking: React.FC<ParticipantRankingProps> = ({ className = '' 
     }
   };
 
+  // Ordenar participantes por puntos (de mayor a menor) y limitar a los 15 mejores
+  const topParticipants = [...participants]
+    .sort((a, b) => (b.points || 0) - (a.points || 0))
+    .slice(0, 15);
+  
+  // Total de participantes para mostrar información
+  const totalParticipants = participants.length;
+    
   return (
     <div className={`bg-white rounded-lg shadow-md p-4 ${className}`}>
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-800">Ranking de Participantes</h3>
         <button 
           onClick={() => loadParticipants()}
-          className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+          className="text-blue-600 hover:text-blue-800 text-sm flex items-center transition-colors duration-200 px-2 py-1 rounded hover:bg-blue-50"
           disabled={loading}
         >
           {loading ? (
@@ -120,80 +128,92 @@ const ParticipantRanking: React.FC<ParticipantRankingProps> = ({ className = '' 
       </div>
       
       {error && (
-        <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4">
+        <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4 animate-fadeIn">
           {error}
         </div>
       )}
       
       {participants.length === 0 && !loading ? (
-        <div className="text-center py-8 text-gray-500">
-          No hay participantes registrados todavía.
+        <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg border border-gray-100">
+          <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <p>No hay participantes registrados todavía.</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Pos.
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Participante
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Puntos
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Resp. Correctas
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tiempo Total
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {participants.map((participant, index) => (
-                <tr 
-                  key={participant._id} 
-                  className={index < 3 ? 'bg-yellow-50' : ''}
-                >
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className={`
-                        w-6 h-6 flex items-center justify-center rounded-full text-xs font-medium
-                        ${index === 0 ? 'bg-yellow-400 text-yellow-900' : 
-                          index === 1 ? 'bg-gray-200 text-gray-700' : 
-                          index === 2 ? 'bg-yellow-600 text-yellow-100' : 
-                          'bg-gray-100 text-gray-500'}
-                      `}>
-                        {index + 1}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {participant.name}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 font-semibold">
-                      {participant.points || 0}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm text-gray-600">
-                      {participant.correctAnswers || 0}/{participant.totalAnswers || 0}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm text-gray-600">
-                      {formatTime(participant.totalTime)}
-                    </div>
-                  </td>
+          <div className="text-sm text-gray-500 mb-3 flex items-center">
+            <svg className="w-4 h-4 mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Mostrando los 15 mejores de {totalParticipants} participantes
+          </div>
+          <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Pos.
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Participante
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Puntos
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Resp. Correctas
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tiempo Total
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {topParticipants.map((participant, index) => (
+                  <tr 
+                    key={participant._id} 
+                    className={`transition-colors duration-150 hover:bg-gray-50 ${index < 3 ? 'bg-gradient-to-r from-yellow-50 to-transparent' : ''}`}
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className={`
+                          w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium shadow-sm
+                          ${index === 0 ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 text-yellow-900' : 
+                            index === 1 ? 'bg-gradient-to-br from-gray-100 to-gray-300 text-gray-700' : 
+                            index === 2 ? 'bg-gradient-to-br from-yellow-600 to-yellow-800 text-yellow-100' : 
+                            'bg-gray-100 text-gray-500'}
+                        `}>
+                          {index + 1}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {participant.name}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-blue-600">
+                        {participant.points || 0}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="text-sm text-gray-600 flex items-center">
+                        <span className={`inline-block w-2 h-2 rounded-full mr-1 ${(participant.correctAnswers || 0) > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                        {participant.correctAnswers || 0}/{participant.totalAnswers || 0}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {formatTime(participant.totalTime)}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       
