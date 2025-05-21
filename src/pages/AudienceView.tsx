@@ -13,7 +13,8 @@ import ParticipantRanking from '../components/ParticipantRanking';
 import WordCloudParticipant from '../components/wordcloud/WordCloudParticipant';
 import TournamentAudienceView from '../components/tournament/TournamentAudienceView';
 import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
-import io from 'socket.io-client';
+import SharedFilesDisplay from '../components/audience/SharedFilesDisplay'; // Import the new component
+import io, { Socket } from 'socket.io-client'; // Import Socket type
 
 export default function AudienceView() {
   const { 
@@ -40,6 +41,7 @@ export default function AudienceView() {
   const [animationClass, setAnimationClass] = useState('');
   const [participantOutcome, setParticipantOutcome] = useState<'advanced' | 'eliminated' | null>(null);
   const [lastCheckedMatchId, setLastCheckedMatchId] = useState<string | null>(null);
+  const [socketClient, setSocketClient] = useState<Socket | null>(null);
 
 
   // Cargar la configuración del quiz y contactos
@@ -51,47 +53,49 @@ export default function AudienceView() {
   // Escuchar eventos de Socket.IO para mostrar/ocultar el ranking y actualizar la nube de palabras
   useEffect(() => {
     // Crear un nuevo socket para escuchar eventos
-    const socket = io({
+    const newSocket = io({ // Renamed to newSocket to avoid conflict with state
       path: '/socket.io',
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
+    setSocketClient(newSocket); // Save the socket instance to state
     
     // Evento para mostrar el ranking
-    socket.on('show_ranking', () => {
+    newSocket.on('show_ranking', () => {
       console.log('Recibido evento para mostrar ranking');
       useQuizConfigStore.setState({ isRankingVisible: true });
     });
     
     // Evento para ocultar el ranking
-    socket.on('hide_ranking', () => {
+    newSocket.on('hide_ranking', () => {
       console.log('Recibido evento para ocultar ranking');
       useQuizConfigStore.setState({ isRankingVisible: false });
     });
     
     // Eventos para la nube de palabras
-    socket.on('wordcloud:status', (data) => {
+    newSocket.on('wordcloud:status', (data) => {
       console.log('Recibido evento de estado de nube de palabras:', data);
       useWordCloudStore.setState({ isActive: data.isActive });
     });
     
-    socket.on('wordcloud:update', (words) => {
+    newSocket.on('wordcloud:update', (words) => {
       console.log('Recibida actualización de nube de palabras');
       useWordCloudStore.setState({ words });
     });
     
     // Notificar que el participante se unió a la nube de palabras
-    socket.emit('wordcloud:join');
+    newSocket.emit('wordcloud:join');
     
     return () => {
       // Limpiar listeners al desmontar
-      socket.off('show_ranking');
-      socket.off('hide_ranking');
-      socket.off('wordcloud:status');
-      socket.off('wordcloud:update');
-      socket.disconnect();
+      newSocket.off('show_ranking');
+      newSocket.off('hide_ranking');
+      newSocket.off('wordcloud:status');
+      newSocket.off('wordcloud:update');
+      newSocket.disconnect();
+      setSocketClient(null); // Clear socket client on unmount
     };
   }, []);
 
@@ -660,6 +664,9 @@ export default function AudienceView() {
 
       {/* Contenedor para el QR Code (modal) */}
       
+      {/* Shared Files Display Section */}
+      {socketClient && <SharedFilesDisplay socket={socketClient} />}
+
       {/* Vista de contactos */}
       <ContactsAudienceView />
 

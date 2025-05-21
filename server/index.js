@@ -10,6 +10,7 @@ import fs from 'fs';
 import setupTournamentRoutes from './tournament-routes.js';
 import wordCloudRoutes from './wordcloud-routes.js';
 import contactRoutes, { setupContactSockets } from './contact-routes.js';
+import setupFileRoutes from './file-routes.js'; // Changed to setupFileRoutes
 
 // Cargar variables de entorno
 dotenv.config();
@@ -47,28 +48,69 @@ if (process.env.NODE_ENV === 'production') {
   console.log(`Sirviendo archivos estáticos desde: ${distPath}`);
 }
 
-// Asegurarse de que la carpeta de uploads exista
-const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Asegurarse de que las carpetas de uploads existan
+const baseUploadsDir = path.join(process.cwd(), 'uploads'); // Base directory for all uploads
+const imageUploadsDir = baseUploadsDir; // Existing image uploads can go here or a subfolder
+const sharedFilesUploadsDir = path.join(baseUploadsDir, 'shared_files'); // For new file sharing
+
+if (!fs.existsSync(baseUploadsDir)) {
+  fs.mkdirSync(baseUploadsDir, { recursive: true });
+}
+if (!fs.existsSync(sharedFilesUploadsDir)) {
+  fs.mkdirSync(sharedFilesUploadsDir, { recursive: true });
 }
 
-// Configuración de multer para subir imágenes
-const storage = multer.diskStorage({
+
+// Configuración de multer para subir imágenes (existing one for question images)
+const imageStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadsDir)
+    cb(null, imageUploadsDir); // Use the specific or general image uploads directory
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    const ext = path.extname(file.originalname)
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext)
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
   }
 });
 
-const upload = multer({ 
-  storage: storage,
+const imageUpload = multer({ 
+  storage: imageStorage, // Use the image-specific storage
   limits: {
     fileSize: 20 * 1024 * 1024 // límite de 20MB
+  },
+  fileFilter: function (req, file, cb) {
+    // Validar tipos de archivo
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten imágenes'), false);
+    }
+  }
+});
+
+// Register file sharing routes (now uses setup function)
+// app.use('/api/files', fileRoutes); // Old way
+// setupFileRoutes(app, io); // Will be called after DB connection, similar to tournament routes
+
+
+// Variables de MongoDB
+const MONGODB_URI = process.env.VITE_MONGODB_URI || 'mongodb://localhost:27017';
+// Configuración de multer para subir imágenes - THIS BLOCK IS NOW imageUpload
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, uploadsDir) // This should be imageUploadsDir
+//   },
+//   filename: function (req, file, cb) {
+//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+//     const ext = path.extname(file.originalname)
+//     cb(null, file.fieldname + '-' + uniqueSuffix + ext)
+//   }
+// });
+
+// const upload = multer({ 
+//   storage: storage, // This should be imageStorage
+//   limits: {
+//     fileSize: 20 * 1024 * 1024 // límite de 20MB
   },
   fileFilter: function (req, file, cb) {
     // Validar tipos de archivo
@@ -107,6 +149,10 @@ async function connectToDatabase() {
     
     // Configurar sockets para contactos
     setupContactSockets(io);
+
+    // Configurar rutas para archivos compartidos, pasando io
+    setupFileRoutes(app, io);
+
   } catch (error) {
     console.error('Error conectando a MongoDB:', error);
     process.exit(1);
@@ -207,11 +253,11 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
   }
 });
 
-// Eliminar imagen
+// Eliminar imagen (for question images)
 app.delete('/api/upload/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
-    const filePath = path.join(process.cwd(), 'uploads', filename);
+    const filePath = path.join(imageUploadsDir, filename); // Use correct directory
     
     // Verificar si el archivo existe
     if (fs.existsSync(filePath)) {
