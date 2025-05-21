@@ -77,6 +77,8 @@ export interface Participant {
   correctAnswers?: number;
   totalAnswers?: number;
   created_at?: Date;
+  avatar?: string; // Emoji o código de avatar para el torneo
+  tournamentName?: string; // Nombre en formato "Animal Color" para el torneo
 }
 
 // Tipo para el estado de participantes
@@ -111,4 +113,75 @@ export interface QuestionState {
   checkTimeRemaining: () => void;
   clearView: () => Promise<void>;
   clearUserVoteState: () => void;
+}
+
+// TIPOS PARA EL TORNEO
+
+// Tipo para un partido del torneo
+export interface TournamentMatch {
+  id: string;
+  matchNumber: number;
+  roundId: string;
+  participant1Id?: string;
+  participant2Id?: string;
+  participant1Name?: string;
+  participant2Name?: string;
+  participant1Avatar?: string;
+  participant2Avatar?: string;
+  participant1Score?: number;
+  participant2Score?: number;
+  winnerId?: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  nextMatchId?: string;
+}
+
+// Tipo para una ronda del torneo
+export interface TournamentRound {
+  id: string;
+  roundNumber: number;
+  name?: string;
+  matches: TournamentMatch[];
+}
+
+// Tipo para el estado del torneo
+export interface TournamentState {
+  isActive: boolean;
+  rounds: TournamentRound[];
+  currentMatchId: string | null;
+  participants: Participant[];
+  winner: Participant | null;
+  error: string | null;
+  
+  // Funciones
+  startTournament: (participantIds: string[]) => Promise<void>;
+  advanceParticipant: (matchId: string, winnerId: string) => Promise<void>;
+  selectMatch: (matchId: string) => void;
+  loadParticipants: () => Promise<void>;
+  resetTournament: () => Promise<void>;
+}
+
+// TIPOS PARA CONTACTOS
+
+// Tipo para un contacto
+export interface Contact {
+  _id?: string;
+  name: string;
+  email: string;
+  whatsapp: string; // Número de teléfono con formato internacional
+  created_at?: Date;
+}
+
+// Tipo para el estado de contactos
+export interface ContactState {
+  contacts: Contact[];
+  isContactsVisible: boolean;
+  error: string | null;
+  
+  // Funciones
+  addContact: (contact: Omit<Contact, '_id' | 'created_at'>) => Promise<void>;
+  updateContact: (id: string, updates: Partial<Contact>) => Promise<void>;
+  deleteContact: (id: string) => Promise<void>;
+  loadContacts: () => Promise<void>;
+  showContacts: () => void;
+  hideContacts: () => void;
 }

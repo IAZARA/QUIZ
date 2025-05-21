@@ -1,13 +1,16 @@
 import React from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Trophy } from 'lucide-react';
 import ParticipantRanking from '../ParticipantRanking';
+import { useNavigate } from 'react-router-dom';
 
 interface RankingsTabProps {
   onResetSession: () => void;
   showNotification: (message: string, type: 'success' | 'error' | 'info') => void;
+  setActiveTab?: (tab: 'questions' | 'config' | 'rankings' | 'tournament') => void;
 }
 
-const RankingsTab: React.FC<RankingsTabProps> = ({ onResetSession, showNotification }) => {
+const RankingsTab: React.FC<RankingsTabProps> = ({ onResetSession, showNotification, setActiveTab }) => {
+  const navigate = useNavigate();
   const handleResetSession = async () => {
     // Confirmar antes de reiniciar la sesión
     if (window.confirm('¿Estás seguro de que deseas reiniciar la sesión? Esto eliminará todos los participantes y sus datos. Esta acción no se puede deshacer.')) {
@@ -40,13 +43,22 @@ const RankingsTab: React.FC<RankingsTabProps> = ({ onResetSession, showNotificat
     <div className="px-4 py-5 sm:p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-medium text-gray-900">Estadísticas de Participantes</h2>
-        <button
-          onClick={handleResetSession}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Reiniciar Sesión
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setActiveTab ? setActiveTab('tournament') : null}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700"
+          >
+            <Trophy className="h-4 w-4 mr-2" />
+            Iniciar Torneo con Top 16
+          </button>
+          <button
+            onClick={handleResetSession}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reiniciar Sesión
+          </button>
+        </div>
       </div>
       <p className="text-sm text-gray-600 mb-6">
         Aquí puedes ver el ranking de participantes basado en respuestas correctas y tiempo de respuesta.

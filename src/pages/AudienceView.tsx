@@ -2,10 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useQuestionStore } from '../store/questionStore';
 import { useParticipantStore } from '../store/participantStore';
 import { useQuizConfigStore } from '../store/quizConfigStore';
-import { Clock, QrCode, X, Check, Award } from 'lucide-react';
+import { useWordCloudStore } from '../store/wordCloudStore';
+import { useTournamentStore } from '../store/tournamentStore';
+import { useContactStore } from '../store/contactStore';
+import { Clock, QrCode, X, Check, Award, Cloud, Trophy } from 'lucide-react';
 import TimerSound from '../components/TimerSound';
 import QRCode from 'react-qr-code';
 import ParticipantRanking from '../components/ParticipantRanking';
+import WordCloudParticipant from '../components/wordcloud/WordCloudParticipant';
+import TournamentAudienceView from '../components/tournament/TournamentAudienceView';
+import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
 import io from 'socket.io-client';
 
 export default function AudienceView() {
@@ -20,6 +26,9 @@ export default function AudienceView() {
   
   const { config, getConfig, isRankingVisible } = useQuizConfigStore();
   const { currentParticipant, logout } = useParticipantStore();
+  const { isActive: isWordCloudActive } = useWordCloudStore();
+  const { isActive: isTournamentActive } = useTournamentStore();
+  const { loadContacts } = useContactStore();
   
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -29,12 +38,13 @@ export default function AudienceView() {
   const [showQR, setShowQR] = useState(false);
   const [animationClass, setAnimationClass] = useState('');
 
-  // Cargar la configuración del quiz
+  // Cargar la configuración del quiz y contactos
   useEffect(() => {
     getConfig();
-  }, [getConfig]);
+    loadContacts();
+  }, [getConfig, loadContacts]);
   
-  // Escuchar eventos de Socket.IO para mostrar/ocultar el ranking
+  // Escuchar eventos de Socket.IO para mostrar/ocultar el ranking y actualizar la nube de palabras
   useEffect(() => {
     // Crear un nuevo socket para escuchar eventos
     const socket = io({
@@ -57,10 +67,26 @@ export default function AudienceView() {
       useQuizConfigStore.setState({ isRankingVisible: false });
     });
     
+    // Eventos para la nube de palabras
+    socket.on('wordcloud:status', (data) => {
+      console.log('Recibido evento de estado de nube de palabras:', data);
+      useWordCloudStore.setState({ isActive: data.isActive });
+    });
+    
+    socket.on('wordcloud:update', (words) => {
+      console.log('Recibida actualización de nube de palabras');
+      useWordCloudStore.setState({ words });
+    });
+    
+    // Notificar que el participante se unió a la nube de palabras
+    socket.emit('wordcloud:join');
+    
     return () => {
       // Limpiar listeners al desmontar
       socket.off('show_ranking');
       socket.off('hide_ranking');
+      socket.off('wordcloud:status');
+      socket.off('wordcloud:update');
       socket.disconnect();
     };
   }, []);
@@ -307,6 +333,35 @@ export default function AudienceView() {
       </header>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {/* Mostrar la nube de palabras si está activa */}
+        {isTournamentActive ? (
+          <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
+                    <Trophy className="h-5 w-5 mr-2 text-amber-500" />
+                    Torneo en Progreso
+                  </h2>
+                </div>
+                <TournamentAudienceView />
+              </div>
+            </div>
+          </div>
+        ) : isWordCloudActive ? (
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
+                  <Cloud className="h-5 w-5 text-blue-500 mr-2" />
+                  Nube de Palabras Interactiva
+                </h2>
+              </div>
+              <WordCloudParticipant />
+            </div>
+          </div>
+        ) : null}
+        
         {currentQuestion ? (
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             {/* Temporizador */}
@@ -500,6 +555,9 @@ export default function AudienceView() {
       )}
 
       {/* Contenedor para el QR Code (modal) */}
+      
+      {/* Vista de contactos */}
+      <ContactsAudienceView />
     </div>
   );
 }

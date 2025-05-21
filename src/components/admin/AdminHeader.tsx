@@ -1,28 +1,16 @@
 import React from 'react';
-import { LogOut, Award } from 'lucide-react';
+import { LogOut, Trophy, Cloud, Phone } from 'lucide-react';
 
 interface AdminHeaderProps {
-  activeTab: 'questions' | 'config' | 'rankings';
-  setActiveTab: (tab: 'questions' | 'config' | 'rankings') => void;
+  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts';
+  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts') => void;
   onSignOut: () => void;
-  config: {
-    showRankings: boolean;
-  };
-  isRankingVisible: boolean;
-  showRanking: () => void;
-  hideRanking: () => void;
-  onClearView: () => void;
 }
 
 const AdminHeader: React.FC<AdminHeaderProps> = ({
   activeTab,
   setActiveTab,
-  onSignOut,
-  config,
-  isRankingVisible,
-  showRanking,
-  hideRanking,
-  onClearView
+  onSignOut
 }) => {
   return (
     <header className="bg-white shadow">
@@ -54,6 +42,36 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
                 Estadísticas
               </button>
               <button
+                onClick={() => setActiveTab('tournament')}
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  activeTab === 'tournament'
+                    ? 'border-blue-500 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+              >
+                <Trophy className="h-4 w-4 mr-1" /> Torneo
+              </button>
+              <button
+                onClick={() => setActiveTab('wordcloud')}
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  activeTab === 'wordcloud'
+                    ? 'border-blue-500 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+              >
+                <Cloud className="h-4 w-4 mr-1" /> Nube de Palabras
+              </button>
+              <button
+                onClick={() => setActiveTab('contacts')}
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  activeTab === 'contacts'
+                    ? 'border-blue-500 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+              >
+                <Phone className="h-4 w-4 mr-1" /> Contactos
+              </button>
+              <button
                 onClick={() => setActiveTab('config')}
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                   activeTab === 'config'
@@ -66,28 +84,6 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
             </nav>
           </div>
           <div className="flex items-center space-x-2">
-            {activeTab === 'questions' && (
-              <>
-                <button
-                  onClick={onClearView}
-                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Limpiar Vista de Audiencia
-                </button>
-                
-                {config.showRankings && (
-                  <button
-                    onClick={isRankingVisible ? hideRanking : showRanking}
-                    className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white ${
-                      isRankingVisible ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-purple-600 hover:bg-purple-700'
-                    } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500`}
-                  >
-                    <Award className="h-4 w-4 mr-2" />
-                    {isRankingVisible ? 'Ocultar Clasificación' : 'Mostrar Clasificación'}
-                  </button>
-                )}
-              </>
-            )}
             
             <button
               onClick={onSignOut}

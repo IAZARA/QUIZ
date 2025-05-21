@@ -1,0 +1,262 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, Cloud } from 'lucide-react';
+import { useWordCloudStore } from '../../store/wordCloudStore';
+import ReactWordcloud from 'react-wordcloud';
+import 'tippy.js/dist/tippy.css';
+import 'tippy.js/animations/scale.css';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const WordCloudParticipant: React.FC = () => {
+  const { isActive, words, addWord, fetchWords } = useWordCloudStore();
+  const [inputWord, setInputWord] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [newWords, setNewWords] = useState<string[]>([]);
+  const prevWordsRef = useRef<Array<{text: string, count: number}>>([]);
+
+  useEffect(() => {
+    const loadWords = async () => {
+      setLoading(true);
+      await fetchWords();
+      setLoading(false);
+    };
+    
+    loadWords();
+    
+    // Configurar socket para escuchar actualizaciones en tiempo real
+    // Esto se implementaría con socket.io
+    
+    return () => {
+      // Limpiar socket
+    };
+  }, [fetchWords]);
+  
+  // Detectar palabras nuevas para animarlas
+  useEffect(() => {
+    if (words.length > 0 && prevWordsRef.current.length > 0) {
+      // Encontrar palabras nuevas o que han cambiado de conteo
+      const newWordsDetected = words.filter(word => {
+        const prevWord = prevWordsRef.current.find(w => w.text === word.text);
+        return !prevWord || prevWord.count < word.count;
+      }).map(word => word.text);
+      
+      if (newWordsDetected.length > 0) {
+        setNewWords(newWordsDetected);
+        
+        // Limpiar las palabras nuevas después de un tiempo para quitar la animación
+        const timer = setTimeout(() => {
+          setNewWords([]);
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+    
+    // Actualizar la referencia de palabras anteriores
+    prevWordsRef.current = [...words];
+  }, [words]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!inputWord.trim() || !isActive || submitted) {
+      return;
+    }
+    
+    try {
+      await addWord(inputWord.trim());
+      setSubmitted(true);
+      setInputWord('');
+    } catch (error) {
+      console.error('Error al enviar la palabra:', error);
+    }
+  };
+
+  // Convertir las palabras al formato esperado por react-wordcloud
+  const wordCloudData = words.map(word => ({
+    text: word.text,
+    value: word.count,
+    // Añadir propiedades para animación y estilo
+    color: newWords.includes(word.text) ? '#ff6b6b' : undefined,
+    fontWeight: newWords.includes(word.text) ? 'bold' : 'normal',
+    fontFamily: newWords.includes(word.text) ? 'Arial, sans-serif' : 'impact'
+  }));
+
+  // Definir la interfaz para la palabra en el tooltip
+  interface WordCloudWord {
+    text: string;
+    value: number;
+  }
+
+  const options = {
+    colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'],
+    enableTooltip: true,
+    deterministic: false,
+    fontFamily: 'impact',
+    fontSizes: [20, 60] as [number, number],
+    fontStyle: 'normal',
+    fontWeight: 'normal',
+    padding: 1,
+    rotations: 3,
+    rotationAngles: [0, 90] as [number, number],
+    scale: 'log' as const, // Usar 'log' en lugar de 'sqrt' para compatibilidad de tipos
+    spiral: 'archimedean' as const,
+    transitionDuration: 800,  // Más rápido para mejor efecto visual
+    // Callbacks para animar palabras
+    getWordTooltip: (word: WordCloudWord) => {
+      return `${word.text}: ${word.value} veces`;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-pulse text-gray-500 flex flex-col items-center">
+          <div className="w-12 h-12 mb-4 rounded-full bg-gray-200"></div>
+          <div className="h-4 bg-gray-200 rounded w-48 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-32"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 max-w-4xl mx-auto">
+      {isActive ? (
+        <div className="space-y-6">
+          {!submitted ? (
+            <>
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <Cloud className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      ¡Participa en la nube de palabras! Escribe una palabra que represente tu opinión o sentimiento sobre el tema actual.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <form onSubmit={handleSubmit} className="mb-8">
+                <label htmlFor="word-input" className="block text-sm font-medium text-gray-700 mb-1">
+                  Tu palabra:
+                </label>
+                <div className="flex">
+                  <input
+                    type="text"
+                    id="word-input"
+                    value={inputWord}
+                    onChange={(e) => setInputWord(e.target.value)}
+                    maxLength={20}
+                    className="flex-1 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    placeholder="Escribe una palabra (máx. 20 caracteres)"
+                  />
+                  <motion.button
+                    type="submit"
+                    disabled={!inputWord.trim()}
+                    className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Enviar
+                  </motion.button>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Caracteres: {inputWord.length}/20
+                </p>
+              </form>
+            </>
+          ) : (
+            <motion.div 
+              className="bg-green-50 border-l-4 border-green-500 p-4 mb-6"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      rotate: [0, 10, -10, 0]
+                    }}
+                    transition={{ 
+                      duration: 1.5, 
+                      repeat: Infinity, 
+                      repeatType: "loop", 
+                      repeatDelay: 2 
+                    }}
+                  >
+                    <Cloud className="h-5 w-5 text-green-500" />
+                  </motion.div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-green-700">
+                    ¡Gracias por tu participación! Tu palabra ha sido añadida a la nube.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="p-4 border-b border-gray-200 bg-gray-50">
+              <h3 className="text-sm font-medium text-gray-900">Nube de Palabras en Tiempo Real</h3>
+            </div>
+            <div className="p-6" style={{ height: '400px' }}>
+              {wordCloudData.length > 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="h-full"
+                >
+                  <ReactWordcloud words={wordCloudData} options={options} />
+                  
+                  {/* Animaciones para palabras nuevas */}
+                  <AnimatePresence>
+                    {newWords.length > 0 && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute bottom-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm shadow-lg"
+                      >
+                        ¡Nueva palabra añadida!
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <motion.p 
+                    className="text-gray-500 text-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    Aún no hay palabras para mostrar. ¡Sé el primero en participar!
+                  </motion.p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gray-50 border border-gray-200 rounded-md p-6 text-center">
+          <Cloud className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Nube de Palabras Inactiva</h3>
+          <p className="text-gray-500">
+            El presentador aún no ha activado la nube de palabras. Por favor, espera a que se active esta función.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default WordCloudParticipant;

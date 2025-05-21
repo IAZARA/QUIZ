@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Award } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useQuestionStore } from '../store/questionStore';
@@ -11,6 +12,9 @@ import NotificationToast from '../components/admin/NotificationToast';
 import QuestionForm from '../components/admin/QuestionForm';
 import QuestionsList from '../components/admin/QuestionsList';
 import RankingsTab from '../components/admin/RankingsTab';
+import TournamentTab from '../components/tournament/TournamentTab';
+import WordCloudTab from '../components/wordcloud/WordCloudTab';
+import ContactsTab from '../components/contacts/ContactsTab';
 
 // Definición de la interfaz QuestionWithId
 interface QuestionWithId {
@@ -43,7 +47,7 @@ export default function AdminDashboard() {
   });
   
   // Estado para la interfaz de usuario
-  const [activeTab, setActiveTab] = useState<'questions' | 'config' | 'rankings'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts'>('questions');
   const [showCheatSheet, setShowCheatSheet] = useState<Record<string, boolean>>({});
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   
@@ -90,6 +94,14 @@ export default function AdminDashboard() {
     // Cargar la configuración del quiz
     getConfig();
   }, [initialized, isLoading, getConfig]);
+  
+  // Efecto para manejar la navegación desde otras partes de la aplicación
+  useEffect(() => {
+    const locationState = history.state?.usr;
+    if (locationState && locationState.activeTab) {
+      setActiveTab(locationState.activeTab);
+    }
+  }, []);
 
   // Manejo del formulario de preguntas
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -300,65 +312,95 @@ export default function AdminDashboard() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onSignOut={handleSignOut}
-        config={config}
-        isRankingVisible={isRankingVisible}
-        showRanking={showRanking}
-        hideRanking={hideRanking}
-        onClearView={handleClearView}
       />
 
       {/* Contenido principal */}
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {showForm ? (
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                {editingQuestion ? 'Editar Pregunta' : 'Nueva Pregunta'}
-              </h2>
-              <QuestionForm
-                initialQuestion={question}
-                isEditing={!!editingQuestion}
-                onSubmit={handleSubmit}
-                onCancel={() => {
-                  setShowForm(false);
-                  setEditingQuestion(null);
-                  setQuestion({
-                    content: '',
-                    case: '',
-                    option_a: '',
-                    option_b: '',
-                    option_c: '',
-                    correct_answer: '',
-                    explanation: '',
-                    explanation_image: '',
-                  });
-                }}
-                onChange={handleFormChange}
-              />
+        {activeTab === 'questions' ? (
+          <div> {/* Contenedor para el contenido de la pestaña 'questions' */}
+            <div className="mb-6 flex justify-end space-x-2">
+              <button
+                onClick={handleClearView}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Limpiar Vista de Audiencia
+              </button>
+              {config.showRankings && (
+                <button
+                  onClick={isRankingVisible ? hideRanking : showRanking}
+                  className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white ${
+                    isRankingVisible ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-purple-600 hover:bg-purple-700'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500`}
+                >
+                  <Award className="h-4 w-4 mr-2" />
+                  {isRankingVisible ? 'Ocultar Clasificación' : 'Mostrar Clasificación'}
+                </button>
+              )}
             </div>
+            {showForm ? (
+              <div className="mt-6">
+                <div className="bg-white shadow-lg overflow-hidden sm:rounded-xl">
+                  <div className="p-0">
+                    <QuestionForm
+                      initialQuestion={question}
+                      isEditing={!!editingQuestion}
+                      onSubmit={handleSubmit}
+                      onCancel={() => {
+                        setShowForm(false);
+                        setEditingQuestion(null);
+                        setQuestion({
+                          content: '',
+                          case: '',
+                          option_a: '',
+                          option_b: '',
+                          option_c: '',
+                          correct_answer: '',
+                          explanation: '',
+                          explanation_image: '',
+                        });
+                      }}
+                      onChange={handleFormChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <QuestionsList
+                questions={questions}
+                currentQuestion={currentQuestion}
+                showCheatSheet={showCheatSheet}
+                votes={votes}
+                timeRemaining={timeRemaining}
+                onNewQuestion={() => setShowForm(true)}
+                onEditQuestion={handleEdit}
+                onDeleteQuestion={handleDelete}
+                onStartVoting={handleStartVoting}
+                onStopVoting={handleStopVoting}
+                onToggleCheatSheet={handleToggleCheatSheet}
+                onTimerChange={handleTimerChange}
+                calculateStats={calculateStats}
+              />
+            )}
           </div>
-        ) : activeTab === 'questions' ? (
-          <QuestionsList
-            questions={questions}
-            currentQuestion={currentQuestion}
-            showCheatSheet={showCheatSheet}
-            votes={votes}
-            timeRemaining={timeRemaining}
-            onNewQuestion={() => setShowForm(true)}
-            onEditQuestion={handleEdit}
-            onDeleteQuestion={handleDelete}
-            onStartVoting={handleStartVoting}
-            onStopVoting={handleStopVoting}
-            onToggleCheatSheet={handleToggleCheatSheet}
-            onTimerChange={handleTimerChange}
-            calculateStats={calculateStats}
-          />
         ) : activeTab === 'rankings' ? (
           <RankingsTab
             onResetSession={handleResetSession}
             showNotification={showNotification}
+            setActiveTab={setActiveTab}
           />
-        ) : (
+        ) : activeTab === 'tournament' ? (
+          <TournamentTab
+            showNotification={showNotification}
+          />
+        ) : activeTab === 'wordcloud' ? (
+          <WordCloudTab
+            showNotification={showNotification}
+          />
+        ) : activeTab === 'contacts' ? (
+          <ContactsTab
+            showNotification={showNotification}
+          />
+        ) : ( // QuizConfigPanel como caso por defecto
           <QuizConfigPanel 
             onSaved={() => showNotification('Configuración guardada correctamente', 'success')} 
           />

@@ -7,6 +7,9 @@ import { Server } from 'socket.io';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import setupTournamentRoutes from './tournament-routes.js';
+import wordCloudRoutes from './wordcloud-routes.js';
+import contactRoutes, { setupContactSockets } from './contact-routes.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -20,6 +23,9 @@ const io = new Server(server, {
   }
 });
 
+// Exportar io para usarlo en otros módulos
+export { io };
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
@@ -27,6 +33,12 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Configuración para servir archivos estáticos
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+// Rutas para la nube de palabras
+app.use('/api/wordcloud', wordCloudRoutes);
+
+// Rutas para contactos
+app.use('/api/contacts', contactRoutes);
 
 // En producción, servir archivos estáticos desde la carpeta dist
 if (process.env.NODE_ENV === 'production') {
@@ -89,6 +101,12 @@ async function connectToDatabase() {
     await client.connect();
     db = client.db(MONGODB_DB);
     console.log('Conectado a MongoDB');
+    
+    // Configurar rutas del torneo
+    setupTournamentRoutes(app, io, db);
+    
+    // Configurar sockets para contactos
+    setupContactSockets(io);
   } catch (error) {
     console.error('Error conectando a MongoDB:', error);
     process.exit(1);
@@ -735,6 +753,21 @@ io.on('connection', (socket) => {
   
   socket.on('disconnect', () => {
     console.log('Usuario desconectado:', socket.id);
+  });
+  
+  // Eventos para la nube de palabras
+  socket.on('wordcloud:join', () => {
+    console.log('Usuario se unió a la nube de palabras:', socket.id);
+  });
+  
+  socket.on('wordcloud:word', async (data) => {
+    try {
+      // La lógica para manejar las palabras está en las rutas API
+      // Este evento es solo para referencia
+      console.log('Palabra recibida:', data.word);
+    } catch (error) {
+      console.error('Error al procesar palabra:', error);
+    }
   });
 });
 

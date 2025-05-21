@@ -85,10 +85,10 @@ const ParticipantRanking: React.FC<ParticipantRankingProps> = ({ className = '' 
     }
   };
 
-  // Ordenar participantes por puntos (de mayor a menor) y limitar a los 15 mejores
+  // Ordenar participantes por puntos (de mayor a menor) y limitar a los 16 mejores
   const topParticipants = [...participants]
     .sort((a, b) => (b.points || 0) - (a.points || 0))
-    .slice(0, 15);
+    .slice(0, 16);
   
   // Total de participantes para mostrar información
   const totalParticipants = participants.length;
@@ -146,7 +146,7 @@ const ParticipantRanking: React.FC<ParticipantRankingProps> = ({ className = '' 
             <svg className="w-4 h-4 mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Mostrando los 15 mejores de {totalParticipants} participantes
+            Mostrando los 16 mejores de {totalParticipants} participantes
           </div>
           <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
             <table className="min-w-full divide-y divide-gray-200">
