@@ -242,4 +242,164 @@ export const useTournamentStore = create<TournamentState>((set, get) => ({
     
     await get().loadParticipants();
   },
+
+  updateMatchScoresAndWinner: (payload) => {
+    set((state) => {
+      const { rounds, participants, currentMatchId: prevCurrentMatchId } = state;
+      const { tournamentId, roundNumber, matchId: payloadMatchNumberStr, winnerId, score1, score2 } = payload;
+
+      // Ensure we are operating on the current tournament. This is a simple check;
+      // in a multi-tournament scenario, the store might hold multiple tournaments,
+      // and tournamentId would be used to select which one to update.
+      // For now, we assume the store manages a single, active tournament.
+      // if (state.id !== tournamentId) { // Assuming state has a tournament ID
+      //   console.warn("Mismatch tournament ID, ignoring update.");
+      //   return state;
+      // }
+      
+      let foundMatch = null;
+      let currentMatchArrayIndex = -1;
+      let currentRoundArrayIndex = -1;
+
+      const updatedRounds = rounds.map((round, rIdx) => {
+        if (round.roundNumber !== roundNumber) {
+          return round;
+        }
+        currentRoundArrayIndex = rIdx;
+        const updatedMatches = round.matches.map((match, mIdx) => {
+          if (match.matchNumber.toString() === payloadMatchNumberStr) {
+            foundMatch = match;
+            currentMatchArrayIndex = mIdx;
+            return {
+              ...match,
+              winnerId: winnerId,
+              status: 'completed',
+              // Assign scores based on participant IDs from the payload's score objects
+              // This assumes score1.participantId corresponds to match.participant1Id etc.
+              // If the backend guarantees order (score1 for participant1Id in match, score2 for participant2Id), this is simpler.
+              // Backend sends score1 for original P1 of match, score2 for original P2 of match.
+              participant1Score: score1.participantId === match.participant1Id ? score1.correctCount : score2.correctCount,
+              participant2Score: score2.participantId === match.participant2Id ? score2.correctCount : score1.correctCount,
+              // A stricter mapping if participant IDs in scores are not guaranteed to match P1/P2 slots:
+              // participant1Score: match.participant1Id === score1.participantId ? score1.correctCount : (match.participant1Id === score2.participantId ? score2.correctCount : undefined),
+              // participant2Score: match.participant2Id === score1.participantId ? score1.correctCount : (match.participant2Id === score2.participantId ? score2.correctCount : undefined),
+            };
+          }
+          return match;
+        });
+        return { ...round, matches: updatedMatches };
+      });
+
+      if (!foundMatch || currentRoundArrayIndex === -1 || currentMatchArrayIndex === -1) {
+        console.error('Match not found for updateMatchScoresAndWinner:', payload);
+        return state; // Return original state if match not found
+      }
+      
+      const completedMatch = updatedRounds[currentRoundArrayIndex].matches[currentMatchArrayIndex];
+
+      // Tournament completion check (if it was the final match)
+      if (!completedMatch.nextMatchId) {
+        const winnerParticipant = participants.find(p => p._id === winnerId);
+        return {
+          ...state,
+          rounds: updatedRounds,
+          winner: winnerParticipant || { _id: winnerId, name: 'Unknown Winner', avatar: '' }, // Store winner object or ID
+          isActive: false,
+          currentMatchId: null, // No more current matches
+        };
+      }
+
+      // Advance winner to the next match
+      let nextMatchFound = false;
+      let nextMatchIdToSetActive = prevCurrentMatchId;
+
+      const roundsWithNextMatchUpdate = updatedRounds.map(round => ({
+        ...round,
+        matches: round.matches.map(match => {
+          if (match.id === completedMatch.nextMatchId) {
+            nextMatchFound = true;
+            const winnerName = completedMatch.participant1Id === winnerId 
+              ? completedMatch.participant1Name 
+              : completedMatch.participant2Name;
+            const winnerAvatar = completedMatch.participant1Id === winnerId 
+              ? completedMatch.participant1Avatar 
+              : completedMatch.participant2Avatar;
+
+            let updatedNextMatch = { ...match };
+            // Determine if winner goes to P1 or P2 slot based on current (completed) match's number
+            // This logic is from the existing advanceParticipant:
+            // "If isEvenMatch, goes to P2, if odd, goes to P1"
+            // This assumes match numbers in a round are 1, 2, 3, 4...
+            // And pair (1,2) feeds one nextMatch, (3,4) feeds another.
+            // Match 1 winner -> P1 of next. Match 2 winner -> P2 of next.
+            // Match 3 winner -> P1 of next. Match 4 winner -> P2 of next.
+            // So, if completedMatch.matchNumber is odd, winner is P1. If even, P2.
+            if (completedMatch.matchNumber % 2 !== 0) { // Odd match number
+              updatedNextMatch.participant1Id = winnerId;
+              updatedNextMatch.participant1Name = winnerName;
+              updatedNextMatch.participant1Avatar = winnerAvatar;
+            } else { // Even match number
+              updatedNextMatch.participant2Id = winnerId;
+              updatedNextMatch.participant2Name = winnerName;
+              updatedNextMatch.participant2Avatar = winnerAvatar;
+            }
+
+            if (updatedNextMatch.participant1Id && updatedNextMatch.participant2Id) {
+              updatedNextMatch.status = 'in_progress'; // Or 'ready'
+              nextMatchIdToSetActive = updatedNextMatch.id;
+            }
+            return updatedNextMatch;
+          }
+          return match;
+        }),
+      }));
+      
+      if (!nextMatchFound) {
+         console.error("Next match ID was present but match object not found.", completedMatch.nextMatchId);
+         // This case should ideally not happen if data is consistent
+         return { ...state, rounds: updatedRounds }; // Commit changes up to match completion
+      }
+
+      return {
+        ...state,
+        rounds: roundsWithNextMatchUpdate,
+        currentMatchId: nextMatchIdToSetActive, // Update current match if next one is ready
+      };
+    });
+  },
+
+  updateMatchStatusToQuestionsActive: (payload) => {
+    set((state) => {
+      const { rounds } = state;
+      const { tournamentId, roundNumber, matchId: payloadMatchNumberStr } = payload;
+
+      // Optional: Check tournamentId if the store becomes multi-tournament aware
+      // if (state.tournamentId !== tournamentId) return state;
+
+      let matchUpdated = false;
+      const updatedRounds = rounds.map(round => {
+        if (round.roundNumber !== roundNumber) {
+          return round;
+        }
+        return {
+          ...round,
+          matches: round.matches.map(match => {
+            if (match.matchNumber.toString() === payloadMatchNumberStr) {
+              if (match.status === 'questions_active') return match; // Already updated
+              matchUpdated = true;
+              return { ...match, status: 'questions_active' };
+            }
+            return match;
+          }),
+        };
+      });
+
+      if (!matchUpdated) {
+        console.warn('Match not found for status update to questions_active:', payload);
+        return state;
+      }
+
+      return { ...state, rounds: updatedRounds };
+    });
+  },
 }));

@@ -422,4 +422,501 @@ export default function setupTournamentRoutes(app, io, db) {
       });
     }
   });
+
+  // API para agregar o actualizar preguntas de una ronda específica
+  app.post('/api/tournament/:tournamentId/round/:roundNumber/questions', async (req, res) => {
+    try {
+      const { tournamentId, roundNumber } = req.params;
+      const { questions } = req.body;
+
+      // Validar tournamentId
+      if (!ObjectId.isValid(tournamentId)) {
+        return res.status(400).json({ success: false, message: 'ID de torneo no válido' });
+      }
+
+      // Validar roundNumber
+      const rn = parseInt(roundNumber);
+      if (isNaN(rn) || rn <= 0) {
+        return res.status(400).json({ success: false, message: 'Número de ronda no válido' });
+      }
+
+      // Validar questions
+      if (!Array.isArray(questions) || questions.length < 1 || questions.length > 5) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Debe proporcionar entre 1 y 5 preguntas' 
+        });
+      }
+
+      for (const q of questions) {
+        if (!q.content || typeof q.content !== 'string' ||
+            !q.options || typeof q.options !== 'object' ||
+            !q.correct_option || typeof q.correct_option !== 'string') {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Cada pregunta debe tener contenido (string), opciones (objeto) y correct_option (string)' 
+          });
+        }
+        // Validar que correct_option sea una de las claves en options
+        if (!q.options.hasOwnProperty(q.correct_option)) {
+          return res.status(400).json({
+            success: false,
+            message: `La opción correcta '${q.correct_option}' no existe en las opciones de la pregunta '${q.content}'`
+          });
+        }
+      }
+
+      const tournament = await db.collection('tournaments').findOne({ _id: new ObjectId(tournamentId) });
+
+      if (!tournament) {
+        return res.status(404).json({ success: false, message: 'Torneo no encontrado' });
+      }
+
+      if (tournament.status !== 'active') {
+        return res.status(400).json({ success: false, message: 'El torneo no está activo. No se pueden modificar las preguntas.' });
+      }
+
+      const roundIndex = tournament.rounds.findIndex(r => r.roundNumber === rn);
+
+      if (roundIndex === -1) {
+        return res.status(404).json({ success: false, message: 'Ronda no encontrada en este torneo' });
+      }
+
+      // Asignar nuevos IDs a las preguntas y prepararlas
+      const processedQuestions = questions.map(q => ({
+        ...q,
+        question_id: new ObjectId().toString() // Siempre generar nuevo ID para reemplazar
+      }));
+
+      // Actualizar las preguntas en la ronda específica
+      tournament.rounds[roundIndex].questions = processedQuestions;
+
+      // Guardar los cambios en la base de datos
+      const updateResult = await db.collection('tournaments').updateOne(
+        { _id: new ObjectId(tournamentId) },
+        { $set: { rounds: tournament.rounds } }
+      );
+
+      if (updateResult.modifiedCount === 0 && updateResult.matchedCount > 0) {
+        // Esto podría significar que las preguntas eran idénticas a las existentes
+        // o un problema donde el documento coincidió pero no se modificó.
+        // Por ahora, lo trataremos como éxito si coincidió.
+        console.warn(`Tournament ${tournamentId}, Round ${rn}: Questions might not have been updated if they were identical.`);
+      } else if (updateResult.matchedCount === 0) {
+        return res.status(404).json({ success: false, message: 'Torneo no encontrado durante la actualización.' });
+      }
+      
+      io.emit('tournament_questions_updated', { 
+        tournamentId, 
+        roundNumber: rn, 
+        questions: processedQuestions 
+      });
+
+      res.json({
+        success: true,
+        message: `Preguntas para la ronda ${rn} actualizadas correctamente.`,
+        round: tournament.rounds[roundIndex]
+      });
+
+    } catch (error) {
+      console.error('Error al agregar/actualizar preguntas:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor al agregar/actualizar preguntas',
+        error: error.message
+      });
+    }
+  });
+
+  // API para iniciar la fase de preguntas para un partido específico
+  app.post('/api/tournament/round/:roundNumber/match/:matchId/start-questions', async (req, res) => {
+    try {
+      const { roundNumber, matchId } = req.params;
+
+      // Validar roundNumber
+      const rn = parseInt(roundNumber);
+      if (isNaN(rn) || rn <= 0) {
+        return res.status(400).json({ success: false, message: 'Número de ronda no válido.' });
+      }
+
+      // Validar matchId (solo que exista, ya que es un string de matchNumber)
+      if (!matchId) {
+        return res.status(400).json({ success: false, message: 'Se requiere matchId.' });
+      }
+
+      const tournament = await db.collection('tournaments').findOne({ status: 'active' });
+      if (!tournament) {
+        return res.status(404).json({ success: false, message: 'No hay torneo activo.' });
+      }
+
+      const currentRound = tournament.rounds.find(r => r.roundNumber === rn);
+      if (!currentRound) {
+        return res.status(404).json({ success: false, message: `Ronda ${rn} no encontrada en este torneo.` });
+      }
+
+      if (!currentRound.questions || currentRound.questions.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `La ronda ${rn} no tiene preguntas configuradas. Por favor, agregue preguntas primero.` 
+        });
+      }
+
+      const matchIndex = currentRound.matches.findIndex(m => m.matchNumber.toString() === matchId);
+      if (matchIndex === -1) {
+        return res.status(404).json({ success: false, message: `Partido con ID ${matchId} no encontrado en la ronda ${rn}.` });
+      }
+      
+      const targetMatch = currentRound.matches[matchIndex];
+
+      // Validar estado del partido
+      if (targetMatch.status !== 'ready') {
+        let userMessage = `El partido ${matchId} no está listo para iniciar preguntas.`;
+        if (targetMatch.status === 'pending') userMessage = `El partido ${matchId} aún está pendiente de participantes.`;
+        else if (targetMatch.status === 'questions_active') userMessage = `Las preguntas para el partido ${matchId} ya están activas.`;
+        else if (targetMatch.status === 'completed') userMessage = `El partido ${matchId} ya ha sido completado.`;
+        
+        return res.status(400).json({ success: false, message: userMessage, currentStatus: targetMatch.status });
+      }
+      
+      if (!targetMatch.participant1Id || !targetMatch.participant2Id) {
+        return res.status(400).json({ success: false, message: `El partido ${matchId} no tiene ambos participantes asignados.` });
+      }
+
+      // Actualizar estado del partido
+      tournament.rounds = tournament.rounds.map(r => {
+        if (r.roundNumber === rn) {
+          r.matches = r.matches.map(m => {
+            if (m.matchNumber.toString() === matchId) {
+              return { ...m, status: 'questions_active' };
+            }
+            return m;
+          });
+        }
+        return r;
+      });
+      
+      const updatedMatch = tournament.rounds.find(r => r.roundNumber === rn).matches.find(m => m.matchNumber.toString() === matchId);
+
+      await db.collection('tournaments').updateOne(
+        { _id: tournament._id },
+        { $set: { rounds: tournament.rounds } }
+      );
+
+      const eventData = {
+        tournamentId: tournament._id.toString(),
+        roundNumber: currentRound.roundNumber,
+        matchId: targetMatch.matchNumber.toString(),
+        participant1Id: targetMatch.participant1Id,
+        participant2Id: targetMatch.participant2Id,
+        questions: currentRound.questions,
+        // Nota: La duración podría añadirse aquí si se implementa
+      };
+
+      // Emitir evento general. Los clientes (participantes) deberán filtrar este evento.
+      // Una mejora futura sería emitir directamente a los sockets de los participantes
+      // si se implementa un mapeo de participantId a socketId.
+      io.emit('tournament_match_question_phase_started', eventData);
+
+      res.json({
+        success: true,
+        message: `Fase de preguntas iniciada para el partido ${matchId} de la ronda ${rn}.`,
+        match: updatedMatch
+      });
+
+    } catch (error) {
+      console.error('Error al iniciar fase de preguntas:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor al iniciar la fase de preguntas.',
+        error: error.message
+      });
+    }
+  });
+
+  // API para que un participante envíe sus respuestas para un partido
+  app.post('/api/tournament/match/:matchId/submit-answers', async (req, res) => {
+    try {
+      const { matchId: paramMatchId } = req.params;
+      const { tournamentId, roundNumber, participantId, answers } = req.body;
+
+      // 1. Validaciones
+      if (!ObjectId.isValid(tournamentId)) {
+        return res.status(400).json({ success: false, message: 'ID de torneo no válido.' });
+      }
+      if (typeof roundNumber !== 'number' || roundNumber <= 0) {
+        return res.status(400).json({ success: false, message: 'Número de ronda no válido.' });
+      }
+      if (!ObjectId.isValid(participantId)) {
+        return res.status(400).json({ success: false, message: 'ID de participante no válido.' });
+      }
+      if (!paramMatchId) { // paramMatchId es match.matchNumber, que es un número pero se pasa como string en la URL
+        return res.status(400).json({ success: false, message: 'Se requiere matchId en la URL.' });
+      }
+      if (!Array.isArray(answers) || answers.length === 0) {
+        return res.status(400).json({ success: false, message: 'El array de respuestas no puede estar vacío.' });
+      }
+      for (const ans of answers) {
+        if (!ans.question_id || typeof ans.question_id !== 'string' || // question_id es un string ( ObjectId().toString() )
+            !ans.selected_option || typeof ans.selected_option !== 'string' ||
+            typeof ans.time_taken_ms !== 'number' || ans.time_taken_ms < 0) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Cada respuesta debe tener question_id (string), selected_option (string) y time_taken_ms (number >= 0).' 
+          });
+        }
+      }
+
+      // 2. Encontrar torneo, ronda y partido
+      const tournament = await db.collection('tournaments').findOne({ _id: new ObjectId(tournamentId), status: 'active' });
+      if (!tournament) {
+        return res.status(404).json({ success: false, message: 'Torneo activo no encontrado o ID incorrecto.' });
+      }
+
+      const currentRound = tournament.rounds.find(r => r.roundNumber === roundNumber);
+      if (!currentRound) {
+        return res.status(404).json({ success: false, message: `Ronda ${roundNumber} no encontrada.` });
+      }
+
+      const targetMatch = currentRound.matches.find(m => m.matchNumber.toString() === paramMatchId);
+      if (!targetMatch) {
+        return res.status(404).json({ success: false, message: `Partido ${paramMatchId} no encontrado en la ronda ${roundNumber}.` });
+      }
+
+      // 3. Validar estado del partido y participante
+      if (targetMatch.status !== 'questions_active') {
+        return res.status(400).json({ success: false, message: `El partido ${paramMatchId} no está en fase de preguntas. Estado actual: ${targetMatch.status}.` });
+      }
+      if (targetMatch.participant1Id !== participantId && targetMatch.participant2Id !== participantId) {
+        return res.status(403).json({ success: false, message: 'El participante no forma parte de este partido.' });
+      }
+
+      // 4. Idempotencia: Verificar si ya envió respuestas
+      const existingSubmission = await db.collection('tournament_round_answers').findOne({
+        tournament_id: new ObjectId(tournamentId),
+        round_number: roundNumber,
+        match_id: paramMatchId, // match_id es el matchNumber.toString()
+        participant_id: new ObjectId(participantId)
+      });
+      if (existingSubmission) {
+        return res.status(400).json({ success: false, message: 'Ya has enviado tus respuestas para este partido.' });
+      }
+      
+      // 5. Procesar y guardar respuestas
+      const roundQuestions = currentRound.questions; // Estas son las preguntas originales con correct_option
+      if (!roundQuestions || roundQuestions.length === 0) {
+          return res.status(500).json({ success: false, message: 'No se encontraron preguntas configuradas para esta ronda en el torneo.'});
+      }
+
+      const answersToInsert = [];
+      for (const ans of answers) {
+        const originalQuestion = roundQuestions.find(q => q.question_id === ans.question_id);
+        if (!originalQuestion) {
+          // Esto no debería suceder si el frontend envía los question_id correctos
+          console.warn(`Advertencia: Pregunta con ID ${ans.question_id} no encontrada en la ronda ${roundNumber} del torneo ${tournamentId} para el partido ${paramMatchId}.`);
+          continue; // Opcional: podrías retornar un error aquí
+        }
+        
+        const isCorrect = originalQuestion.correct_option === ans.selected_option;
+        answersToInsert.push({
+          tournament_id: new ObjectId(tournamentId),
+          round_number: roundNumber,
+          match_id: paramMatchId, 
+          participant_id: new ObjectId(participantId),
+          question_id: ans.question_id, // Ya es un string
+          answer: ans.selected_option,
+          time_taken_ms: ans.time_taken_ms,
+          is_correct: isCorrect,
+          created_at: new Date()
+        });
+      }
+
+      if (answersToInsert.length > 0) {
+        await db.collection('tournament_round_answers').insertMany(answersToInsert);
+      } else {
+        // Si todas las question_id eran inválidas, por ejemplo
+        return res.status(400).json({ success: false, message: 'No se procesaron respuestas válidas.' });
+      }
+      
+      io.emit('tournament_match_answers_submitted', { 
+        tournamentId, 
+        roundNumber, 
+        matchId: paramMatchId, 
+        participantId 
+      });
+
+      // 6. Verificar si el oponente ha enviado respuestas
+      const otherParticipantId = targetMatch.participant1Id === participantId ? targetMatch.participant2Id : targetMatch.participant1Id;
+      const opponentAnswers = await db.collection('tournament_round_answers').findOne({
+        tournament_id: new ObjectId(tournamentId),
+        round_number: roundNumber,
+        match_id: paramMatchId,
+        participant_id: new ObjectId(otherParticipantId)
+      });
+
+      if (!opponentAnswers) {
+        return res.json({ success: true, message: 'Respuestas enviadas. Esperando al oponente.' });
+      }
+
+      // 7. Ambos han enviado: Calcular ganador y avanzar
+      const allAnswersForMatch = await db.collection('tournament_round_answers').find({
+        tournament_id: new ObjectId(tournamentId),
+        round_number: roundNumber,
+        match_id: paramMatchId,
+      }).toArray();
+
+      const calculateScore = (pid) => {
+        let correctCount = 0;
+        let totalTime = 0;
+        allAnswersForMatch.filter(a => a.participant_id.toString() === pid && a.is_correct)
+          .forEach(a => {
+            correctCount++;
+            totalTime += a.time_taken_ms;
+          });
+        return { participantId: pid, correctCount, totalTime };
+      };
+
+      const score1 = calculateScore(targetMatch.participant1Id);
+      const score2 = calculateScore(targetMatch.participant2Id);
+
+      let winnerId = null;
+      let loserId = null;
+
+      if (score1.correctCount > score2.correctCount) {
+        winnerId = score1.participantId;
+        loserId = score2.participantId;
+      } else if (score2.correctCount > score1.correctCount) {
+        winnerId = score2.participantId;
+        loserId = score1.participantId;
+      } else { // Empate en respuestas correctas, comparar tiempo
+        if (score1.totalTime < score2.totalTime) {
+          winnerId = score1.participantId;
+          loserId = score2.participantId;
+        } else if (score2.totalTime < score1.totalTime) {
+          winnerId = score2.participantId;
+          loserId = score1.participantId;
+        } else {
+          // Empate total. Decidir por alguna regla, ej. P1 o aleatorio. Aquí P1 por defecto.
+          // O se podría marcar el partido como empate si el sistema lo permitiera.
+          console.log(`Empate total en partido ${paramMatchId}, ronda ${roundNumber}. Ganador por defecto: ${targetMatch.participant1Id}`);
+          winnerId = targetMatch.participant1Id; 
+          loserId = targetMatch.participant2Id;
+        }
+      }
+      
+      // Actualizar torneo (lógica similar a /api/tournament/advance)
+      let targetMatchInTournament = null;
+      let targetRoundIndexInTournament = -1;
+      let targetMatchIndexInTournament = -1;
+
+      tournament.rounds.forEach((r, rIdx) => {
+        r.matches.forEach((m, mIdx) => {
+          if (m.matchNumber.toString() === paramMatchId) {
+            targetMatchInTournament = m;
+            targetRoundIndexInTournament = rIdx;
+            targetMatchIndexInTournament = mIdx;
+          }
+        });
+      });
+      
+      if (!targetMatchInTournament) {
+         // Esto no debería ocurrir si las validaciones previas pasaron
+        console.error(`Error crítico: Partido ${paramMatchId} no encontrado en la estructura del torneo durante la actualización.`);
+        return res.status(500).json({ success: false, message: "Error crítico al actualizar el torneo." });
+      }
+
+      targetMatchInTournament.winnerId = winnerId;
+      targetMatchInTournament.status = 'completed';
+      
+      // Obtener información del ganador para el siguiente partido (nombre, avatar)
+      // Necesitamos buscar en la colección de participantes si no está en el partido actual (lo cual debería estar)
+      let winnerDetails = { name: 'N/A', avatar: '🐾' };
+      const p1Details = { id: targetMatchInTournament.participant1Id, name: targetMatchInTournament.participant1Name, avatar: targetMatchInTournament.participant1Avatar };
+      const p2Details = { id: targetMatchInTournament.participant2Id, name: targetMatchInTournament.participant2Name, avatar: targetMatchInTournament.participant2Avatar };
+
+      if (winnerId === p1Details.id) winnerDetails = { name: p1Details.name, avatar: p1Details.avatar };
+      else if (winnerId === p2Details.id) winnerDetails = { name: p2Details.name, avatar: p2Details.avatar };
+
+
+      const isLastRound = targetRoundIndexInTournament === tournament.rounds.length - 1;
+      if (!isLastRound) {
+        const nextRoundIndex = targetRoundIndexInTournament + 1;
+        const nextMatchIndex = Math.floor(targetMatchIndexInTournament / 2);
+        const nextMatch = tournament.rounds[nextRoundIndex].matches[nextMatchIndex];
+
+        const goesToPosition1 = targetMatchIndexInTournament % 2 === 0;
+        if (goesToPosition1) {
+          nextMatch.participant1Id = winnerId;
+          nextMatch.participant1Name = winnerDetails.name;
+          nextMatch.participant1Avatar = winnerDetails.avatar;
+        } else {
+          nextMatch.participant2Id = winnerId;
+          nextMatch.participant2Name = winnerDetails.name;
+          nextMatch.participant2Avatar = winnerDetails.avatar;
+        }
+
+        if (nextMatch.participant1Id && nextMatch.participant2Id) {
+          nextMatch.status = 'ready';
+        }
+      } else {
+        tournament.winner = winnerId;
+        tournament.status = 'completed';
+      }
+      
+      await db.collection('tournaments').updateOne(
+        { _id: tournament._id },
+        { $set: { 
+            rounds: tournament.rounds, 
+            winner: tournament.winner, 
+            status: tournament.status 
+          } 
+        }
+      );
+      
+      // Emitir eventos de Socket.IO
+      // Idealmente, se debería emitir a sockets específicos si se tiene el mapeo participantId -> socketId
+      io.emit('tournament_match_completed', { 
+        tournamentId: tournament._id.toString(), 
+        roundNumber, 
+        matchId: paramMatchId, 
+        winnerId, 
+        loserId,
+        score1, // Para dar feedback de puntajes
+        score2, // Para dar feedback de puntajes
+        // NO enviaremos todo el tournament object aquí para evitar sobrecargar, clientes pueden re-fetch si es necesario
+      });
+
+      if (tournament.status === 'completed') {
+        io.emit('tournament_completed', { 
+          tournamentId: tournament._id.toString(), 
+          winnerId,
+          // De nuevo, no todo el objeto tournament
+        });
+      }
+      
+      // Obtener el nombre del ganador para el mensaje
+      const allParticipantsInfo = await db.collection('participants')
+        .find({ _id: { $in: [new ObjectId(winnerId), new ObjectId(loserId)] } })
+        .toArray();
+      const winnerInfo = allParticipantsInfo.find(p => p._id.toString() === winnerId);
+      const winnerName = winnerInfo ? winnerInfo.name : 'Desconocido';
+
+      res.json({ 
+        success: true, 
+        message: `Partido ${paramMatchId} completado. Ganador: ${winnerName}.`,
+        winnerId,
+        loserId,
+        score1,
+        score2,
+        isTournamentOver: tournament.status === 'completed'
+      });
+
+    } catch (error) {
+      console.error('Error al enviar respuestas:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor al enviar respuestas.',
+        error: error.message
+      });
+    }
+  });
 }

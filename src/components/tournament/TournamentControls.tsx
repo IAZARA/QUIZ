@@ -1,28 +1,59 @@
-import React, { useState } from 'react';
-import { Play, Trophy, AlertTriangle, ArrowRight, Users } from 'lucide-react';
-import { TournamentMatch, Participant } from '../../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Play, Trophy, AlertTriangle, ArrowRight, Users, PlayCircle, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { TournamentMatch, Participant, Tournament, TournamentRound } from '../../types'; // Assuming Tournament type is available
+import { Button } from '@/components/ui/button'; // Assuming Button component path
 
 interface TournamentControlsProps {
   participants: Participant[];
-  currentMatch: TournamentMatch | null;
+  selectedMatch: TournamentMatch | null; // Renamed from currentMatch for clarity
   isActive: boolean;
   onStartTournament: (participantIds: string[]) => void;
   onAdvanceParticipant: (matchId: string, winnerId: string) => void;
+  tournamentId: string | null; // Added
+  activeTournament: Tournament | null; // Added
+  isAdmin?: boolean; // Added
 }
 
 const TournamentControls: React.FC<TournamentControlsProps> = ({ 
   participants,
-  currentMatch,
+  selectedMatch, // Renamed
   isActive,
   onStartTournament,
-  onAdvanceParticipant
+  onAdvanceParticipant,
+  tournamentId,
+  activeTournament,
+  isAdmin = false, // Default to false
 }) => {
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isStartingQuestions, setIsStartingQuestions] = useState(false);
+  const [startQuestionsError, setStartQuestionsError] = useState<string | null>(null);
+  const [startQuestionsSuccess, setStartQuestionsSuccess] = useState<string | null>(null);
   
   // Ordenar participantes por puntos (mejores primero)
   const sortedParticipants = [...participants].sort((a, b) => (b.points || 0) - (a.points || 0));
-  
+
+  const selectedMatchRoundNumber = useMemo(() => {
+    if (!selectedMatch || !activeTournament || !activeTournament.rounds) return null;
+    for (const round of activeTournament.rounds) {
+      if (round.matches.some(m => m.id === selectedMatch.id)) {
+        return round.roundNumber;
+      }
+    }
+    return null;
+  }, [selectedMatch, activeTournament]);
+
+  const selectedMatchRoundHasQuestions = useMemo(() => {
+    if (!selectedMatchRoundNumber || !activeTournament || !activeTournament.rounds) return false;
+    const currentRound = activeTournament.rounds.find(r => r.roundNumber === selectedMatchRoundNumber);
+    return !!currentRound && !!currentRound.questions && currentRound.questions.length > 0;
+  }, [selectedMatchRoundNumber, activeTournament]);
+
+  const canStartQuestions = isAdmin && 
+                            selectedMatch && 
+                            selectedMatch.status === 'ready' && // Assuming 'ready' is the status before questions
+                            selectedMatchRoundHasQuestions;
+
   const handleParticipantToggle = (participantId: string) => {
     setSelectedParticipants(prev => {
       if (prev.includes(participantId)) {
@@ -46,11 +77,45 @@ const TournamentControls: React.FC<TournamentControlsProps> = ({
   };
   
   const handleAdvanceParticipant = (participantId: string) => {
-    if (currentMatch) {
-      onAdvanceParticipant(currentMatch.id, participantId);
+    if (selectedMatch) { // Use selectedMatch
+      onAdvanceParticipant(selectedMatch.id, participantId);
+    }
+  };
+
+  const handleStartQuestionPhase = async () => {
+    if (!canStartQuestions || !selectedMatch || !selectedMatchRoundNumber || !tournamentId) return;
+
+    setIsStartingQuestions(true);
+    setStartQuestionsError(null);
+    setStartQuestionsSuccess(null);
+
+    try {
+      const response = await fetch(`/api/tournament/round/${selectedMatchRoundNumber}/match/${selectedMatch.matchNumber}/start-questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Body can be empty or include tournamentId if API requires it, though current backend route doesn't use it from body
+        // body: JSON.stringify({ tournamentId }) 
+      });
+
+      const responseData = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.message || `Error ${response.status}`);
+      }
+      setStartQuestionsSuccess(`Question phase started for Match ${selectedMatch.matchNumber}.`);
+      // Backend will emit event, store will update match status, disabling this button due to status change
+    } catch (error: any) {
+      setStartQuestionsError(error.message || 'Failed to start question phase.');
+    } finally {
+      setIsStartingQuestions(false);
     }
   };
   
+  // Reset feedback messages when selectedMatch changes
+  useEffect(() => {
+    setStartQuestionsError(null);
+    setStartQuestionsSuccess(null);
+  }, [selectedMatch]);
+
   if (!isActive) {
     // Mostrar pantalla de inicio de torneo
     return (
@@ -211,66 +276,85 @@ const TournamentControls: React.FC<TournamentControlsProps> = ({
       </div>
       
       <div className="p-6">
-        {currentMatch ? (
-          <div>
-            <div className="text-sm text-gray-500 mb-4">
-              Partido {currentMatch.matchNumber} - Selecciona el ganador para avanzar
+        {selectedMatch ? ( // Use selectedMatch
+          <div className="space-y-4">
+            <div className="text-sm text-gray-500">
+              Partido {selectedMatch.matchNumber} (Ronda {selectedMatchRoundNumber || 'N/A'})
+              {selectedMatch.status === 'questions_active' && <span className="ml-2 font-semibold text-purple-600">(Fase de Preguntas Activa)</span>}
+              {selectedMatch.status === 'completed' && <span className="ml-2 font-semibold text-green-600">(Completado)</span>}
+              {selectedMatch.status === 'ready' && <span className="ml-2 font-semibold text-blue-600">(Listo para Iniciar)</span>}
             </div>
             
-            <div className="space-y-3 mb-6">
-              {currentMatch.participant1Id && (
-                <div 
-                  className={`
-                    flex items-center justify-between p-4 rounded-md border-2 
-                    transition-all cursor-pointer 
-                    ${currentMatch.winnerId === currentMatch.participant1Id
-                      ? 'border-green-500 bg-green-50' 
-                      : 'border-gray-200 hover:bg-blue-50 hover:border-blue-300'}
-                  `}
-                  onClick={() => handleAdvanceParticipant(currentMatch.participant1Id)}
-                >
-                  <span className="font-medium">{currentMatch.participant1Name}</span>
-                  <span className="text-gray-400">
+            {/* Admin: Advance Participant Manually */}
+            {isAdmin && selectedMatch.status !== 'completed' && selectedMatch.participant1Id && selectedMatch.participant2Id && (
+              <div className="space-y-3">
+                 <p className="text-xs text-gray-500">Admin: Selecciona el ganador para avanzar (manual)</p>
+                {selectedMatch.participant1Id && (
+                  <Button 
+                    variant="outline"
+                    className={`w-full justify-between ${selectedMatch.winnerId === selectedMatch.participant1Id ? 'border-green-500 bg-green-50' : ''}`}
+                    onClick={() => handleAdvanceParticipant(selectedMatch.participant1Id!)} // participantId is checked
+                    disabled={!!selectedMatch.winnerId}
+                  >
+                    <span>{selectedMatch.participant1Name}</span>
                     <ArrowRight className="h-5 w-5" />
-                  </span>
-                </div>
-              )}
-              
-              {currentMatch.participant2Id && (
-                <div 
-                  className={`
-                    flex items-center justify-between p-4 rounded-md border-2 
-                    transition-all cursor-pointer 
-                    ${currentMatch.winnerId === currentMatch.participant2Id
-                      ? 'border-green-500 bg-green-50' 
-                      : 'border-gray-200 hover:bg-blue-50 hover:border-blue-300'}
-                  `}
-                  onClick={() => handleAdvanceParticipant(currentMatch.participant2Id)}
-                >
-                  <span className="font-medium">{currentMatch.participant2Name}</span>
-                  <span className="text-gray-400">
+                  </Button>
+                )}
+                
+                {selectedMatch.participant2Id && (
+                  <Button 
+                    variant="outline"
+                    className={`w-full justify-between ${selectedMatch.winnerId === selectedMatch.participant2Id ? 'border-green-500 bg-green-50' : ''}`}
+                    onClick={() => handleAdvanceParticipant(selectedMatch.participant2Id!)} // participantId is checked
+                    disabled={!!selectedMatch.winnerId}
+                  >
+                    <span>{selectedMatch.participant2Name}</span>
                     <ArrowRight className="h-5 w-5" />
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            {currentMatch.winnerId && (
-              <div className="bg-green-50 p-3 rounded-md flex items-start">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <p className="ml-3 text-sm text-green-700">
-                  El ganador avanzará a la siguiente ronda.
-                </p>
+                  </Button>
+                )}
+              </div>
+            )}
+            {selectedMatch.winnerId && (
+              <div className="bg-green-50 p-3 rounded-md flex items-start text-sm text-green-700">
+                <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+                <p>Ganador: {selectedMatch.winnerId === selectedMatch.participant1Id ? selectedMatch.participant1Name : selectedMatch.participant2Name}. Avanzará a la siguiente ronda.</p>
+              </div>
+            )}
+
+            {/* Admin: Start Question Phase */}
+            {isAdmin && (
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <h4 className="text-md font-semibold text-gray-700 mb-2">Fase de Preguntas</h4>
+                {!selectedMatchRoundHasQuestions && selectedMatch.status === 'ready' && (
+                    <div className="bg-yellow-50 p-3 rounded-md text-sm text-yellow-700 flex items-start">
+                        <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
+                        No hay preguntas configuradas para la ronda {selectedMatchRoundNumber}. Agrega preguntas en el panel de administración.
+                    </div>
+                )}
+                <Button
+                  onClick={handleStartQuestionPhase}
+                  disabled={!canStartQuestions || isStartingQuestions}
+                  className="w-full sm:w-auto mt-2"
+                >
+                  {isStartingQuestions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+                  {selectedMatch.status === 'questions_active' ? 'Fase de Preguntas Ya Iniciada' : 'Iniciar Fase de Preguntas'}
+                </Button>
+                {startQuestionsError && (
+                  <div className="mt-2 text-sm text-red-600 flex items-center">
+                    <XCircle className="h-4 w-4 mr-1 flex-shrink-0" /> {startQuestionsError}
+                  </div>
+                )}
+                {startQuestionsSuccess && (
+                  <div className="mt-2 text-sm text-green-600 flex items-center">
+                    <CheckCircle className="h-4 w-4 mr-1 flex-shrink-0" /> {startQuestionsSuccess}
+                  </div>
+                )}
               </div>
             )}
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            No hay partidos activos en este momento.
+            {isActive ? "Selecciona un partido del bracket para ver los controles." : "No hay partidos activos en este momento."}
           </div>
         )}
       </div>
@@ -279,3 +363,17 @@ const TournamentControls: React.FC<TournamentControlsProps> = ({
 };
 
 export default TournamentControls;
+
+// Helper to define Tournament type structure for props, assuming it's not already globally available
+// This would typically be in your types.ts or similar
+// export interface Tournament {
+//   _id: string;
+//   rounds: TournamentRound[];
+//   // other tournament properties
+// }
+
+// export interface TournamentRound {
+//   roundNumber: number;
+//   matches: TournamentMatch[];
+//   questions?: any[]; // Define Question type properly if needed
+// }

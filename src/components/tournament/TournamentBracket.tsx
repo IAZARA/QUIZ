@@ -76,6 +76,12 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
                           En progreso
                         </span>
                       )}
+                       {match.status === 'questions_active' && (
+                        <span className="inline-flex items-center text-purple-600 animate-pulse">
+                          <Clock className="w-3 h-3 mr-1" />
+                          EN VIVO
+                        </span>
+                      )}
                       {match.status === 'completed' && (
                         <span className="text-green-600">Completado</span>
                       )}

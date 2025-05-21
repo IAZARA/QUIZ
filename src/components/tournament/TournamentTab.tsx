@@ -24,9 +24,27 @@ const TournamentTab: React.FC<TournamentTabProps> = ({ showNotification }) => {
   const [loading, setLoading] = useState(true);
   
   // El partido actual basado en el currentMatchId
-  const currentMatch = currentMatchId ? 
+  const selectedMatchObject = currentMatchId ? 
     rounds.flatMap(round => round.matches).find(match => match.id === currentMatchId) || null :
     null;
+
+  // Construct activeTournament object for TournamentControls
+  // Note: The store's `startTournament` is client-side and doesn't involve a backend _id for the tournament itself.
+  // This means `tournamentId` might be missing or null if not explicitly fetched/set after backend interaction.
+  // For now, we'll pass null if no actual tournament._id is stored.
+  // The specific API POST /api/tournament/round/:roundNumber/match/:matchId/start-questions
+  // doesn't use tournamentId in its path, relying on the "active" tournament on backend.
+  const tournamentIdFromStore = useTournamentStore(state => state.tournamentId); // Assuming tournamentId might be added to store
+
+  const activeTournamentForControls = isActive ? {
+    _id: tournamentIdFromStore || null, // This needs to be properly managed if APIs require it
+    rounds,
+    participants, // For context if needed by controls, though props already has it
+    winner,
+    status: 'active', // From isActive
+    // participantIds: participants.map(p => p._id), // Example if needed
+    // name: 'Current Tournament', // Example
+  } : null;
   
   // Cargar participantes cuando se monte el componente
   useEffect(() => {
@@ -140,10 +158,13 @@ const TournamentTab: React.FC<TournamentTabProps> = ({ showNotification }) => {
         <div className="lg:w-96">
           <TournamentControls 
             participants={participants}
-            currentMatch={currentMatch}
+            selectedMatch={selectedMatchObject} // Pass the full selected match object
             isActive={isActive}
             onStartTournament={handleStartTournament}
             onAdvanceParticipant={handleAdvanceParticipant}
+            tournamentId={tournamentIdFromStore || null} // Pass tournamentId
+            activeTournament={activeTournamentForControls} // Pass the constructed active tournament object
+            isAdmin={true} // Assuming admin user for now
           />
         </div>
       </div>
