@@ -88,9 +88,15 @@ const MONGODB_DB = process.env.VITE_MONGODB_DB || 'quiz_app';
 let client;
 let db;
 
+// Importar funciones de conexión a la base de datos
+import { initializeConnections } from './db.js';
+
 // Conectar a MongoDB
 async function connectToDatabase() {
   try {
+    // Inicializar ambas conexiones (MongoDB nativo y Mongoose)
+    await initializeConnections();
+    
     client = new MongoClient(MONGODB_URI, {
       serverApi: {
         version: ServerApiVersion.v1,
