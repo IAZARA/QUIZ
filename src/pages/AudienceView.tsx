@@ -12,6 +12,7 @@ import ParticipantRanking from '../components/ParticipantRanking';
 import WordCloudParticipant from '../components/wordcloud/WordCloudParticipant';
 import TournamentAudienceView from '../components/tournament/TournamentAudienceView';
 import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
+import DocumentDownloadList from '../components/DocumentDownloadList'; // Import DocumentDownloadList
 import io from 'socket.io-client';
 
 export default function AudienceView() {
@@ -558,6 +559,11 @@ export default function AudienceView() {
       
       {/* Vista de contactos */}
       <ContactsAudienceView />
+
+      {/* Sección de Documentos Compartidos */}
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <DocumentDownloadList />
+      </div>
 
       {/* Sección de Preguntas de la Audiencia */}
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">

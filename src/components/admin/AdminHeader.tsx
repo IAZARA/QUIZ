@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, Trophy, Cloud, Phone, MessageSquare, Settings, BarChart2, ChevronDown } from 'lucide-react';
+import { LogOut, Trophy, Cloud, Phone, MessageSquare, Settings, BarChart2, ChevronDown, FileText } from 'lucide-react';
 
 interface AdminHeaderProps {
-  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA';
-  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA') => void;
+  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents';
+  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents') => void;
   onSignOut: () => void;
 }
 
@@ -58,8 +58,8 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
 
 // Componente para el menú desplegable de herramientas
 const ToolsDropdown: React.FC<{
-  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA';
-  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA') => void;
+  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents';
+  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents') => void;
 }> = ({ activeTab, setActiveTab }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -86,6 +86,7 @@ const ToolsDropdown: React.FC<{
     { id: 'contacts', name: 'Contactos', icon: <Phone className="h-4 w-4 mr-2" /> },
     { id: 'config', name: 'Configuración', icon: <Settings className="h-4 w-4 mr-2" /> },
     { id: 'audienceQA', name: 'Preguntas Audiencia', icon: <MessageSquare className="h-4 w-4 mr-2" /> },
+    { id: 'documents', name: 'Documentos', icon: <FileText className="h-4 w-4 mr-2" /> },
   ];
 
   // Encontrar la herramienta activa
@@ -113,7 +114,7 @@ const ToolsDropdown: React.FC<{
               <button
                 key={tool.id}
                 onClick={() => {
-                  setActiveTab(tool.id as 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA');
+                  setActiveTab(tool.id as 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents');
                   setIsOpen(false);
                 }}
                 className={`w-full text-left block px-4 py-2 text-sm ${activeTab === tool.id ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'}`}
