@@ -1,18 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useQuestionStore } from '../store/questionStore';
 import { useParticipantStore } from '../store/participantStore';
 import { useQuizConfigStore } from '../store/quizConfigStore';
 import { useWordCloudStore } from '../store/wordCloudStore';
-import { useTournamentStore } from '../store/tournamentStore';
+import { useTournamentStore, TournamentMatch } from '../store/tournamentStore'; // Added TournamentMatch
 import { useContactStore } from '../store/contactStore';
-import { Clock, QrCode, X, Check, Award, Cloud, Trophy } from 'lucide-react';
+import { Clock, QrCode, X, Check, Award, Cloud, Trophy, Star, ShieldAlert,Zap } from 'lucide-react'; // Added more icons
 import TimerSound from '../components/TimerSound';
 import QRCode from 'react-qr-code';
 import ParticipantRanking from '../components/ParticipantRanking';
 import WordCloudParticipant from '../components/wordcloud/WordCloudParticipant';
 import TournamentAudienceView from '../components/tournament/TournamentAudienceView';
 import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
-import io from 'socket.io-client';
+import SharedFilesDisplay from '../components/audience/SharedFilesDisplay'; // Import the new component
+import io, { Socket } from 'socket.io-client'; // Import Socket type
 
 export default function AudienceView() {
   const { 
@@ -27,7 +29,7 @@ export default function AudienceView() {
   const { config, getConfig, isRankingVisible } = useQuizConfigStore();
   const { currentParticipant, logout } = useParticipantStore();
   const { isActive: isWordCloudActive } = useWordCloudStore();
-  const { isActive: isTournamentActive } = useTournamentStore();
+  const { isActive: isTournamentActive, rounds: tournamentRounds, winner: tournamentWinner } = useTournamentStore(); // get rounds and winner
   const { loadContacts } = useContactStore();
   
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -37,6 +39,10 @@ export default function AudienceView() {
   const [error, setError] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
   const [animationClass, setAnimationClass] = useState('');
+  const [participantOutcome, setParticipantOutcome] = useState<'advanced' | 'eliminated' | null>(null);
+  const [lastCheckedMatchId, setLastCheckedMatchId] = useState<string | null>(null);
+  const [socketClient, setSocketClient] = useState<Socket | null>(null);
+
 
   // Cargar la configuración del quiz y contactos
   useEffect(() => {
@@ -47,49 +53,98 @@ export default function AudienceView() {
   // Escuchar eventos de Socket.IO para mostrar/ocultar el ranking y actualizar la nube de palabras
   useEffect(() => {
     // Crear un nuevo socket para escuchar eventos
-    const socket = io({
+    const newSocket = io({ // Renamed to newSocket to avoid conflict with state
       path: '/socket.io',
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
+    setSocketClient(newSocket); // Save the socket instance to state
     
     // Evento para mostrar el ranking
-    socket.on('show_ranking', () => {
+    newSocket.on('show_ranking', () => {
       console.log('Recibido evento para mostrar ranking');
       useQuizConfigStore.setState({ isRankingVisible: true });
     });
     
     // Evento para ocultar el ranking
-    socket.on('hide_ranking', () => {
+    newSocket.on('hide_ranking', () => {
       console.log('Recibido evento para ocultar ranking');
       useQuizConfigStore.setState({ isRankingVisible: false });
     });
     
     // Eventos para la nube de palabras
-    socket.on('wordcloud:status', (data) => {
+    newSocket.on('wordcloud:status', (data) => {
       console.log('Recibido evento de estado de nube de palabras:', data);
       useWordCloudStore.setState({ isActive: data.isActive });
     });
     
-    socket.on('wordcloud:update', (words) => {
+    newSocket.on('wordcloud:update', (words) => {
       console.log('Recibida actualización de nube de palabras');
       useWordCloudStore.setState({ words });
     });
     
     // Notificar que el participante se unió a la nube de palabras
-    socket.emit('wordcloud:join');
+    newSocket.emit('wordcloud:join');
     
     return () => {
       // Limpiar listeners al desmontar
-      socket.off('show_ranking');
-      socket.off('hide_ranking');
-      socket.off('wordcloud:status');
-      socket.off('wordcloud:update');
-      socket.disconnect();
+      newSocket.off('show_ranking');
+      newSocket.off('hide_ranking');
+      newSocket.off('wordcloud:status');
+      newSocket.off('wordcloud:update');
+      newSocket.disconnect();
+      setSocketClient(null); // Clear socket client on unmount
     };
   }, []);
+
+  // Effect to determine participant outcome in tournament
+  useEffect(() => {
+    if (!isTournamentActive || !currentParticipant || tournamentWinner) {
+      setParticipantOutcome(null); // No outcome if tournament isn't active, no current participant, or tournament already has a winner
+      return;
+    }
+
+    let latestRelevantMatch: TournamentMatch | null = null;
+
+    // Find the most recently completed match the participant was part of
+    for (const round of tournamentRounds) {
+      for (const match of round.matches) {
+        if (match.status === 'completed' && 
+            (match.participant1Id === currentParticipant._id || match.participant2Id === currentParticipant._id)) {
+          if (!latestRelevantMatch || (match.updatedAt && latestRelevantMatch.updatedAt && new Date(match.updatedAt) > new Date(latestRelevantMatch.updatedAt))) {
+            latestRelevantMatch = match;
+          }
+        }
+      }
+    }
+    
+    if (latestRelevantMatch && latestRelevantMatch.id !== lastCheckedMatchId) {
+      setLastCheckedMatchId(latestRelevantMatch.id); // Mark this match as checked
+      if (latestRelevantMatch.winnerId === currentParticipant._id) {
+        // Check if this win means they are the tournament winner
+        const finalRound = tournamentRounds[tournamentRounds.length - 1];
+        if (finalRound && finalRound.matches.some(m => m.id === latestRelevantMatch?.id && m.winnerId === currentParticipant._id)) {
+          // This is the final match and current participant won, so they are the tournament winner.
+          // The main winner display will handle this. So, no 'advanced' modal here.
+          setParticipantOutcome(null);
+        } else {
+          setParticipantOutcome('advanced');
+        }
+      } else {
+        setParticipantOutcome('eliminated');
+      }
+      
+      // Automatically hide the modal after some time
+      const timer = setTimeout(() => {
+        setParticipantOutcome(null);
+      }, 5000); // Show for 5 seconds
+      return () => clearTimeout(timer);
+    }
+
+  }, [tournamentRounds, currentParticipant, isTournamentActive, lastCheckedMatchId, tournamentWinner]);
+
 
   // Cargar estado de voto desde localStorage cuando cambia la pregunta
   useEffect(() => {
@@ -362,10 +417,27 @@ export default function AudienceView() {
           </div>
         ) : null}
         
-        {currentQuestion ? (
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            {/* Temporizador */}
-            {timeRemaining !== null && (
+        <AnimatePresence mode="wait">
+          {currentQuestion ? (
+            <motion.div
+              key={currentQuestion._id} // Important for AnimatePresence to track changes
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              animate={{ 
+                opacity: 1, 
+                y: 0, 
+                scale: 1,
+                transition: { duration: 0.4, type: "spring", stiffness: 120, damping: 15 } 
+              }}
+              exit={{ 
+                opacity: 0, 
+                y: -30, 
+                scale: 0.95,
+                transition: { duration: 0.25, ease: "easeOut" } 
+              }}
+              className="bg-white shadow overflow-hidden sm:rounded-lg"
+            >
+              {/* Temporizador */}
+              {timeRemaining !== null && (
               <div className={`p-4 ${timerWarning ? 'bg-red-100' : 'bg-blue-50'} flex items-center justify-between border-b`}>
                 <div className="flex items-center">
                   <Clock className={`h-5 w-5 ${timerWarning ? 'text-red-600' : 'text-blue-500'} mr-2`} />
@@ -511,53 +583,196 @@ export default function AudienceView() {
                           )}
                 </div>
               )}
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:p-6 text-center">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Esperando a que comience la siguiente pregunta...
-              </h2>
-              <p className="text-gray-500">
-                El presentador iniciará la próxima pregunta en breve. Mantén esta página abierta.
-              </p>
-        </div>
-      </div>
-        )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="waiting-message" // A unique key for the waiting message
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { delay: 0.3, duration: 0.5 } }} // Delay appearance slightly
+              exit={{ opacity: 0, transition: { duration: 0.2 } }} // Quick fade out
+              className="bg-white shadow overflow-hidden sm:rounded-lg"
+            >
+              <div className="px-4 py-5 sm:p-6 text-center">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">
+                  Esperando a que comience la siguiente pregunta...
+                </h2>
+                <p className="text-gray-500">
+                  El presentador iniciará la próxima pregunta en breve. Mantén esta página abierta.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Modal para mostrar la clasificación si está habilitada y visible */}
-      {config.showRankings && isRankingVisible && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn transition-all duration-300">
-          <div 
-            className="bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200"
-            style={{ maxWidth: '95vw' }}
+      <AnimatePresence>
+        {config.showRankings && isRankingVisible && (
+          <motion.div
+            key="ranking-modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.3 } }}
+            exit={{ opacity: 0, transition: { duration: 0.3 } }}
+            className="fixed inset-0 bg-gray-900 bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => useQuizConfigStore.setState({ isRankingVisible: false })} // Close on backdrop click
           >
-            <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
-              <h3 className="text-xl font-semibold flex items-center text-gray-800">
-                <Award className="h-6 w-6 mr-2 text-yellow-500" />
-                Clasificación Actual
-              </h3>
-              <button 
-                onClick={() => useQuizConfigStore.setState({ isRankingVisible: false })}
-                className="text-gray-400 hover:text-gray-600 transition-colors duration-200 rounded-full hover:bg-gray-100 p-1"
-                aria-label="Cerrar clasificación"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="rounded-lg overflow-hidden">
-              <ParticipantRanking className="shadow-none border-0 bg-transparent" />
-            </div>
-          </div>
-        </div>
-      )}
+            <motion.div
+              key="ranking-modal-content"
+              initial={{ opacity: 0, scale: 0.8, y: 50 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1, 
+                y: 0,
+                transition: { type: "spring", stiffness: 120, damping: 15, duration: 0.4 } 
+              }}
+              exit={{ 
+                opacity: 0, 
+                scale: 0.85, 
+                y: 30,
+                transition: { duration: 0.25, ease: "easeOut" } 
+              }}
+              className="bg-gradient-to-br from-gray-50 via-white to-gray-100 rounded-xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-300"
+              style={{ maxWidth: '95vw' }}
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+            >
+              <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
+                <motion.h3 
+                  initial={{ opacity:0, x: -20 }}
+                  animate={{ opacity:1, x:0, transition:{ delay: 0.1, duration: 0.3}}}
+                  className="text-xl font-semibold flex items-center text-gray-800">
+                  <Award className="h-6 w-6 mr-2 text-yellow-500" />
+                  Clasificación Actual
+                </motion.h3>
+                <motion.button
+                  initial={{ opacity:0, scale:0.5 }}
+                  animate={{ opacity:1, scale:1, transition:{ delay: 0.2, duration: 0.3}}}
+                  onClick={() => useQuizConfigStore.setState({ isRankingVisible: false })}
+                  className="text-gray-500 hover:text-gray-700 transition-colors duration-200 rounded-full hover:bg-gray-200 p-1.5"
+                  aria-label="Cerrar clasificación"
+                >
+                  <X size={22} />
+                </motion.button>
+              </div>
+              <div className="rounded-lg overflow-hidden">
+                {/* ParticipantRanking might need its own internal stagger/load animations if desired */}
+                <ParticipantRanking className="shadow-none border-0 bg-transparent" />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Contenedor para el QR Code (modal) */}
       
+      {/* Shared Files Display Section */}
+      {socketClient && <SharedFilesDisplay socket={socketClient} />}
+
       {/* Vista de contactos */}
       <ContactsAudienceView />
+
+      {/* Outcome Modals: Advanced / Eliminated */}
+      <AnimatePresence>
+        {participantOutcome === 'advanced' && (
+          <OutcomeModal
+            key="advanced-modal"
+            title="¡Has Avanzado!"
+            message="¡Felicidades! Has ganado tu encuentro y pasas a la siguiente ronda."
+            icon={<Zap className="h-16 w-16 text-green-500" />}
+            bgColor="bg-green-50"
+            borderColor="border-green-500"
+            textColor="text-green-700"
+            onClose={() => setParticipantOutcome(null)}
+          />
+        )}
+        {participantOutcome === 'eliminated' && (
+          <OutcomeModal
+            key="eliminated-modal"
+            title="Has Sido Eliminado"
+            message="No te preocupes, ¡diste una gran batalla! Gracias por participar."
+            icon={<ShieldAlert className="h-16 w-16 text-red-500" />}
+            bgColor="bg-red-50"
+            borderColor="border-red-500"
+            textColor="text-red-700"
+            onClose={() => setParticipantOutcome(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+// Generic Outcome Modal Component
+interface OutcomeModalProps {
+  title: string;
+  message: string;
+  icon: React.ReactNode;
+  bgColor: string;
+  borderColor: string;
+  textColor: string;
+  onClose: () => void;
+  key: string; // Key is required for AnimatePresence direct children
+}
+
+const OutcomeModal: React.FC<OutcomeModalProps> = ({
+  title,
+  message,
+  icon,
+  bgColor,
+  borderColor,
+  textColor,
+  onClose,
+}) => {
+  return (
+    <motion.div
+      className="fixed inset-0 bg-gray-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose} // Close on backdrop click
+    >
+      <motion.div
+        className={`relative rounded-xl shadow-2xl p-6 md:p-8 w-full max-w-md text-center border-t-4 ${borderColor} ${bgColor}`}
+        initial={{ scale: 0.7, opacity: 0, y: 30 }}
+        animate={{ scale: 1, opacity: 1, y: 0, transition: { type: 'spring', stiffness: 120, damping: 12 } }}
+        exit={{ scale: 0.8, opacity: 0, y: -20, transition: { ease: 'easeOut', duration: 0.2 } }}
+        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+      >
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1, transition: { delay: 0.1, type: 'spring', stiffness: 150 } }}
+          className="mx-auto mb-4"
+        >
+          {icon}
+        </motion.div>
+        <motion.h3
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }}
+          className={`text-2xl font-bold mb-3 ${textColor}`}
+        >
+          {title}
+        </motion.h3>
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }}
+          className={`text-md ${
+            textColor === 'text-red-700' ? 'text-red-600' : 
+            textColor === 'text-green-700' ? 'text-green-600' : 
+            'text-gray-600' // Fallback, though current usage is red/green
+          } mb-6`}
+        >
+          {message}
+        </motion.p>
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0, transition: { delay: 0.4 } }}
+          onClick={onClose}
+          className={`px-6 py-2 rounded-lg font-semibold text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
+            ${textColor === 'text-red-700' ? 'bg-red-500 hover:bg-red-600 focus:ring-red-400' : 'bg-green-500 hover:bg-green-600 focus:ring-green-400'}
+          `}
+        >
+          Entendido
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+};
