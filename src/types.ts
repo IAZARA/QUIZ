@@ -185,3 +185,14 @@ export interface ContactState {
   showContacts: () => void;
   hideContacts: () => void;
 }
+
+// Tipo para una pregunta de la audiencia (Audience Q&A)
+export interface AudienceQuestion {
+  _id: string;
+  text: string;
+  author?: string; // Optional author
+  isAnswered: boolean;
+  upvotes: number; // Number of upvotes
+  voters?: string[]; // Array of user IDs who have upvoted
+  createdAt: string; // O Date, dependiendo de cómo se serialice
+}

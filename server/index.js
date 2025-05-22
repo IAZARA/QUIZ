@@ -771,6 +771,140 @@ io.on('connection', (socket) => {
   });
 });
 
+// Rutas para Audience Q&A
+// POST /api/audience-questions
+app.post('/api/audience-questions', async (req, res) => {
+  try {
+    const { text, author } = req.body; // Added author
+    if (!text || typeof text !== 'string' || text.trim() === '') {
+      return res.status(400).json({ error: 'El texto de la pregunta es requerido.' });
+    }
+
+    const newAudienceQuestion = {
+      text: text.trim(),
+      author: author && typeof author === 'string' && author.trim() !== '' ? author.trim() : 'Anonymous', // Handle author
+      isAnswered: false,
+      upvotes: 0, // Initialize upvotes
+      voters: [], // Initialize voters array
+      createdAt: new Date(),
+    };
+
+    const result = await db.collection('audience_questions').insertOne(newAudienceQuestion);
+    const createdQuestion = { ...newAudienceQuestion, _id: result.insertedId };
+
+    io.emit('new_audience_question', createdQuestion);
+    res.status(201).json(createdQuestion);
+  } catch (error) {
+    console.error('Error al crear pregunta de audiencia:', error);
+    res.status(500).json({ error: 'Error interno del servidor al crear la pregunta.' });
+  }
+});
+
+// GET /api/audience-questions
+app.get('/api/audience-questions', async (req, res) => {
+  try {
+    // Sort by upvotes (descending) then createdAt (descending)
+    const questions = await db.collection('audience_questions').find({}).sort({ upvotes: -1, createdAt: -1 }).toArray();
+    res.json(questions);
+  } catch (error) {
+    console.error('Error al obtener preguntas de audiencia:', error);
+    res.status(500).json({ error: 'Error interno del servidor al obtener las preguntas.' });
+  }
+});
+
+// PUT /api/audience-questions/:id/answer
+app.put('/api/audience-questions/:id/answer', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'ID de pregunta inválido.' });
+    }
+
+    const result = await db.collection('audience_questions').findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: { isAnswered: true } },
+      { returnDocument: 'after' }
+    );
+
+    if (!result.value) {
+      return res.status(404).json({ error: 'Pregunta no encontrada.' });
+    }
+
+    io.emit('question_answered', result.value);
+    res.json(result.value);
+  } catch (error) {
+    console.error('Error al marcar pregunta como respondida:', error);
+    res.status(500).json({ error: 'Error interno del servidor al actualizar la pregunta.' });
+  }
+});
+
+// DELETE /api/audience-questions/:id
+app.delete('/api/audience-questions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'ID de pregunta inválido.' });
+    }
+
+    const result = await db.collection('audience_questions').deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Pregunta no encontrada.' });
+    }
+
+    io.emit('question_deleted', id);
+    res.json({ success: true, message: 'Pregunta eliminada correctamente.' });
+  } catch (error) {
+    console.error('Error al eliminar pregunta de audiencia:', error);
+    res.status(500).json({ error: 'Error interno del servidor al eliminar la pregunta.' });
+  }
+});
+
+// POST /api/audience-questions/:id/upvote
+app.post('/api/audience-questions/:id/upvote', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'ID de pregunta inválido.' });
+    }
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ error: 'userId es requerido.' });
+    }
+
+    const question = await db.collection('audience_questions').findOne({ _id: new ObjectId(id) });
+
+    if (!question) {
+      return res.status(404).json({ error: 'Pregunta no encontrada.' });
+    }
+
+    if (question.voters && question.voters.includes(userId)) {
+      return res.status(400).json({ error: 'Ya has votado por esta pregunta.' });
+    }
+
+    const result = await db.collection('audience_questions').findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      {
+        $inc: { upvotes: 1 },
+        $addToSet: { voters: userId }, // addToSet ensures userId is added only if not already present
+      },
+      { returnDocument: 'after' }
+    );
+
+    if (!result.value) {
+      // This case should ideally not be reached if the question was found earlier
+      return res.status(404).json({ error: 'Pregunta no encontrada después de intentar actualizar.' });
+    }
+
+    io.emit('question_upvoted', result.value);
+    res.json(result.value);
+  } catch (error) {
+    console.error('Error al dar upvote a la pregunta:', error);
+    res.status(500).json({ error: 'Error interno del servidor al procesar el upvote.' });
+  }
+});
+
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
 
