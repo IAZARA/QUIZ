@@ -11,6 +11,8 @@ import setupTournamentRoutes from './tournament-routes.js';
 import wordCloudRoutes from './wordcloud-routes.js';
 import contactRoutes, { setupContactSockets } from './contact-routes.js';
 import setupFileRoutes from './file-routes.js'; // Changed to setupFileRoutes
+import qaRoutes from './qa-routes.js'; // Import Q&A routes
+import mongoose from 'mongoose'; // Import Mongoose
 
 // Cargar variables de entorno
 dotenv.config();
@@ -23,6 +25,9 @@ const io = new Server(server, {
     methods: ['GET', 'POST']
   }
 });
+
+// Make io accessible to routes
+app.set('socketio', io);
 
 // Exportar io para usarlo en otros módulos
 export { io };
@@ -40,6 +45,9 @@ app.use('/api/wordcloud', wordCloudRoutes);
 
 // Rutas para contactos
 app.use('/api/contacts', contactRoutes);
+
+// Rutas para Q&A
+app.use('/api/qa', qaRoutes);
 
 // En producción, servir archivos estáticos desde la carpeta dist
 if (process.env.NODE_ENV === 'production') {
@@ -95,44 +103,24 @@ const imageUpload = multer({
 
 // Variables de MongoDB
 const MONGODB_URI = process.env.VITE_MONGODB_URI || 'mongodb://localhost:27017';
-// Configuración de multer para subir imágenes - THIS BLOCK IS NOW imageUpload
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, uploadsDir) // This should be imageUploadsDir
-//   },
-//   filename: function (req, file, cb) {
-//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-//     const ext = path.extname(file.originalname)
-//     cb(null, file.fieldname + '-' + uniqueSuffix + ext)
-//   }
-// });
+const MONGODB_DB_NAME = process.env.VITE_MONGODB_DB || 'quiz_app'; // Renamed for clarity with Mongoose
 
-// const upload = multer({ 
-//   storage: storage, // This should be imageStorage
-//   limits: {
-//     fileSize: 20 * 1024 * 1024 // límite de 20MB
-  },
-  fileFilter: function (req, file, cb) {
-    // Validar tipos de archivo
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Solo se permiten imágenes'), false);
-    }
-  }
-});
-
-// Variables de MongoDB
-const MONGODB_URI = process.env.VITE_MONGODB_URI || 'mongodb://localhost:27017';
-const MONGODB_DB = process.env.VITE_MONGODB_DB || 'quiz_app';
-
-// Cliente de MongoDB
+// Cliente de MongoDB (para código existente)
 let client;
 let db;
 
-// Conectar a MongoDB
+// Conectar a MongoDB (para código existente y Mongoose)
 async function connectToDatabase() {
   try {
+    // Mongoose connection
+    const mongooseConnectionString = `${MONGODB_URI}/${MONGODB_DB_NAME}`;
+    await mongoose.connect(mongooseConnectionString, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('Conectado a MongoDB con Mongoose');
+
+    // Existing MongoDB client connection (if still needed by other modules)
     client = new MongoClient(MONGODB_URI, {
       serverApi: {
         version: ServerApiVersion.v1,
@@ -141,17 +129,17 @@ async function connectToDatabase() {
       }
     });
     await client.connect();
-    db = client.db(MONGODB_DB);
-    console.log('Conectado a MongoDB');
+    db = client.db(MONGODB_DB_NAME);
+    console.log('Conectado a MongoDB con MongoClient (para módulos existentes)');
     
     // Configurar rutas del torneo
-    setupTournamentRoutes(app, io, db);
+    setupTournamentRoutes(app, io, db); // db from MongoClient
     
     // Configurar sockets para contactos
     setupContactSockets(io);
 
     // Configurar rutas para archivos compartidos, pasando io
-    setupFileRoutes(app, io);
+    setupFileRoutes(app, io); // Assumes this might use db or its own connection
 
   } catch (error) {
     console.error('Error conectando a MongoDB:', error);
@@ -159,7 +147,9 @@ async function connectToDatabase() {
   }
 }
 
-// Rutas API
+// Rutas API (legacy question routes, to be reviewed if they conflict with new Q&A)
+// It's important to ensure these /api/questions routes don't conflict with /api/qa/questions
+// For now, they will coexist, but ideally, they should be merged or namespaced differently.
 
 // Obtener todas las preguntas
 app.get('/api/questions', async (req, res) => {
@@ -814,6 +804,30 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Error al procesar palabra:', error);
     }
+  });
+
+  // Q&A Socket.IO room joining logic
+  socket.on('join_admin_qa_room', () => {
+    socket.join('admin_qa');
+    console.log(`Socket ${socket.id} joined admin_qa room`);
+  });
+
+  socket.on('join_audience_room', (roomCode) => { // roomCode can be used to join specific event rooms
+    const roomToJoin = roomCode ? `audience_room_${roomCode}` : 'audience_room_general';
+    socket.join(roomToJoin);
+    console.log(`Socket ${socket.id} joined ${roomToJoin}`);
+  });
+
+  // Example: Leave room on disconnect or explicit leave event
+  socket.on('leave_admin_qa_room', () => {
+    socket.leave('admin_qa');
+    console.log(`Socket ${socket.id} left admin_qa room`);
+  });
+
+  socket.on('leave_audience_room', (roomCode) => {
+    const roomToLeave = roomCode ? `audience_room_${roomCode}` : 'audience_room_general';
+    socket.leave(roomToLeave);
+    console.log(`Socket ${socket.id} left ${roomToLeave}`);
   });
 });
 

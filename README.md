@@ -499,6 +499,35 @@ task-master complexity-report
 task-master complexity-report --file=my-report.json
 ```
 
+## Quiz App Features
+
+### Live Q&A Module
+
+The Live Q&A module allows real-time interaction between the audience and the presenter. Audience members can submit questions, and the presenter (admin) can manage these questions through an admin interface.
+
+**Purpose:**
+- To facilitate audience engagement by allowing them to ask questions during a presentation or event.
+- To provide presenters with tools to moderate, approve, and mark questions as answered, controlling what the audience sees.
+
+**Key Features:**
+
+*   **Audience View (`src/components/audience/LiveQAView.tsx`):**
+    *   Submit new questions.
+    *   View a list of their own submitted questions (if applicable, depending on final implementation for pending questions).
+    *   See questions that have been approved by the admin.
+    *   See questions that have been marked as answered.
+*   **Admin View (`src/components/admin/AdminQATab.tsx`):**
+    *   View a comprehensive list of all submitted questions from all participants.
+    *   Filter questions (e.g., by status - pending, approved, answered).
+    *   Approve questions to make them visible to the audience.
+    *   Mark questions as answered.
+*   **Real-time Updates:**
+    *   Utilizes Socket.IO for instant updates. When an admin approves or answers a question, the audience view updates immediately. New questions submitted by the audience appear in the admin view in real-time.
+    *   A Zustand store (`src/store/adminSocketStore.ts`) manages the Socket.IO client connection for the admin dashboard.
+
+**API Endpoints:**
+The backend for this module is primarily served under the `/api/qa/` route, handling operations like creating questions, fetching questions with various filters, approving, and answering questions.
+
 ### Managing Task Dependencies
 ```bash
 # Add a dependency to a task

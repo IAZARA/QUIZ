@@ -13,7 +13,8 @@ import ParticipantRanking from '../components/ParticipantRanking';
 import WordCloudParticipant from '../components/wordcloud/WordCloudParticipant';
 import TournamentAudienceView from '../components/tournament/TournamentAudienceView';
 import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
-import SharedFilesDisplay from '../components/audience/SharedFilesDisplay'; // Import the new component
+import SharedFilesDisplay from '../components/audience/SharedFilesDisplay';
+import LiveQAView from '../components/audience/LiveQAView'; // Import LiveQAView
 import io, { Socket } from 'socket.io-client'; // Import Socket type
 
 export default function AudienceView() {
@@ -603,6 +604,14 @@ export default function AudienceView() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Live Q&A Section */}
+        {socketClient && (
+          <div className="my-6"> {/* Add some margin for spacing */}
+            <LiveQAView socket={socketClient} roomCode={undefined} /> {/* roomCode can be passed if available */}
+          </div>
+        )}
+
       </main>
 
       {/* Modal para mostrar la clasificación si está habilitada y visible */}

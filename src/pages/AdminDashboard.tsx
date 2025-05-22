@@ -15,7 +15,8 @@ import RankingsTab from '../components/admin/RankingsTab';
 import TournamentTab from '../components/tournament/TournamentTab';
 import WordCloudTab from '../components/wordcloud/WordCloudTab';
 import ContactsTab from '../components/contacts/ContactsTab';
-import AdminFileSharingTab from '../components/admin/AdminFileSharingTab'; // Import the new component
+import AdminFileSharingTab from '../components/admin/AdminFileSharingTab';
+import AdminQATab from '../components/admin/AdminQATab'; // Import AdminQATab
 
 // Definición de la interfaz QuestionWithId
 interface QuestionWithId {
@@ -36,6 +37,7 @@ export default function AdminDashboard() {
   // Estado para el formulario de preguntas
   const [showForm, setShowForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
+  // const [socketClient, setSocketClient] = useState<SocketIOClient.Socket | null>(null); // Removed as AdminQATab handles its own socket
   const [question, setQuestion] = useState({
     content: '',
     case: '',
@@ -48,7 +50,7 @@ export default function AdminDashboard() {
   });
   
   // Estado para la interfaz de usuario
-  const [activeTab, setActiveTab] = useState<'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'sharedFiles'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'sharedFiles' | 'qa'>('questions'); // Added 'qa'
   const [showCheatSheet, setShowCheatSheet] = useState<Record<string, boolean>>({});
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   
@@ -403,6 +405,9 @@ export default function AdminDashboard() {
           />
         ) : activeTab === 'sharedFiles' ? (
           <AdminFileSharingTab />
+        ) : activeTab === 'qa' ? (
+          // AdminQATab will manage its own socket connection as AdminDashboard does not have a central one.
+          <AdminQATab socket={null} /> // Passing null as it initializes its own
         ) : ( // QuizConfigPanel como caso por defecto (o el primero en la lista)
           <QuizConfigPanel 
             onSaved={() => showNotification('Configuración guardada correctamente', 'success')} 

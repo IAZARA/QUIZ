@@ -1,9 +1,9 @@
 import React from 'react';
-import { LogOut, Trophy, Cloud, Phone, FolderArchive, Settings, BarChart3, ListChecks } from 'lucide-react'; // Added FolderArchive and others for consistency
+import { LogOut, Trophy, Cloud, Phone, FolderArchive, Settings, BarChart3, ListChecks, MessageCircle } from 'lucide-react'; // Added MessageCircle for Q&A
 
 interface AdminHeaderProps {
-  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'sharedFiles';
-  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'sharedFiles') => void;
+  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'sharedFiles' | 'qa'; // Added 'qa'
+  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'sharedFiles' | 'qa') => void; // Added 'qa'
   onSignOut: () => void;
 }
 
@@ -80,6 +80,16 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
                 }`}
               >
                 <FolderArchive className="h-4 w-4 mr-1.5" /> Archivos
+              </button>
+              <button
+                onClick={() => setActiveTab('qa')}
+                className={`whitespace-nowrap inline-flex items-center px-2 py-2 border-b-2 text-sm font-medium ${
+                  activeTab === 'qa'
+                    ? 'border-blue-600 text-blue-700 font-semibold'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+              >
+                <MessageCircle className="h-4 w-4 mr-1.5" /> Q&A
               </button>
               <button
                 onClick={() => setActiveTab('config')}
