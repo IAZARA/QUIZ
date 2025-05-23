@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuestionStore } from '../store/questionStore';
 import { useParticipantStore } from '../store/participantStore';
 import { useQuizConfigStore } from '../store/quizConfigStore';
@@ -17,6 +18,7 @@ import io from 'socket.io-client';
 import { playSound } from '../utils/soundManager';
 
 export default function AudienceView() {
+  const { t } = useTranslation();
   const { 
     currentQuestion, 
     votes, 
@@ -284,7 +286,7 @@ export default function AudienceView() {
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
             <div className="relative z-10">
               <h2 className="text-2xl font-bold text-blue-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">
-                ¡Escanea para participar!
+                {t('scanToParticipate')}
               </h2>
               <div className="p-3 bg-white rounded-lg shadow-inner mb-4">
                 <QRCode 
@@ -314,9 +316,9 @@ export default function AudienceView() {
               </div>
               <div className="relative">
                 <div className="absolute -inset-6 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 blur-xl rounded-full"></div>
-                <h1 className="text-5xl font-bold mb-3 relative z-10 bg-clip-text text-transparent bg-gradient-to-r from-blue-200 to-white">Quiz Interactivo</h1>
+                <h1 className="text-5xl font-bold mb-3 relative z-10 bg-clip-text text-transparent bg-gradient-to-r from-blue-200 to-white">{t('interactiveQuiz')}</h1>
                 <div className="h-1 w-32 mx-auto bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full mb-3"></div>
-                <p className="text-xl text-blue-200 relative z-10 font-medium">¡Prepárate para participar!</p>
+                <p className="text-xl text-blue-200 relative z-10 font-medium">{t('getReadyToParticipate')}</p>
               </div>
             </div>
             
@@ -324,7 +326,7 @@ export default function AudienceView() {
               <div className="absolute -inset-4 bg-blue-500/10 blur-lg rounded-xl"></div>
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 relative z-10 shadow-xl">
                 <h2 className={`text-2xl font-semibold ${animationClass}`}>
-                  Esperando a que el presentador inicie una pregunta...
+                  {t('waitingForPresenter')}
                 </h2>
                 
                 <div className="mt-6 flex justify-center space-x-4">
@@ -347,17 +349,17 @@ export default function AudienceView() {
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-900">Quiz en vivo</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('liveQuiz')}</h1>
           {currentParticipant && (
             <div className="flex items-center space-x-4">
               <span className="text-sm font-medium text-gray-700">
-                Participante: {currentParticipant.name}
+                {t('participant')}: {currentParticipant.name}
               </span>
               <button 
                 onClick={handleLogout}
                 className="text-sm text-red-600 hover:text-red-800"
               >
-                Salir
+                {t('logoutButton')}
               </button>
             </div>
           )}
@@ -373,7 +375,7 @@ export default function AudienceView() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
                     <Trophy className="h-5 w-5 mr-2 text-amber-500" />
-                    Torneo en Progreso
+                    {t('tournamentInProgress')}
                   </h2>
                 </div>
                 <TournamentAudienceView />
@@ -386,7 +388,7 @@ export default function AudienceView() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
                   <Cloud className="h-5 w-5 text-blue-500 mr-2" />
-                  Nube de Palabras Interactiva
+                  {t('interactiveWordCloud')}
                 </h2>
               </div>
               <WordCloudParticipant />
@@ -402,7 +404,7 @@ export default function AudienceView() {
                 <div className="flex items-center">
                   <Clock className={`h-5 w-5 ${timerWarning ? 'text-red-600' : 'text-blue-500'} mr-2`} />
                   <span className={`font-medium ${timerWarning ? 'text-red-600' : 'text-blue-700'}`}>
-                    Tiempo restante: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                    {t('timeRemaining')}: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
                   </span>
                 </div>
                 {showTimer && <TimerSound warning={timerWarning} />}
@@ -428,7 +430,7 @@ export default function AudienceView() {
                     <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    <span className="font-medium">No seleccionaste ninguna opción para esta pregunta.</span>
+                    <span className="font-medium">{t('noOptionSelected')}</span>
                   </div>
                 </div>
               )}
@@ -510,7 +512,7 @@ export default function AudienceView() {
                   disabled={!selectedOption || submitting}
                   className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Enviando...' : 'Enviar respuesta'}
+                  {submitting ? t('submittingAnswerButton') : t('submitAnswerButton')}
                 </button>
               )}
               
@@ -523,13 +525,13 @@ export default function AudienceView() {
               {hasVoted && !currentQuestion.votingClosed && (
                 <div className="mt-4 p-4 bg-green-50 rounded-md text-sm text-green-700 flex items-center">
                   <Check className="h-4 w-4 mr-2" />
-                  Tu respuesta ha sido registrada. Esperando resultados...
+                  {t('answerRegistered')}
                 </div>
               )}
 
               {currentQuestion.votingClosed && currentQuestion.explanation && (
                 <div className="mt-6 p-4 bg-yellow-50 rounded-md border border-yellow-200">
-                  <h3 className="text-sm font-medium text-yellow-800 mb-2">Explicación:</h3>
+                  <h3 className="text-sm font-medium text-yellow-800 mb-2">{t('explanation')}</h3>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">{currentQuestion.explanation}</p>
                   
                           {currentQuestion.explanation_image && (
@@ -549,10 +551,10 @@ export default function AudienceView() {
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:p-6 text-center">
               <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Esperando a que comience la siguiente pregunta...
+                {t('waitingForNextQuestion')}
               </h2>
               <p className="text-gray-500">
-                El presentador iniciará la próxima pregunta en breve. Mantén esta página abierta.
+                {t('presenterWillStartNextQuestion')}
               </p>
         </div>
       </div>
@@ -569,12 +571,12 @@ export default function AudienceView() {
             <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
               <h3 className="text-xl font-semibold flex items-center text-gray-800">
                 <Award className="h-6 w-6 mr-2 text-yellow-500" />
-                Clasificación Actual
+                {t('currentRanking')}
               </h3>
               <button 
                 onClick={() => useQuizConfigStore.setState({ isRankingVisible: false })}
                 className="text-gray-400 hover:text-gray-600 transition-colors duration-200 rounded-full hover:bg-gray-100 p-1"
-                aria-label="Cerrar clasificación"
+                aria-label={t('closeButtonLabel')}
               >
                 <X size={20} />
               </button>

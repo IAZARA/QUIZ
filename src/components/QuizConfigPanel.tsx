@@ -163,12 +163,12 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-2xl mx-auto">
-      <h2 className="text-xl font-semibold mb-6 text-gray-800">Configuración del Quiz</h2>
+    <div className="bg-bg-primary shadow-md rounded-lg p-6 w-full max-w-2xl mx-auto text-text-primary"> {/* Updated */}
+      <h2 className="text-xl font-semibold mb-6 text-text-primary">Configuración del Quiz</h2> {/* Updated */}
       
       {status.visible && (
         <div 
-          className={`mb-4 p-3 rounded-md ${status.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+          className={`mb-4 p-3 rounded-md ${status.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`} // Specific status colors kept
         >
           {status.message}
         </div>
@@ -176,7 +176,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
       
       <form onSubmit={handleSubmit}>
         <div className="mb-6">
-          <label className="block text-gray-700 mb-2 font-medium">
+          <label className="block text-text-secondary mb-2 font-medium"> {/* Updated */}
             <Clock size={18} className="inline mr-2" />
             Tiempo por defecto para preguntas (segundos)
           </label>
@@ -185,15 +185,15 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
             name="defaultTimer"
             value={formState.defaultTimer}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-500 transition
-              ${errors.defaultTimer ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+            className={`w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-accent transition bg-bg-secondary text-text-primary
+              ${errors.defaultTimer ? 'border-red-500 bg-red-50' : 'border-border-color'}`} // Updated
             min={MIN_TIMER}
             max={MAX_TIMER}
           />
           {errors.defaultTimer && (
-            <p className="mt-1 text-sm text-red-600">{errors.defaultTimer}</p>
+            <p className="mt-1 text-sm text-red-600">{errors.defaultTimer}</p> // Error color kept
           )}
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-text-secondary"> {/* Updated */}
             Este es el tiempo predeterminado para cada pregunta si no se especifica otro valor.
           </p>
         </div>
@@ -206,9 +206,9 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               id="showRankings"
               checked={formState.showRankings}
               onChange={handleChange}
-              className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500"
+              className="w-4 h-4 text-accent bg-bg-secondary rounded border-border-color focus:ring-accent" // Updated
             />
-            <label htmlFor="showRankings" className="ml-2 text-gray-700 font-medium">
+            <label htmlFor="showRankings" className="ml-2 text-text-secondary font-medium"> {/* Updated */}
               {formState.showRankings ? (
                 <Eye size={18} className="inline mr-2" />
               ) : (
@@ -217,7 +217,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               Mostrar clasificación durante el quiz
             </label>
           </div>
-          <p className="text-sm text-gray-500 ml-6">
+          <p className="text-sm text-text-secondary ml-6"> {/* Updated */}
             Si está activado, los participantes podrán ver su posición en la clasificación durante el quiz.
           </p>
         </div>
@@ -230,9 +230,9 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               id="allowJoinDuringQuiz"
               checked={formState.allowJoinDuringQuiz}
               onChange={handleChange}
-              className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500"
+              className="w-4 h-4 text-accent bg-bg-secondary rounded border-border-color focus:ring-accent" // Updated
             />
-            <label htmlFor="allowJoinDuringQuiz" className="ml-2 text-gray-700 font-medium">
+            <label htmlFor="allowJoinDuringQuiz" className="ml-2 text-text-secondary font-medium"> {/* Updated */}
               {formState.allowJoinDuringQuiz ? (
                 <UserPlus size={18} className="inline mr-2" />
               ) : (
@@ -241,7 +241,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               Permitir unirse durante el quiz
             </label>
           </div>
-          <p className="text-sm text-gray-500 ml-6">
+          <p className="text-sm text-text-secondary ml-6"> {/* Updated */}
             Si está activado, los participantes podrán unirse incluso cuando el quiz ya haya comenzado.
           </p>
         </div>
@@ -255,9 +255,9 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               id="soundsEnabled"
               checked={formState.soundsEnabled}
               onChange={handleChange}
-              className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500"
+              className="w-4 h-4 text-accent bg-bg-secondary rounded border-border-color focus:ring-accent" // Updated
             />
-            <label htmlFor="soundsEnabled" className="ml-2 text-gray-700 font-medium">
+            <label htmlFor="soundsEnabled" className="ml-2 text-text-secondary font-medium"> {/* Updated */}
               {formState.soundsEnabled ? (
                 <Volume2 size={18} className="inline mr-2" />
               ) : (
@@ -266,14 +266,14 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               Habilitar sonidos
             </label>
           </div>
-          <p className="text-sm text-gray-500 ml-6">
+          <p className="text-sm text-text-secondary ml-6"> {/* Updated */}
             Activa o desactiva todos los sonidos de la aplicación.
           </p>
         </div>
 
         {/* Control de Volumen Maestro */}
         <div className="mb-8">
-          <label className="block text-gray-700 mb-2 font-medium">
+          <label className="block text-text-secondary mb-2 font-medium"> {/* Updated */}
             <Volume2 size={18} className="inline mr-2" />
             Volumen maestro: {Math.round((formState.masterVolume || 0) * 100)}%
           </label>
@@ -285,14 +285,14 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
             min={MIN_VOLUME}
             max={MAX_VOLUME}
             step="0.01"
-            className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer
-              ${errors.masterVolume ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+            className={`w-full h-2 bg-bg-secondary rounded-lg appearance-none cursor-pointer
+              ${errors.masterVolume ? 'border-red-500 bg-red-50' : 'border-border-color'}`} // Updated
             disabled={!formState.soundsEnabled} // Deshabilitar si los sonidos están apagados
           />
           {errors.masterVolume && (
-            <p className="mt-1 text-sm text-red-600">{errors.masterVolume}</p>
+            <p className="mt-1 text-sm text-red-600">{errors.masterVolume}</p> // Error color kept
           )}
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-text-secondary"> {/* Updated */}
             Ajusta el volumen general de todos los sonidos.
           </p>
         </div>
@@ -301,7 +301,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
           <button
             type="button"
             onClick={handleReset}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition flex items-center"
+            className="px-4 py-2 bg-bg-secondary text-text-secondary rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition flex items-center" // Updated hover:bg-gray-200 might need adjustment
             disabled={isLoading}
           >
             <Users size={18} className="mr-2" />
@@ -310,7 +310,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
           
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 flex items-center"
+            className="px-6 py-2 bg-accent text-button-text rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-accent transition disabled:opacity-50 flex items-center" // Updated
             disabled={isLoading || !!errors.defaultTimer || !!errors.masterVolume}
           >
             <Save size={18} className="mr-2" />

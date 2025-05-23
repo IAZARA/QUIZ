@@ -51,20 +51,20 @@ const QuestionsList: React.FC<QuestionsListProps> = ({
   const [showAIGenerator, setShowAIGenerator] = useState(false); // Added state for visibility
 
   return (
-    <div>
+    <div className="text-text-primary"> {/* Apply base text color */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-medium text-gray-900">Banco de Preguntas</h2>
+        <h2 className="text-lg font-medium text-text-primary">Banco de Preguntas</h2> {/* Updated */}
         <div className="flex"> {/* Added a flex container for buttons */}
           <button
             onClick={onNewQuestion}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-button-text bg-accent hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent" // Updated (assuming accent is blue-600)
           >
             <PlusCircle className="h-4 w-4 mr-2" />
             Nueva Pregunta
           </button>
           <button
             onClick={() => setShowAIGenerator(!showAIGenerator)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 ml-3" // Added ml-3 for spacing
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-button-text bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 ml-3" // Specific purple color kept, assuming it's intentional and not theme-dependent
           >
             <Bot className="h-4 w-4 mr-2" />
             {showAIGenerator ? 'Hide AI Generator' : 'AI Generate Questions'}
@@ -74,22 +74,22 @@ const QuestionsList: React.FC<QuestionsListProps> = ({
 
       {/* Conditionally render AIQuestionGenerator */}
       {showAIGenerator && (
-        <div className="mt-6 mb-6 p-4 bg-gray-50 rounded-lg shadow-inner">
+        <div className="mt-6 mb-6 p-4 bg-bg-secondary rounded-lg shadow-inner"> {/* Updated */}
           <AIQuestionGenerator />
         </div>
       )}
 
       {questions.length === 0 && !showAIGenerator ? ( // Added !showAIGenerator to hide this if AI generator is open and no questions
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg"> {/* Updated */}
           <div className="px-4 py-5 sm:p-6 text-center">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">No hay preguntas</h3>
-            <div className="mt-2 max-w-xl text-sm text-gray-500">
+            <h3 className="text-lg leading-6 font-medium text-text-primary">No hay preguntas</h3> {/* Updated */}
+            <div className="mt-2 max-w-xl text-sm text-text-secondary"> {/* Updated */}
               <p>Comienza creando una nueva pregunta para tu quiz o usa el generador AI.</p> {/* Modified text slightly */}
             </div>
             <div className="mt-5">
               <button
                 onClick={onNewQuestion}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-button-text bg-accent hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent" // Updated
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Nueva Pregunta
