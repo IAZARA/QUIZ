@@ -23,6 +23,8 @@ export interface QuizConfig {
   defaultTimer: number; // Tiempo en segundos para responder cada pregunta
   showRankings: boolean; // Mostrar ranking de participantes
   allowJoinDuringQuiz: boolean; // Permitir que nuevos participantes se unan durante el quiz
+  soundsEnabled?: boolean; // Habilitar o deshabilitar sonidos globalmente
+  masterVolume?: number; // Volumen maestro para todos los sonidos (0.0 a 1.0)
   created_at?: Date;
   updated_at?: Date;
 }

@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy } from 'lucide-react';
 import { useTournamentStore } from '../../store/tournamentStore';
 import { TournamentMatch, TournamentRound } from '../../types';
+import { playSound } from '../../utils/soundManager';
 
 const TournamentAudienceView: React.FC = () => {
   const { isActive, rounds, winner, loadParticipants } = useTournamentStore();
   const [loading, setLoading] = useState(true);
+  const winnerSoundPlayedRef = useRef(false);
 
   useEffect(() => {
     const init = async () => {
@@ -17,6 +19,13 @@ const TournamentAudienceView: React.FC = () => {
     
     init();
   }, [loadParticipants]);
+
+  useEffect(() => {
+    if (winner && !winnerSoundPlayedRef.current) {
+      playSound('winner.mp3');
+      winnerSoundPlayedRef.current = true;
+    }
+  }, [winner]);
 
   if (loading) {
     return (
@@ -126,6 +135,15 @@ interface MatchCardProps {
 }
 
 const MatchCard: React.FC<MatchCardProps> = ({ match, roundIndex, totalRounds }) => {
+  const prevStatusRef = useRef<string | undefined>();
+
+  useEffect(() => {
+    if (prevStatusRef.current !== 'completed' && match.status === 'completed') {
+      playSound('tournament_update.mp3');
+    }
+    prevStatusRef.current = match.status;
+  }, [match.status]);
+
   // Determinar el estado del partido
   const isPending = match.status === 'pending';
   const isInProgress = match.status === 'in_progress';

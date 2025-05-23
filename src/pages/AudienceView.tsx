@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useQuestionStore } from '../store/questionStore';
 import { useParticipantStore } from '../store/participantStore';
 import { useQuizConfigStore } from '../store/quizConfigStore';
@@ -14,6 +14,7 @@ import TournamentAudienceView from '../components/tournament/TournamentAudienceV
 import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
 import DocumentDownloadList from '../components/DocumentDownloadList'; // Import DocumentDownloadList
 import io from 'socket.io-client';
+import { playSound } from '../utils/soundManager';
 
 export default function AudienceView() {
   const { 
@@ -38,6 +39,11 @@ export default function AudienceView() {
   const [error, setError] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
   const [animationClass, setAnimationClass] = useState('');
+
+  const prevQuestionIdRef = useRef<string | null | undefined>(null);
+  const isInitialRenderQRRef = useRef(true);
+  const prevIsRankingVisibleRef = useRef(config.isRankingVisible);
+
 
   // Cargar la configuración del quiz y contactos
   useEffect(() => {
@@ -132,6 +138,31 @@ export default function AudienceView() {
     // y se controla en el efecto de arriba
   }, [currentQuestion?._id, currentQuestion?.is_active, currentQuestion?.votingClosed]);
 
+  // Sound for new question
+  useEffect(() => {
+    if (currentQuestion && currentQuestion._id !== prevQuestionIdRef.current) {
+      playSound('new_question.mp3');
+    }
+    prevQuestionIdRef.current = currentQuestion?._id;
+  }, [currentQuestion]);
+
+  // Sound for QR code modal
+  useEffect(() => {
+    if (isInitialRenderQRRef.current) {
+      isInitialRenderQRRef.current = false;
+    } else {
+      playSound('ui_click.mp3');
+    }
+  }, [showQR]);
+
+  // Sound for ranking modal
+  useEffect(() => {
+    if (isRankingVisible && !prevIsRankingVisibleRef.current) {
+      playSound('ui_click.mp3');
+    }
+    prevIsRankingVisibleRef.current = isRankingVisible;
+  }, [isRankingVisible]);
+
   // Efecto para cambiar la clase de animación cada 5 segundos
   useEffect(() => {
     const animations = [
@@ -207,7 +238,7 @@ export default function AudienceView() {
     try {
       // Enviar voto al servidor
       await submitVote(currentQuestion._id, normalizedOption);
-      
+      playSound('vote_confirm.mp3');
       // Sólo guardar en localStorage tras éxito en el servidor
       localStorage.setItem('hasVoted_' + currentQuestion._id, 'true');
       localStorage.setItem('selectedOption_' + currentQuestion._id, normalizedOption);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Play, Trophy, AlertTriangle, ArrowRight, Users } from 'lucide-react';
 import { TournamentMatch, Participant } from '../../types';
+import { playSound } from '../../utils/soundManager';
 
 interface TournamentControlsProps {
   participants: Participant[];
@@ -43,11 +44,13 @@ const TournamentControls: React.FC<TournamentControlsProps> = ({
     
     // Empezamos con los participantes seleccionados
     onStartTournament(selectedParticipants);
+    playSound('ui_click.mp3');
   };
   
   const handleAdvanceParticipant = (participantId: string) => {
     if (currentMatch) {
       onAdvanceParticipant(currentMatch.id, participantId);
+      playSound('ui_click.mp3');
     }
   };
   
