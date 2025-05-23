@@ -196,3 +196,15 @@ export interface AudienceQuestion {
   voters?: string[]; // Array of user IDs who have upvoted
   createdAt: string; // O Date, dependiendo de cómo se serialice
 }
+
+// Tipo para un documento compartido
+export interface IDocument {
+  _id: string;
+  originalName: string;
+  filename: string;
+  filePath: string;
+  fileType: string;
+  fileSize: number;
+  uploadDate: string; // O Date
+  url: string;
+}
