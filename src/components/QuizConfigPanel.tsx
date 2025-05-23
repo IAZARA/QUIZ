@@ -3,9 +3,13 @@ import { useQuizConfigStore } from '../store/quizConfigStore';
 import { QuizConfig } from '../types';
 import { Clock, EyeOff, Eye, UserPlus, Users, Save } from 'lucide-react';
 
+import { Volume2, VolumeX } from 'lucide-react'; // Import sound icons
+
 // Constantes para validación
 const MIN_TIMER = 10;
 const MAX_TIMER = 120;
+const MIN_VOLUME = 0.0;
+const MAX_VOLUME = 1.0;
 
 type Props = {
   onSaved?: () => void;
@@ -18,7 +22,9 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
   const [formState, setFormState] = useState({
     defaultTimer: config.defaultTimer,
     showRankings: config.showRankings,
-    allowJoinDuringQuiz: config.allowJoinDuringQuiz
+    allowJoinDuringQuiz: config.allowJoinDuringQuiz,
+    soundsEnabled: config.soundsEnabled ?? true,
+    masterVolume: config.masterVolume ?? 0.75
   });
   
   // Estado para mensajes
@@ -35,6 +41,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
   // Estado para errores de validación
   const [errors, setErrors] = useState<{
     defaultTimer?: string;
+    masterVolume?: string;
   }>({});
 
   // Cargar configuración actual
@@ -47,7 +54,9 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
     setFormState({
       defaultTimer: config.defaultTimer,
       showRankings: config.showRankings,
-      allowJoinDuringQuiz: config.allowJoinDuringQuiz
+      allowJoinDuringQuiz: config.allowJoinDuringQuiz,
+      soundsEnabled: config.soundsEnabled ?? true,
+      masterVolume: config.masterVolume ?? 0.75
     });
   }, [config]);
 
@@ -59,30 +68,42 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
     const newValue = type === 'checkbox' ? checked : value;
     
     // Actualizar el estado del formulario
-    setFormState(prevState => ({
-      ...prevState,
-      [name]: type === 'number' ? parseInt(value, 10) || 0 : newValue
-    }));
+    setFormState(prevState => {
+      let newFieldValue;
+      if (type === 'checkbox') {
+        newFieldValue = checked;
+      } else if (name === 'masterVolume') {
+        newFieldValue = parseFloat(value);
+      } else if (type === 'number' || name === 'defaultTimer') {
+        newFieldValue = parseInt(value, 10);
+      } else {
+        newFieldValue = value;
+      }
+      
+      return {
+        ...prevState,
+        [name]: newFieldValue
+      };
+    });
     
-    // Validar el tiempo si es el campo que cambió
+    // Validaciones
     if (name === 'defaultTimer') {
       const timerValue = parseInt(value, 10);
-      
       if (isNaN(timerValue)) {
-        setErrors({
-          ...errors,
-          defaultTimer: 'El tiempo debe ser un número válido'
-        });
+        setErrors(prev => ({ ...prev, defaultTimer: 'El tiempo debe ser un número válido' }));
       } else if (timerValue < MIN_TIMER || timerValue > MAX_TIMER) {
-        setErrors({
-          ...errors,
-          defaultTimer: `El tiempo debe estar entre ${MIN_TIMER} y ${MAX_TIMER} segundos`
-        });
+        setErrors(prev => ({ ...prev, defaultTimer: `El tiempo debe estar entre ${MIN_TIMER} y ${MAX_TIMER} segundos` }));
       } else {
-        setErrors({
-          ...errors,
-          defaultTimer: undefined
-        });
+        setErrors(prev => ({ ...prev, defaultTimer: undefined }));
+      }
+    } else if (name === 'masterVolume') {
+      const volumeValue = parseFloat(value);
+      if (isNaN(volumeValue)) {
+        setErrors(prev => ({ ...prev, masterVolume: 'El volumen debe ser un número válido' }));
+      } else if (volumeValue < MIN_VOLUME || volumeValue > MAX_VOLUME) {
+        setErrors(prev => ({ ...prev, masterVolume: `El volumen debe estar entre ${MIN_VOLUME * 100}% y ${MAX_VOLUME * 100}%` }));
+      } else {
+        setErrors(prev => ({ ...prev, masterVolume: undefined }));
       }
     }
   };
@@ -92,7 +113,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
     e.preventDefault();
     
     // Verificar si hay errores
-    if (errors.defaultTimer) {
+    if (errors.defaultTimer || errors.masterVolume) {
       setStatus({
         success: false,
         message: 'Por favor, corrige los errores antes de guardar',
@@ -126,8 +147,9 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
   
   // Manejar reinicio de configuración
   const handleReset = () => {
-    resetConfig();
-    setErrors({});
+    // resetConfig() se encarga de actualizar el store, que a su vez actualiza formState via useEffect
+    resetConfig(); 
+    setErrors({}); // Limpiar errores locales
     setStatus({
       success: true,
       message: 'Configuración restablecida a valores por defecto',
@@ -223,6 +245,57 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
             Si está activado, los participantes podrán unirse incluso cuando el quiz ya haya comenzado.
           </p>
         </div>
+
+        {/* Control de Sonidos */}
+        <div className="mb-6">
+          <div className="flex items-center mb-2">
+            <input
+              type="checkbox"
+              name="soundsEnabled"
+              id="soundsEnabled"
+              checked={formState.soundsEnabled}
+              onChange={handleChange}
+              className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500"
+            />
+            <label htmlFor="soundsEnabled" className="ml-2 text-gray-700 font-medium">
+              {formState.soundsEnabled ? (
+                <Volume2 size={18} className="inline mr-2" />
+              ) : (
+                <VolumeX size={18} className="inline mr-2" />
+              )}
+              Habilitar sonidos
+            </label>
+          </div>
+          <p className="text-sm text-gray-500 ml-6">
+            Activa o desactiva todos los sonidos de la aplicación.
+          </p>
+        </div>
+
+        {/* Control de Volumen Maestro */}
+        <div className="mb-8">
+          <label className="block text-gray-700 mb-2 font-medium">
+            <Volume2 size={18} className="inline mr-2" />
+            Volumen maestro: {Math.round((formState.masterVolume || 0) * 100)}%
+          </label>
+          <input
+            type="range"
+            name="masterVolume"
+            value={formState.masterVolume}
+            onChange={handleChange}
+            min={MIN_VOLUME}
+            max={MAX_VOLUME}
+            step="0.01"
+            className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer
+              ${errors.masterVolume ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+            disabled={!formState.soundsEnabled} // Deshabilitar si los sonidos están apagados
+          />
+          {errors.masterVolume && (
+            <p className="mt-1 text-sm text-red-600">{errors.masterVolume}</p>
+          )}
+          <p className="mt-1 text-sm text-gray-500">
+            Ajusta el volumen general de todos los sonidos.
+          </p>
+        </div>
         
         <div className="flex justify-between">
           <button
@@ -238,7 +311,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
           <button
             type="submit"
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 flex items-center"
-            disabled={isLoading || !!errors.defaultTimer}
+            disabled={isLoading || !!errors.defaultTimer || !!errors.masterVolume}
           >
             <Save size={18} className="mr-2" />
             {isLoading ? 'Guardando...' : 'Guardar configuración'}

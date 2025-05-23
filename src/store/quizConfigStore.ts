@@ -5,12 +5,16 @@ import { QuizConfigState, QuizConfig } from '../types';
 const DEFAULT_CONFIG: QuizConfig = {
   defaultTimer: 30, // 30 segundos por defecto
   showRankings: true,
-  allowJoinDuringQuiz: true
+  allowJoinDuringQuiz: true,
+  soundsEnabled: true, // Habilitar sonidos por defecto
+  masterVolume: 0.75 // Volumen maestro por defecto (0.0 a 1.0)
 };
 
 // Constantes para validación
 const MIN_TIMER = 10;
 const MAX_TIMER = 120;
+const MIN_VOLUME = 0.0;
+const MAX_VOLUME = 1.0;
 
 // Función para validar la configuración
 const validateConfig = (config: Partial<QuizConfig>): { isValid: boolean; error?: string } => {
@@ -24,6 +28,20 @@ const validateConfig = (config: Partial<QuizConfig>): { isValid: boolean; error?
       return { 
         isValid: false, 
         error: `El tiempo debe estar entre ${MIN_TIMER} y ${MAX_TIMER} segundos` 
+      };
+    }
+  }
+
+  // Validar el volumen maestro si está presente
+  if (config.masterVolume !== undefined) {
+    if (isNaN(config.masterVolume)) {
+      return { isValid: false, error: 'El volumen maestro debe ser un número válido' };
+    }
+    
+    if (config.masterVolume < MIN_VOLUME || config.masterVolume > MAX_VOLUME) {
+      return { 
+        isValid: false, 
+        error: `El volumen maestro debe estar entre ${MIN_VOLUME} y ${MAX_VOLUME}` 
       };
     }
   }
