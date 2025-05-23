@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Award } from 'lucide-react';
+// Removed Award as it's now in QuestionsTabContent
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
+import { useThemeStore } from '../store/themeStore'; // Import the store
 import { useQuestionStore } from '../store/questionStore';
 import { useQuizConfigStore } from '../store/quizConfigStore';
 import QuizConfigPanel from '../components/QuizConfigPanel';
@@ -9,8 +11,8 @@ import QuizConfigPanel from '../components/QuizConfigPanel';
 // Componentes del panel de administración
 import AdminHeader from '../components/admin/AdminHeader';
 import NotificationToast from '../components/admin/NotificationToast';
-import QuestionForm from '../components/admin/QuestionForm';
-import QuestionsList from '../components/admin/QuestionsList';
+// QuestionForm and QuestionsList are now primarily used by QuestionsTabContent
+import QuestionsTabContent from '../components/admin/QuestionsTabContent'; // Import the new component
 import RankingsTab from '../components/admin/RankingsTab';
 import TournamentTab from '../components/tournament/TournamentTab';
 import WordCloudTab from '../components/wordcloud/WordCloudTab';
@@ -34,6 +36,8 @@ interface QuestionWithId {
 }
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
+  const { theme, setTheme } = useThemeStore(); // Use the store
   // Estado para el formulario de preguntas
   const [showForm, setShowForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
@@ -88,6 +92,12 @@ export default function AdminDashboard() {
   };
 
   // Efecto para inicializar y cargar datos
+  useEffect(() => {
+    // Ensure the theme attribute is set on the body when the dashboard mounts
+    // The store already does this on init and toggle, but this reinforces it
+    document.body.setAttribute('data-theme', theme);
+  }, [theme]);
+
   useEffect(() => {
     if (initialized && isLoading) {
       setIsLoading(false);
@@ -281,15 +291,15 @@ export default function AdminDashboard() {
   // Renderizado condicional basado en el estado de carga
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Cargando...</h2>
+      <div className="min-h-screen bg-bg-secondary flex items-center justify-center"> {/* Updated */}
+        <div className="bg-bg-primary p-8 rounded-lg shadow-md"> {/* Updated */}
+          <h2 className="text-xl font-semibold mb-4 text-text-primary">{t('loading')}</h2> {/* Updated */}
           <div className="animate-pulse flex space-x-4">
             <div className="flex-1 space-y-4 py-1">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-bg-secondary rounded w-3/4"></div> {/* Updated (assuming gray-200 was for loading placeholder) */}
               <div className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded"></div>
-                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                <div className="h-4 bg-bg-secondary rounded"></div> {/* Updated */}
+                <div className="h-4 bg-bg-secondary rounded w-5/6"></div> {/* Updated */}
               </div>
             </div>
           </div>
@@ -298,8 +308,16 @@ export default function AdminDashboard() {
     );
   }
 
+  const handleToggleRanking = () => {
+    if (isRankingVisible) {
+      hideRanking();
+    } else {
+      showRanking();
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-bg-secondary text-text-primary"> {/* Updated */}
       {/* Notificación */}
       {notification && (
         <NotificationToast
@@ -319,71 +337,43 @@ export default function AdminDashboard() {
       {/* Contenido principal */}
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {activeTab === 'questions' ? (
-          <div> {/* Contenedor para el contenido de la pestaña 'questions' */}
-            <div className="mb-6 flex justify-end space-x-2">
-              <button
-                onClick={handleClearView}
-                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Limpiar Vista de Audiencia
-              </button>
-              {config.showRankings && (
-                <button
-                  onClick={isRankingVisible ? hideRanking : showRanking}
-                  className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white ${
-                    isRankingVisible ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-purple-600 hover:bg-purple-700'
-                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500`}
-                >
-                  <Award className="h-4 w-4 mr-2" />
-                  {isRankingVisible ? 'Ocultar Clasificación' : 'Mostrar Clasificación'}
-                </button>
-              )}
-            </div>
-            {showForm ? (
-              <div className="mt-6">
-                <div className="bg-white shadow-lg overflow-hidden sm:rounded-xl">
-                  <div className="p-0">
-                    <QuestionForm
-                      initialQuestion={question}
-                      isEditing={!!editingQuestion}
-                      onSubmit={handleSubmit}
-                      onCancel={() => {
-                        setShowForm(false);
-                        setEditingQuestion(null);
-                        setQuestion({
-                          content: '',
-                          case: '',
-                          option_a: '',
-                          option_b: '',
-                          option_c: '',
-                          correct_answer: '',
-                          explanation: '',
-                          explanation_image: '',
-                        });
-                      }}
-                      onChange={handleFormChange}
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <QuestionsList
-                questions={questions}
-                currentQuestion={currentQuestion}
-                showCheatSheet={showCheatSheet}
-                votes={votes}
-                timeRemaining={timeRemaining}
-                onNewQuestion={() => setShowForm(true)}
-                onEditQuestion={handleEdit}
-                onDeleteQuestion={handleDelete}
-                onStartVoting={handleStartVoting}
-                onStopVoting={handleStopVoting}
-                onToggleCheatSheet={handleToggleCheatSheet}
-                onTimerChange={handleTimerChange}
-                calculateStats={calculateStats}
-              />
-            )}
-          </div>
+          <QuestionsTabContent
+            showForm={showForm}
+            editingQuestion={editingQuestion}
+            questionFormData={question}
+            currentQuestion={currentQuestion}
+            questions={questions}
+            showCheatSheet={showCheatSheet}
+            votes={votes}
+            timeRemaining={timeRemaining}
+            onClearView={handleClearView}
+            onToggleRanking={handleToggleRanking}
+            onNewQuestion={() => setShowForm(true)}
+            onEditQuestion={handleEdit}
+            onDeleteQuestion={handleDelete}
+            onStartVoting={handleStartVotingAction} // Renamed to avoid conflict if QuestionsTabContent uses onStartVoting internally for something else
+            onStopVoting={stopVoting}
+            onToggleCheatSheet={handleToggleCheatSheet}
+            onTimerChange={updateQuestionTimer}
+            onQuestionFormSubmit={handleSubmit}
+            onQuestionFormChange={handleFormChange}
+            onQuestionFormCancel={() => {
+              setShowForm(false);
+              setEditingQuestion(null);
+              setQuestion({
+                content: '',
+                case: '',
+                option_a: '',
+                option_b: '',
+                option_c: '',
+                correct_answer: '',
+                explanation: '',
+                explanation_image: '',
+              });
+            }}
+            calculateStats={calculateStats}
+            newQuestionButtonText={t('newQuestionButton')}
+          />
         ) : activeTab === 'rankings' ? (
           <RankingsTab
             onResetSession={handleResetSession}
