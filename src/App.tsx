@@ -1,6 +1,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { I18nextProvider, useTranslation } from 'react-i18next';
+import { Loader2 } from 'lucide-react'; // Import Loader2 for spinner
 import i18n from './i18n';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
@@ -70,12 +71,13 @@ function AppContent() {
   // Pantalla de carga
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('loading')}</h2>
-          <p className="text-gray-600 mb-4">
-            {/* Assuming you might want a more specific message here, or remove it if 'loading' is enough */}
-            {t('loading')}
+      <div className="min-h-screen bg-bg-secondary flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-bg-primary rounded-lg shadow-lg p-8 text-center">
+          <img src="/escudo.png" alt="App Logo" className="h-24 w-24 mx-auto mb-6" />
+          <Loader2 className="animate-spin h-10 w-10 mx-auto text-accent mb-6" />
+          <h2 className="text-2xl font-bold text-text-primary mb-3">{t('loading')}</h2>
+          <p className="text-text-secondary">
+            {t('initializingAppPleaseWait')} 
           </p>
         </div>
       </div>
@@ -85,13 +87,14 @@ function AppContent() {
   // Pantalla de error
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">{t('connectionErrorTitle')}</h2>
-          <p className="text-gray-600 mb-4">{t('connectionError')}</p>
+      <div className="min-h-screen bg-bg-secondary flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-bg-primary rounded-lg shadow-lg p-8 text-center">
+          <img src="/escudo.png" alt="App Logo" className="h-20 w-20 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-red-600 mb-3">{t('connectionErrorTitle')}</h2>
+          <p className="text-text-secondary mb-6">{t('connectionError')}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            className="px-6 py-2 bg-accent text-button-text rounded-md hover:brightness-95 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-primary"
           >
             {t('retryButton')}
           </button>
@@ -130,7 +133,14 @@ function App() {
   return (
     <I18nextProvider i18n={i18n}>
       <BrowserRouter future={router.future} basename={router.basename}>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: 'var(--color-bg-secondary)' }}>
+            <svg className="animate-spin h-10 w-10 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+        }>
           <AppContent />
         </Suspense>
       </BrowserRouter>

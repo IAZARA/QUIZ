@@ -92,18 +92,18 @@ const QuestionsTabContent: React.FC<QuestionsTabContentProps> = ({
       <div className="mb-6 flex justify-end space-x-2">
         <button
           onClick={onClearView}
-          className="inline-flex items-center px-3 py-1.5 border border-border-color shadow-sm text-sm font-medium rounded-md text-text-primary bg-bg-primary hover:bg-bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent"
+          className="inline-flex items-center px-3 py-1.5 border border-border-color shadow-sm text-sm font-medium rounded-md text-text-primary bg-bg-primary hover:bg-bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent"
         >
           {t('clearAudienceViewButton')}
         </button>
         {config.showRankings && (
           <button
             onClick={onToggleRanking}
-            className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white ${ // text-white is hardcoded, consider 'text-button-text' if applicable
+            className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white ${
               isRankingVisible
                 ? 'bg-yellow-600 hover:bg-yellow-700' // Specific colors kept
                 : 'bg-purple-600 hover:bg-purple-700' // Specific colors kept
-            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500`}
+            } focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent`}
           >
             <Award className="h-4 w-4 mr-2" />
             {isRankingVisible ? t('hideRankingButton') : t('showRankingButton')}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, DownloadCloud, Loader2, UploadCloud } from 'lucide-react'; // Icons
+import { Trash2, DownloadCloud, Loader2, UploadCloud, FileX } from 'lucide-react'; // Icons, Added FileX
 import { IDocument } from '../../types'; // Import from shared types
 
 const DocumentSharingTab: React.FC = () => {
@@ -99,14 +99,14 @@ const DocumentSharingTab: React.FC = () => {
   };
 
   return (
-    <div className="p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-semibold mb-6 text-gray-800 border-b pb-3">Gestión de Documentos</h2>
+    <div className="p-6 bg-bg-primary shadow-md rounded-lg text-text-primary">
+      <h2 className="text-2xl font-semibold mb-6 text-text-primary border-b border-border-color pb-3">Gestión de Documentos</h2>
       
       {/* Upload Section */}
-      <div className="mb-8 p-4 border rounded-lg bg-gray-50">
-        <h3 className="text-lg font-medium text-gray-700 mb-3">Subir Nuevo Documento</h3>
+      <div className="mb-8 p-4 border border-border-color rounded-lg bg-bg-secondary">
+        <h3 className="text-lg font-medium text-text-secondary mb-3">Subir Nuevo Documento</h3>
         <div className="mb-4">
-          <label htmlFor="documentUpload" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="documentUpload" className="block text-sm font-medium text-text-secondary mb-1">
             Seleccionar Documento (PDF, Word, PowerPoint)
           </label>
           <input 
@@ -114,15 +114,15 @@ const DocumentSharingTab: React.FC = () => {
             type="file" 
             onChange={handleFileChange} 
             accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            className="block w-full text-sm text-gray-600
+            className="block w-full text-sm text-text-secondary
                        file:mr-4 file:py-2 file:px-4
-                       file:rounded-md file:border file:border-gray-300
+                       file:rounded-md file:border file:border-border-color
                        file:text-sm file:font-medium
-                       file:bg-gray-100 file:text-gray-700
-                       hover:file:bg-gray-200 cursor-pointer"
+                       file:bg-bg-tertiary file:text-text-primary
+                       hover:file:brightness-95 cursor-pointer"
           />
           {selectedFile && (
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-text-secondary">
               Archivo seleccionado: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
             </p>
           )}
@@ -131,7 +131,7 @@ const DocumentSharingTab: React.FC = () => {
         <button 
           onClick={handleUpload} 
           disabled={!selectedFile || uploading} 
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="inline-flex items-center px-4 py-2 bg-accent text-button-text rounded-md hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-bg-secondary disabled:bg-bg-disabled disabled:text-text-disabled disabled:cursor-not-allowed"
         >
           {uploading ? (
             <>
@@ -147,7 +147,7 @@ const DocumentSharingTab: React.FC = () => {
         </button>
 
         {message && (
-          <p className={`mt-3 text-sm ${message.toLowerCase().startsWith('error') || message.startsWith('Por favor') ? 'text-red-600' : 'text-green-600'}`}>
+          <p className={`mt-3 text-sm ${message.toLowerCase().startsWith('error') || message.startsWith('Por favor') ? 'text-red-800' : 'text-green-800'}`}>
             {message}
           </p>
         )}
@@ -155,20 +155,25 @@ const DocumentSharingTab: React.FC = () => {
 
       {/* Document List Section */}
       <div className="mt-8">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700">Documentos Subidos</h3>
+        <h3 className="text-xl font-semibold mb-4 text-text-secondary">Documentos Subidos</h3>
         {isLoadingList ? (
           <div className="flex items-center justify-center py-4">
-            <Loader2 className="animate-spin h-8 w-8 text-blue-600 mr-3" />
-            <p className="text-gray-600">Cargando documentos...</p>
+            <Loader2 className="animate-spin h-8 w-8 text-accent mr-3" />
+            <p className="text-text-secondary">Cargando documentos...</p>
           </div>
         ) : documents.length === 0 ? (
-          <p className="text-sm text-gray-500 italic">No hay documentos subidos todavía.</p>
+          <div className="text-center py-10 bg-bg-secondary rounded-lg">
+            <FileX className="mx-auto h-12 w-12 text-text-secondary opacity-75 mb-4" />
+            <h3 className="text-lg font-medium text-text-primary mb-1">No Hay Documentos</h3>
+            <p className="text-sm text-text-secondary mb-4">Sube documentos para compartirlos con la audiencia.</p>
+            {/* Optional button removed as per instruction for now */}
+          </div>
         ) : (
           <ul className="space-y-3">
             {documents.map((doc) => (
               <li 
                 key={doc._id} 
-                className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150"
+                className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-bg-secondary border border-border-color rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150"
               >
                 <div className="flex-grow mb-2 sm:mb-0">
                   <a 
@@ -176,11 +181,11 @@ const DocumentSharingTab: React.FC = () => {
                     download={doc.originalName} 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-base break-all"
+                    className="text-accent hover:brightness-125 hover:underline font-medium text-base break-all"
                   >
                     {doc.originalName}
                   </a>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-text-secondary mt-1">
                     Subido: {new Date(doc.uploadDate).toLocaleDateString()} {new Date(doc.uploadDate).toLocaleTimeString()} | 
                     Tamaño: {(doc.fileSize / 1024).toFixed(2)} KB |
                     Tipo: {doc.fileType}
@@ -188,7 +193,7 @@ const DocumentSharingTab: React.FC = () => {
                 </div>
                 <button 
                   onClick={() => handleDelete(doc._id)} 
-                  className="inline-flex items-center px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-colors"
+                  className="inline-flex items-center px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-bg-secondary transition-colors"
                   aria-label={`Eliminar ${doc.originalName}`}
                 >
                   <Trash2 className="h-4 w-4 mr-1.5" />

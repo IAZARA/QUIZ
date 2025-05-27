@@ -66,54 +66,54 @@ const TournamentTab: React.FC<TournamentTabProps> = ({ showNotification }) => {
   
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6 flex items-center justify-center">
-        <div className="animate-pulse text-gray-500 flex flex-col items-center">
-          <div className="w-12 h-12 mb-4 rounded-full bg-gray-200"></div>
-          <div className="h-4 bg-gray-200 rounded w-48 mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-32"></div>
+      <div className="bg-bg-primary rounded-lg shadow-md p-6 flex items-center justify-center text-text-secondary">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-12 h-12 mb-4 rounded-full bg-bg-secondary"></div>
+          <div className="h-4 bg-bg-secondary rounded w-48 mb-2"></div>
+          <div className="h-3 bg-bg-secondary rounded w-32"></div>
         </div>
       </div>
     );
   }
   
   return (
-    <div className="px-4 py-5 sm:p-6">
+    <div className="px-4 py-5 sm:p-6 bg-bg-primary text-text-primary">
       <div className="flex flex-col lg:flex-row lg:space-x-6">
         {/* Columna izquierda - Bracket del torneo */}
         <div className="lg:flex-1 mb-6 lg:mb-0">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center">
+            <h2 className="text-lg font-medium text-text-primary flex items-center">
               <Trophy className="h-5 w-5 mr-2 text-amber-500" />
               Torneo de Eliminación Directa
             </h2>
           </div>
           
           {winner && (
-            <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-l-4 border-amber-500 p-4 mb-6 flex items-center">
+            <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-l-4 border-amber-500 p-4 mb-6 flex items-center"> {/* Semantic colors kept */}
               <div className="flex-shrink-0">
-                <Trophy className="h-8 w-8 text-amber-500" />
+                <Trophy className="h-8 w-8 text-amber-500" /> {/* Semantic icon color kept */}
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-amber-800">¡Tenemos un ganador!</p>
-                <p className="text-lg font-bold text-amber-900 mt-1">{winner.name}</p>
+                <p className="text-sm font-medium text-amber-800">¡Tenemos un ganador!</p> {/* Semantic text color kept */}
+                <p className="text-lg font-bold text-amber-900 mt-1">{winner.name}</p> {/* Semantic text color kept */}
               </div>
             </div>
           )}
           
           {isActive && rounds.length === 0 && (
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 flex items-center">
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 flex items-center"> {/* Semantic info colors kept */}
               <div className="flex-shrink-0">
-                <AlertTriangle className="h-5 w-5 text-blue-500" />
+                <AlertTriangle className="h-5 w-5 text-blue-500" /> {/* Semantic icon color kept */}
               </div>
               <div className="ml-3">
-                <p className="text-sm text-blue-700">
+                <p className="text-sm text-blue-700"> {/* Semantic text color kept */}
                   El torneo está configurándose. Por favor, espera un momento.
                 </p>
               </div>
             </div>
           )}
           
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="bg-bg-secondary rounded-lg shadow-md overflow-hidden">
             {rounds.length > 0 ? (
               <div className="p-4">
                 <TournamentBracket 
@@ -124,9 +124,9 @@ const TournamentTab: React.FC<TournamentTabProps> = ({ showNotification }) => {
               </div>
             ) : (
               <div className="p-8 text-center">
-                <Trophy className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">No hay torneos activos</h3>
-                <p className="text-gray-500">
+                <Trophy className="h-12 w-12 text-text-secondary opacity-50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-text-primary mb-2">No hay torneos activos</h3>
+                <p className="text-text-secondary">
                   {isActive
                     ? 'El torneo está siendo configurado...'
                     : 'Selecciona participantes y haz clic en "Iniciar Torneo"'}

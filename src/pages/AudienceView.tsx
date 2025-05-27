@@ -6,7 +6,7 @@ import { useQuizConfigStore } from '../store/quizConfigStore';
 import { useWordCloudStore } from '../store/wordCloudStore';
 import { useTournamentStore } from '../store/tournamentStore';
 import { useContactStore } from '../store/contactStore';
-import { Clock, QrCode, X, Check, Award, Cloud, Trophy } from 'lucide-react';
+import { Clock, QrCode, X, Check, Award, Cloud, Trophy, AlertCircle } from 'lucide-react'; // Added AlertCircle
 import TimerSound from '../components/TimerSound';
 import QRCode from 'react-qr-code';
 import ParticipantRanking from '../components/ParticipantRanking';
@@ -40,7 +40,7 @@ export default function AudienceView() {
   const [timerWarning, setTimerWarning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
-  const [animationClass, setAnimationClass] = useState('');
+  // animationClass state is removed
 
   const prevQuestionIdRef = useRef<string | null | undefined>(null);
   const isInitialRenderQRRef = useRef(true);
@@ -165,23 +165,7 @@ export default function AudienceView() {
     prevIsRankingVisibleRef.current = isRankingVisible;
   }, [isRankingVisible]);
 
-  // Efecto para cambiar la clase de animación cada 5 segundos
-  useEffect(() => {
-    const animations = [
-      'animate-fadeIn',
-      'animate-bounce',
-      'animate-pulse',
-      'animate-pulse-slow'
-    ];
-    let index = 0;
-    
-    const interval = setInterval(() => {
-      setAnimationClass(animations[index]);
-      index = (index + 1) % animations.length;
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, []);
+// Removed useEffect for cycling animationClass
 
   // Activar/desactivar el sonido del temporizador cuando queden pocos segundos
   useEffect(() => {
@@ -265,74 +249,79 @@ export default function AudienceView() {
   // Pantalla de conexión
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-950 to-blue-900 flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-b from-bg-primary to-bg-secondary flex flex-col items-center justify-center relative overflow-hidden text-text-primary">
         {/* Elementos decorativos de fondo */}
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-400/10 blur-3xl rounded-full animate-pulse-slow"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-indigo-400/10 blur-3xl rounded-full animate-pulse-slow"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/5 blur-3xl rounded-full animate-spin-slow"></div>
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-accent/10 blur-3xl rounded-full animate-pulse-slow"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/10 blur-3xl rounded-full animate-pulse-slow delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/5 blur-3xl rounded-full animate-spin-slow"></div>
         
         <div className="absolute top-4 right-4 z-20">
           <button 
             onClick={() => setShowQR(!showQR)}
-            className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-all shadow-lg shadow-blue-500/20"
+            className="bg-bg-primary/20 dark:bg-bg-primary/30 hover:bg-bg-primary/30 dark:hover:bg-bg-primary/40 p-2 rounded-full transition-all shadow-lg shadow-accent/20"
           >
-            {showQR ? <X className="h-6 w-6 text-white" /> : <QrCode className="h-6 w-6 text-white" />}
+            {showQR ? <X className="h-6 w-6 text-text-primary" /> : <QrCode className="h-6 w-6 text-text-primary" />}
           </button>
         </div>
         
         {showQR ? (
-          <div className="text-center bg-white/90 backdrop-blur-md p-8 rounded-xl shadow-2xl relative overflow-hidden z-10 animate-fadeIn">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-indigo-500 blur-sm opacity-50 rounded-xl"></div>
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+          <div 
+            className="text-center bg-bg-primary/90 backdrop-blur-md p-8 rounded-xl shadow-2xl relative overflow-hidden z-10 animate-fadeIn"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="qrModalTitle"
+          >
+            <div className="absolute -inset-1 bg-gradient-to-r from-accent to-accent/80 blur-sm opacity-50 rounded-xl"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent to-accent/80"></div>
             <div className="relative z-10">
-              <h2 className="text-2xl font-bold text-blue-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">
+              <h2 id="qrModalTitle" className="text-2xl font-bold text-text-primary mb-4 bg-clip-text text-transparent bg-gradient-to-r from-accent to-text-primary">
                 {t('scanToParticipate')}
               </h2>
-              <div className="p-3 bg-white rounded-lg shadow-inner mb-4">
+              <div className="p-3 bg-bg-primary rounded-lg shadow-inner mb-4">
                 <QRCode 
                   value="https://iazarate.com" 
                   size={200} 
                   className="mx-auto"
                 />
               </div>
-              <p className="mt-4 text-gray-600 font-medium flex items-center justify-center">
+              <p className="mt-4 text-text-secondary font-medium flex items-center justify-center">
                 <span className="mr-2">iazarate.com</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </p>
             </div>
           </div>
         ) : (
-          <div className="text-center text-white relative z-10">
+          <div className="text-center text-text-primary relative z-10">
             <div className="mb-8 flex flex-col items-center justify-center">
               <div className="relative">
-                <div className="absolute -inset-8 bg-blue-500/20 blur-xl rounded-full animate-pulse-slow"></div>
+                <div className="absolute -inset-8 bg-accent/20 blur-xl rounded-full animate-pulse-slow"></div>
                 <img 
                   src="/escudo.png" 
-                  alt="Escudo" 
+                  alt={t('appLogoDescription')}
                   className="h-36 mb-4 drop-shadow-2xl animate-fadeIn relative z-10"
                 />
               </div>
               <div className="relative">
-                <div className="absolute -inset-6 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 blur-xl rounded-full"></div>
-                <h1 className="text-5xl font-bold mb-3 relative z-10 bg-clip-text text-transparent bg-gradient-to-r from-blue-200 to-white">{t('interactiveQuiz')}</h1>
-                <div className="h-1 w-32 mx-auto bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full mb-3"></div>
-                <p className="text-xl text-blue-200 relative z-10 font-medium">{t('getReadyToParticipate')}</p>
+                <div className="absolute -inset-6 bg-gradient-to-r from-accent/20 to-accent/10 blur-xl rounded-full"></div>
+                <h1 className="text-5xl font-bold mb-3 relative z-10 bg-clip-text text-transparent bg-gradient-to-r from-text-primary to-text-secondary">{t('interactiveQuiz')}</h1>
+                <div className="h-1 w-32 mx-auto bg-gradient-to-r from-accent to-accent/70 rounded-full mb-3"></div>
+                <p className="text-xl text-text-secondary relative z-10 font-medium">{t('getReadyToParticipate')}</p>
               </div>
             </div>
             
             <div className="mb-10 relative">
-              <div className="absolute -inset-4 bg-blue-500/10 blur-lg rounded-xl"></div>
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 relative z-10 shadow-xl">
-                <h2 className={`text-2xl font-semibold ${animationClass}`}>
+              <div className="absolute -inset-4 bg-accent/10 blur-lg rounded-xl"></div>
+              <div className="bg-bg-primary/5 dark:bg-bg-primary/10 backdrop-blur-sm border border-border-color/30 rounded-xl p-6 relative z-10 shadow-xl">
+                <h2 className="text-2xl font-semibold text-text-primary animate-fadeIn">
                   {t('waitingForPresenter')}
                 </h2>
                 
                 <div className="mt-6 flex justify-center space-x-4">
-                  <div className="animate-bounce delay-100 h-4 w-4 bg-blue-400 rounded-full shadow-lg shadow-blue-400/30"></div>
-                  <div className="animate-bounce delay-300 h-4 w-4 bg-indigo-400 rounded-full shadow-lg shadow-indigo-400/30"></div>
-                  <div className="animate-bounce delay-500 h-4 w-4 bg-purple-400 rounded-full shadow-lg shadow-purple-400/30"></div>
+                  <div className="animate-bounce delay-100 h-4 w-4 bg-accent rounded-full shadow-lg shadow-accent/30"></div>
+                  <div className="animate-bounce delay-300 h-4 w-4 bg-accent/80 rounded-full shadow-lg shadow-accent/30"></div>
+                  <div className="animate-bounce delay-500 h-4 w-4 bg-accent/60 rounded-full shadow-lg shadow-accent/30"></div>
                 </div>
               </div>
             </div>
@@ -346,18 +335,18 @@ export default function AudienceView() {
   const { stats, showResults } = calculateStats();
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
+    <div className="min-h-screen bg-bg-secondary text-text-primary">
+      <header className="bg-bg-primary shadow">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-900">{t('liveQuiz')}</h1>
+          <h1 className="text-xl font-bold text-text-primary">{t('liveQuiz')}</h1>
           {currentParticipant && (
             <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-text-secondary">
                 {t('participant')}: {currentParticipant.name}
               </span>
               <button 
                 onClick={handleLogout}
-                className="text-sm text-red-600 hover:text-red-800"
+                className="text-sm text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400" // Semantic color kept
               >
                 {t('logoutButton')}
               </button>
@@ -370,11 +359,11 @@ export default function AudienceView() {
         {/* Mostrar la nube de palabras si está activa */}
         {isTournamentActive ? (
           <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
-                    <Trophy className="h-5 w-5 mr-2 text-amber-500" />
+                  <h2 className="text-lg leading-6 font-medium text-text-primary flex items-center">
+                    <Trophy className="h-5 w-5 mr-2 text-amber-500" /> {/* Semantic color kept */}
                     {t('tournamentInProgress')}
                   </h2>
                 </div>
@@ -383,11 +372,11 @@ export default function AudienceView() {
             </div>
           </div>
         ) : isWordCloudActive ? (
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+          <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg mb-6">
             <div className="px-4 py-5 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
-                  <Cloud className="h-5 w-5 text-blue-500 mr-2" />
+                <h2 className="text-lg leading-6 font-medium text-text-primary flex items-center">
+                  <Cloud className="h-5 w-5 text-accent mr-2" />
                   {t('interactiveWordCloud')}
                 </h2>
               </div>
@@ -397,13 +386,13 @@ export default function AudienceView() {
         ) : null}
         
         {currentQuestion ? (
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg">
             {/* Temporizador */}
             {timeRemaining !== null && (
-              <div className={`p-4 ${timerWarning ? 'bg-red-100' : 'bg-blue-50'} flex items-center justify-between border-b`}>
+              <div className={`p-4 ${timerWarning ? 'bg-red-100 dark:bg-red-500/20' : 'bg-accent/10 dark:bg-accent/20'} flex items-center justify-between border-b border-border-color`}>
                 <div className="flex items-center">
-                  <Clock className={`h-5 w-5 ${timerWarning ? 'text-red-600' : 'text-blue-500'} mr-2`} />
-                  <span className={`font-medium ${timerWarning ? 'text-red-600' : 'text-blue-700'}`}>
+                  <Clock className={`h-5 w-5 ${timerWarning ? 'text-red-600 dark:text-red-400' : 'text-accent'} mr-2`} />
+                  <span className={`font-medium ${timerWarning ? 'text-red-600 dark:text-red-400' : 'text-accent'}`}>
                     {t('timeRemaining')}: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
                   </span>
                 </div>
@@ -413,20 +402,20 @@ export default function AudienceView() {
             
             <div className="px-4 py-5 sm:p-6">
               {/* Contenido de la pregunta */}
-              <h2 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+              <h2 className="text-lg leading-6 font-medium text-text-primary mb-4">
                 {currentQuestion.content}
               </h2>
               
               {currentQuestion.case && (
-                <div className="bg-gray-50 rounded-md p-4 mb-6 text-sm text-gray-700 whitespace-pre-wrap">
+                <div className="bg-bg-secondary rounded-md p-4 mb-6 text-sm text-text-secondary whitespace-pre-wrap">
                   {currentQuestion.case}
                 </div>
               )}
               
               {/* Mensaje cuando no se seleccionó ninguna opción y la votación está cerrada */}
               {!selectedOption && currentQuestion.votingClosed && (
-                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <div className="flex items-center text-yellow-700">
+                <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-md">
+                  <div className="flex items-center text-yellow-700 dark:text-yellow-400">
                     <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -445,57 +434,83 @@ export default function AudienceView() {
                                     currentQuestion.correct_option?.toLowerCase() === option;
                   const isSelected = selectedOption === option;
 
+                  // Dynamically build classes
+                  let buttonClasses = `w-full text-left p-4 rounded-md flex items-start relative transition-all duration-150 ease-in-out border `;
+                  let optionLetterClasses = `flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full mr-3 text-sm font-medium `;
+                  let optionTextClasses = `font-medium `; // Base text color will be inherited or set by specific states
+                  let correctIndicatorTextClasses = `ml-2 flex items-center `;
+
+                  if (hasVoted || currentQuestion.votingClosed) { // Voted or results shown
+                    buttonClasses += 'cursor-default ';
+                    if (isSelected) { // This option was selected by the user
+                      if (isCorrect) {
+                        buttonClasses += 'bg-green-500/10 dark:bg-green-500/20 border-green-500/30 ';
+                        optionLetterClasses += 'bg-green-500 text-white ';
+                        optionTextClasses += 'text-green-600 dark:text-green-400 ';
+                        correctIndicatorTextClasses += 'text-green-600 dark:text-green-400 ';
+                      } else {
+                        buttonClasses += 'bg-red-500/10 dark:bg-red-500/20 border-red-500/30 ';
+                        optionLetterClasses += 'bg-red-500 text-white ';
+                        optionTextClasses += 'text-red-600 dark:text-red-400 ';
+                      }
+                    } else { // This option was NOT selected by the user, but results are shown
+                      buttonClasses += 'bg-bg-primary border-border-color ';
+                      optionLetterClasses += 'bg-bg-secondary text-text-secondary ';
+                      optionTextClasses += 'text-text-primary ';
+                      if (isCorrect) { // If this unselected option was the correct one
+                        buttonClasses += 'border-green-500/30 '; // Optionally highlight correct answer
+                        optionTextClasses += 'text-green-700 dark:text-green-500 '; // Highlight text of correct answer
+                        correctIndicatorTextClasses += 'text-green-600 dark:text-green-400 ';
+                      }
+                    }
+                  } else { // Voting is open, user has not voted yet
+                    buttonClasses += 'cursor-pointer hover:bg-bg-secondary border-border-color ';
+                    optionLetterClasses += 'bg-bg-secondary text-text-secondary ';
+                    optionTextClasses += 'text-text-primary ';
+                    if (isSelected) { // User is currently selecting this option (before submitting vote)
+                      buttonClasses += 'ring-2 ring-accent bg-accent/10 dark:bg-accent/20 border-accent ';
+                      optionLetterClasses += 'bg-accent text-button-text ';
+                      optionTextClasses += 'text-accent ';
+                    }
+                  }
+                  
                   return (
                     <button
                       key={option}
                       onClick={() => !hasVoted && !currentQuestion.votingClosed && handleVote(option)}
                       disabled={hasVoted || currentQuestion.votingClosed || submitting}
-                      className={`w-full text-left p-4 rounded-md flex items-start relative
-                        ${hasVoted || currentQuestion.votingClosed ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50'}
-                        ${isSelected && !hasVoted ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
-                        ${hasVoted && isSelected && !currentQuestion.votingClosed ? 'bg-blue-50 border border-blue-200' : ''}
-                        ${isCorrect && currentQuestion.votingClosed ? 'bg-green-50 border border-green-200' : ''}
-                        ${!isCorrect && hasVoted && isSelected && currentQuestion.votingClosed ? 'bg-red-50 border border-red-200' : ''}
-                        ${!isSelected ? 'border border-gray-200' : ''}
-                        ${showResults ? 'relative' : ''}
-                      `}
+                      className={buttonClasses.trim()}
                     >
                       <div className="flex-1">
                         <div className="flex items-center">
-                          <span className={`flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full mr-3 text-sm
-                            ${isCorrect && currentQuestion.votingClosed ? 'bg-green-500 text-white' : 
-                              isSelected && hasVoted && !isCorrect && currentQuestion.votingClosed ? 'bg-red-500 text-white' : 
-                              isSelected ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}
-                          `}>
+                          <span className={optionLetterClasses.trim()}>
                             {option.toUpperCase()}
                           </span>
-                          <span className={`font-medium ${isCorrect && currentQuestion.votingClosed ? 'text-green-700' : 
-                            isSelected && hasVoted && !isCorrect && currentQuestion.votingClosed ? 'text-red-700' : 'text-gray-700'}`}>
+                          <span className={optionTextClasses.trim()}>
                             {optionContent}
                           </span>
                           {isCorrect && currentQuestion.votingClosed && (
-                            <span className="ml-2 text-green-600 flex items-center">
+                            <span className={correctIndicatorTextClasses.trim()}>
                               <Check className="h-4 w-4 mr-1" />
-                              Correcta
+                              {t('correctAnswer')}
                             </span>
                           )}
                           </div>
                       </div>
                       
                       {statForOption?.showPercentage && (
-                        <div className="mt-1 text-sm text-gray-500">
+                        <div className="mt-1 text-sm text-text-secondary">
                           {statForOption.count} votos ({statForOption.percentage}%)
                         </div>
                       )}
                       
                       {statForOption?.showPercentage && (
-                        <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+                        <div className="mt-2 w-full bg-bg-secondary dark:bg-gray-700 rounded-full h-2.5">
                           <div
-                            className={`h-2.5 rounded-full ${isCorrect && currentQuestion.votingClosed ? 'bg-green-500' : 
-                              isSelected && hasVoted && !isCorrect && currentQuestion.votingClosed ? 'bg-red-500' : 
-                              isSelected ? 'bg-blue-500' : 
-                              statForOption.percentage > 50 ? 'bg-yellow-500' : 
-                              statForOption.percentage > 20 ? 'bg-orange-500' : 'bg-blue-500'}`}
+                            className={`h-2.5 rounded-full 
+                              ${isCorrect && currentQuestion.votingClosed ? 'bg-green-500' : 
+                                (!isCorrect && hasVoted && isSelected && currentQuestion.votingClosed) ? 'bg-red-500' : 
+                                isSelected ? 'bg-accent' : 'bg-accent/50'}`}
                             style={{ width: `${statForOption.percentage}%` }}
                           ></div>
                         </div>
@@ -510,36 +525,43 @@ export default function AudienceView() {
                 <button
                   onClick={() => selectedOption && handleVote(selectedOption)}
                   disabled={!selectedOption || submitting}
-                  className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-button-text bg-accent hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? t('submittingAnswerButton') : t('submitAnswerButton')}
                 </button>
               )}
               
               {error && (
-                <div className="mt-4 p-4 bg-red-50 rounded-md text-sm text-red-700">
-                  {error}
+                <div className="mt-4 p-4 rounded-md shadow-md border-l-4 bg-red-50 border-red-500 text-sm">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="h-5 w-5 text-red-500" />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-red-800">{error}</p>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {hasVoted && !currentQuestion.votingClosed && (
-                <div className="mt-4 p-4 bg-green-50 rounded-md text-sm text-green-700 flex items-center">
+                <div className="mt-4 p-4 bg-green-500/10 border border-green-500/30 rounded-md text-sm text-green-600 dark:text-green-400 flex items-center">
                   <Check className="h-4 w-4 mr-2" />
                   {t('answerRegistered')}
                 </div>
               )}
 
               {currentQuestion.votingClosed && currentQuestion.explanation && (
-                <div className="mt-6 p-4 bg-yellow-50 rounded-md border border-yellow-200">
-                  <h3 className="text-sm font-medium text-yellow-800 mb-2">{t('explanation')}</h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{currentQuestion.explanation}</p>
+                <div className="mt-6 p-4 bg-yellow-500/10 rounded-md border border-yellow-500/30">
+                  <h3 className="text-sm font-medium text-yellow-700 dark:text-yellow-500 mb-2">{t('explanation')}</h3>
+                  <p className="text-sm text-text-secondary whitespace-pre-wrap">{currentQuestion.explanation}</p>
                   
                           {currentQuestion.explanation_image && (
                             <div className="mt-4">
                               <img 
                                 src={currentQuestion.explanation_image} 
-                        alt="Explicación"
-                        className="max-w-full h-auto rounded-md"
+                                alt={t('explanationImageAlt')}
+                                className="max-w-full h-auto rounded-md"
                               />
                             </div>
                           )}
@@ -548,12 +570,12 @@ export default function AudienceView() {
             </div>
           </div>
         ) : (
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:p-6 text-center">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
+              <h2 className="text-lg font-medium text-text-primary mb-4">
                 {t('waitingForNextQuestion')}
               </h2>
-              <p className="text-gray-500">
+              <p className="text-text-secondary">
                 {t('presenterWillStartNextQuestion')}
               </p>
         </div>
@@ -563,19 +585,24 @@ export default function AudienceView() {
 
       {/* Modal para mostrar la clasificación si está habilitada y visible */}
       {config.showRankings && isRankingVisible && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn transition-all duration-300">
+        <div 
+          className="fixed inset-0 bg-bg-primary/80 dark:bg-bg-primary/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn transition-all duration-300"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="rankingModalTitle"
+        >
           <div 
-            className="bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200"
+            className="bg-bg-primary rounded-xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto border border-border-color"
             style={{ maxWidth: '95vw' }}
           >
-            <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
-              <h3 className="text-xl font-semibold flex items-center text-gray-800">
-                <Award className="h-6 w-6 mr-2 text-yellow-500" />
+            <div className="flex justify-between items-center mb-4 border-b border-border-color pb-3">
+              <h3 id="rankingModalTitle" className="text-xl font-semibold flex items-center text-text-primary">
+                <Award className="h-6 w-6 mr-2 text-yellow-500" /> {/* Semantic color kept */}
                 {t('currentRanking')}
               </h3>
               <button 
                 onClick={() => useQuizConfigStore.setState({ isRankingVisible: false })}
-                className="text-gray-400 hover:text-gray-600 transition-colors duration-200 rounded-full hover:bg-gray-100 p-1"
+                className="text-text-secondary hover:text-text-primary transition-colors duration-200 rounded-full hover:bg-bg-secondary p-1"
                 aria-label={t('closeButtonLabel')}
               >
                 <X size={20} />

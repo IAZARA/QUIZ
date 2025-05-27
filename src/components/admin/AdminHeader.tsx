@@ -30,8 +30,8 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
                 onClick={() => setActiveTab('questions')}
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                   activeTab === 'questions'
-                    ? 'border-accent text-text-primary' // Updated to use theme variable
-                    : 'border-transparent text-text-secondary hover:border-gray-300 hover:text-text-primary' // Updated to use theme variable
+                    ? 'border-accent text-text-primary' 
+                    : 'border-transparent text-text-secondary hover:border-border-color hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-bg-primary'
                 }`}
               >
                 {t('questionsTab')}
@@ -49,7 +49,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
             <ThemeSwitcher /> {/* Add ThemeSwitcher here */}
             <button
               onClick={onSignOut}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-button-text bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" // Assuming button-text is appropriate here, or define a specific one for danger buttons
+              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-button-text bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-red-500" // Semantic danger color kept, updated offset
             >
               <LogOut className="h-4 w-4 mr-1" />
               {t('signOutButton')}
@@ -112,8 +112,11 @@ const ToolsDropdown: React.FC<{
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        id="tools-dropdown-button-id"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-text-secondary hover:text-text-primary focus:outline-none" // Updated to use theme variable
+        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-text-secondary hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-primary"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
       >
         {activeTab !== 'questions' && activeTool?.icon}
         {dropdownTitle}
@@ -123,7 +126,7 @@ const ToolsDropdown: React.FC<{
       {/* Menú desplegable */}
       {isOpen && (
         <div className="absolute z-10 mt-2 w-56 rounded-md shadow-lg bg-bg-primary ring-1 ring-black ring-opacity-5"> {/* Updated to use theme variable */}
-          <div className="py-1" role="menu" aria-orientation="vertical">
+          <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="tools-dropdown-button-id">
             {tools.map((tool) => (
               <button
                 key={tool.id}
@@ -131,7 +134,7 @@ const ToolsDropdown: React.FC<{
                   setActiveTab(tool.id as 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents');
                   setIsOpen(false);
                 }}
-                className={`w-full text-left block px-4 py-2 text-sm ${activeTab === tool.id ? 'bg-bg-secondary text-text-primary' : 'text-text-secondary hover:bg-bg-secondary'}`} // Updated to use theme variables
+                className={`w-full text-left block px-4 py-2 text-sm ${activeTab === tool.id ? 'bg-bg-secondary text-text-primary' : 'text-text-secondary hover:bg-bg-tertiary focus:bg-bg-tertiary focus:text-text-primary focus:outline-none'}`} 
                 role="menuitem"
               >
                 <div className="flex items-center">

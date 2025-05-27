@@ -1,5 +1,5 @@
 import React, { useState } from 'react'; // Added useState
-import { PlusCircle, Bot } from 'lucide-react'; // Added Bot
+import { PlusCircle, Bot, Inbox } from 'lucide-react'; // Added Bot and Inbox
 import QuestionItem from './QuestionItem';
 import AIQuestionGenerator from './AIQuestionGenerator'; // Added AIQuestionGenerator import
 
@@ -82,6 +82,7 @@ const QuestionsList: React.FC<QuestionsListProps> = ({
       {questions.length === 0 && !showAIGenerator ? ( // Added !showAIGenerator to hide this if AI generator is open and no questions
         <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg"> {/* Updated */}
           <div className="px-4 py-5 sm:p-6 text-center">
+            <Inbox className="mx-auto h-12 w-12 text-text-secondary opacity-75 mb-4" />
             <h3 className="text-lg leading-6 font-medium text-text-primary">No hay preguntas</h3> {/* Updated */}
             <div className="mt-2 max-w-xl text-sm text-text-secondary"> {/* Updated */}
               <p>Comienza creando una nueva pregunta para tu quiz o usa el generador AI.</p> {/* Modified text slightly */}
