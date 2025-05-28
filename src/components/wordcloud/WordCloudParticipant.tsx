@@ -5,8 +5,10 @@ import ReactWordcloud from 'react-wordcloud';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/animations/scale.css';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const WordCloudParticipant: React.FC = () => {
+  const { t } = useTranslation();
   const { isActive, words, addWord, fetchWords } = useWordCloudStore();
   const [inputWord, setInputWord] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -99,22 +101,22 @@ const WordCloudParticipant: React.FC = () => {
     padding: 1,
     rotations: 3,
     rotationAngles: [0, 90] as [number, number],
-    scale: 'log' as const, // Usar 'log' en lugar de 'sqrt' para compatibilidad de tipos
+    scale: 'log' as const,
     spiral: 'archimedean' as const,
-    transitionDuration: 800,  // Más rápido para mejor efecto visual
+    transitionDuration: 800,
     // Callbacks para animar palabras
     getWordTooltip: (word: WordCloudWord) => {
-      return `${word.text}: ${word.value} veces`;
+      return `${word.text}: ${word.value} ${word.value === 1 ? t('time') : t('times')}`;
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-pulse text-gray-500 flex flex-col items-center">
-          <div className="w-12 h-12 mb-4 rounded-full bg-gray-200"></div>
-          <div className="h-4 bg-gray-200 rounded w-48 mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-32"></div>
+        <div className="animate-pulse text-text-secondary flex flex-col items-center">
+          <div className="w-12 h-12 mb-4 rounded-full bg-bg-secondary"></div>
+          <div className="h-4 bg-bg-secondary rounded w-48 mb-2"></div>
+          <div className="h-3 bg-bg-secondary rounded w-32"></div>
         </div>
       </div>
     );
@@ -126,22 +128,22 @@ const WordCloudParticipant: React.FC = () => {
         <div className="space-y-6">
           {!submitted ? (
             <>
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+              <div className="bg-accent/10 border-l-4 border-accent p-4 mb-6 rounded-r-md">
                 <div className="flex">
                   <div className="flex-shrink-0">
-                    <Cloud className="h-5 w-5 text-blue-500" />
+                    <Cloud className="h-5 w-5 text-accent" />
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm text-blue-700">
-                      ¡Participa en la nube de palabras! Escribe una palabra que represente tu opinión o sentimiento sobre el tema actual.
+                    <p className="text-sm text-text-primary">
+                      {t('participateInWordCloud')}
                     </p>
                   </div>
                 </div>
               </div>
               
               <form onSubmit={handleSubmit} className="mb-8">
-                <label htmlFor="word-input" className="block text-sm font-medium text-gray-700 mb-1">
-                  Tu palabra:
+                <label htmlFor="word-input" className="block text-sm font-medium text-text-primary mb-1">
+                  {t('yourWord')}
                 </label>
                 <div className="flex">
                   <input
@@ -150,28 +152,28 @@ const WordCloudParticipant: React.FC = () => {
                     value={inputWord}
                     onChange={(e) => setInputWord(e.target.value)}
                     maxLength={20}
-                    className="flex-1 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    placeholder="Escribe una palabra (máx. 20 caracteres)"
+                    className="flex-1 shadow-sm focus:ring-accent focus:border-accent block w-full sm:text-sm border-border-color rounded-md bg-bg-primary text-text-primary"
+                    placeholder={t('writeWord')}
                   />
                   <motion.button
                     type="submit"
                     disabled={!inputWord.trim()}
-                    className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-button-text bg-accent hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    Enviar
+                    {t('sendWord')}
                   </motion.button>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Caracteres: {inputWord.length}/20
+                <p className="mt-1 text-xs text-text-secondary">
+                  {t('charactersCount')}: {inputWord.length}/20
                 </p>
               </form>
             </>
           ) : (
             <motion.div 
-              className="bg-green-50 border-l-4 border-green-500 p-4 mb-6"
+              className="bg-green-500/10 border-l-4 border-green-500 p-4 mb-6 rounded-r-md"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
@@ -194,17 +196,17 @@ const WordCloudParticipant: React.FC = () => {
                   </motion.div>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-green-700">
-                    ¡Gracias por tu participación! Tu palabra ha sido añadida a la nube.
+                  <p className="text-sm text-text-primary">
+                    {t('wordAddedSuccess')}
                   </p>
                 </div>
               </div>
             </motion.div>
           )}
           
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="p-4 border-b border-gray-200 bg-gray-50">
-              <h3 className="text-sm font-medium text-gray-900">Nube de Palabras en Tiempo Real</h3>
+          <div className="bg-bg-primary rounded-lg shadow-lg overflow-hidden">
+            <div className="p-4 border-b border-border-color bg-bg-secondary">
+              <h3 className="text-sm font-medium text-text-primary">{t('realTimeWordCloud')}</h3>
             </div>
             <div className="p-6" style={{ height: '400px' }}>
               {wordCloudData.length > 0 ? (
@@ -224,9 +226,9 @@ const WordCloudParticipant: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="absolute bottom-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm shadow-lg"
+                        className="absolute bottom-4 right-4 bg-accent text-button-text px-3 py-1 rounded-full text-sm shadow-lg"
                       >
-                        ¡Nueva palabra añadida!
+                        {t('newWordAdded')}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -234,12 +236,12 @@ const WordCloudParticipant: React.FC = () => {
               ) : (
                 <div className="h-full flex items-center justify-center">
                   <motion.p 
-                    className="text-gray-500 text-center"
+                    className="text-text-secondary text-center"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5 }}
                   >
-                    Aún no hay palabras para mostrar. ¡Sé el primero en participar!
+                    {t('wordCloudEmpty')}
                   </motion.p>
                 </div>
               )}
@@ -247,11 +249,11 @@ const WordCloudParticipant: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="bg-gray-50 border border-gray-200 rounded-md p-6 text-center">
-          <Cloud className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Nube de Palabras Inactiva</h3>
-          <p className="text-gray-500">
-            El presentador aún no ha activado la nube de palabras. Por favor, espera a que se active esta función.
+        <div className="bg-bg-secondary border border-border-color rounded-md p-6 text-center">
+          <Cloud className="h-12 w-12 text-text-secondary opacity-50 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-text-primary mb-2">{t('wordCloudInactive')}</h3>
+          <p className="text-text-secondary">
+            {t('wordCloudInactive')}
           </p>
         </div>
       )}

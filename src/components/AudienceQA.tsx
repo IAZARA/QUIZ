@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAudienceQAStore } from '../store/audienceQAStore';
-import { useParticipantStore } from '../store/participantStore'; // Import participant store
+import { useParticipantStore } from '../store/participantStore';
 import { AudienceQuestion } from '../types';
-import { ThumbsUp, MessageCircle } from 'lucide-react'; // Icons
+import { ThumbsUp, MessageCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface AudienceQAProps {
   isAdmin: boolean;
 }
 
 const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
+  const { t } = useTranslation();
   const {
     questions,
     isLoading,
@@ -67,38 +69,38 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
   const handleSubmitQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newQuestionText.trim()) {
-      setSubmitError('La pregunta no puede estar vacía.');
+      setSubmitError(t('questionCannotBeEmpty'));
       return;
     }
     try {
-      await submitQuestion(newQuestionText, authorName.trim() || undefined); // Pass authorName
+      await submitQuestion(newQuestionText, authorName.trim() || undefined);
       setNewQuestionText('');
-      setAuthorName(''); // Clear author name after submission
+      setAuthorName('');
       setSubmitError(null);
     } catch (err: any) {
-      setSubmitError(err.message || 'Error al enviar la pregunta.');
+      setSubmitError(err.message || t('errorSendingQuestion'));
     }
   };
 
   const handleUpvote = async (questionId: string) => {
     if (!currentParticipant || !currentParticipant._id) {
-      setUpvoteError(prev => ({ ...prev, [questionId]: 'Debes estar registrado para votar.' }));
+      setUpvoteError(prev => ({ ...prev, [questionId]: t('mustBeRegisteredToVote') }));
       return;
     }
     try {
       await upvoteQuestion(questionId, currentParticipant._id);
       setUpvoteError(prev => ({ ...prev, [questionId]: null }));
     } catch (err: any) {
-      setUpvoteError(prev => ({ ...prev, [questionId]: err.message || 'Error al votar.'}));
+      setUpvoteError(prev => ({ ...prev, [questionId]: err.message || t('errorVoting')}));
     }
   };
 
   if (isLoading && questions.length === 0) {
-    return <div className="text-center p-4">Cargando preguntas...</div>;
+    return <div className="text-center p-4 text-text-secondary">{t('loadingQuestions')}</div>;
   }
 
   if (error && questions.length === 0) {
-    return <div className="text-center p-4 text-red-500">Error: {error}</div>;
+    return <div className="text-center p-4 text-red-500">{t('error')}: {error}</div>;
   }
 
   return (
@@ -142,9 +144,9 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
       )}
 
       {!isAdmin && !isAudienceQAActive && (
-         <div className="text-center p-4 my-6 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-blue-700">
-            La sección de preguntas y respuestas de la audiencia no está activa en este momento.
+         <div className="text-center p-4 my-6 bg-accent/10 border border-accent/30 rounded-lg">
+          <p className="text-text-primary">
+            {t('qaNotActive')}
           </p>
         </div>
       )}
@@ -152,37 +154,37 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
       {!isAdmin && isAudienceQAActive && (
         <form onSubmit={handleSubmitQuestion} className="mb-6 space-y-3">
           <div>
-            <label htmlFor="questionText" className="block text-sm font-medium text-gray-700 mb-1">Tu Pregunta:</label>
+            <label htmlFor="questionText" className="block text-sm font-medium text-text-primary mb-1">{t('yourQuestion')}</label>
             <textarea
               id="questionText"
               value={newQuestionText}
               onChange={(e) => setNewQuestionText(e.target.value)}
-              placeholder="Escribe tu pregunta aquí..."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-700 resize-none"
+              placeholder={t('writeYourQuestionHere')}
+              className="w-full p-3 border border-border-color rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent outline-none text-text-primary bg-bg-primary resize-none"
               rows={3}
               disabled={isLoading}
             />
           </div>
           <div>
-            <label htmlFor="authorName" className="block text-sm font-medium text-gray-700 mb-1">Tu Nombre (Opcional):</label>
+            <label htmlFor="authorName" className="block text-sm font-medium text-text-primary mb-1">{t('yourNameOptional')}</label>
             <input
               type="text"
               id="authorName"
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
-              placeholder="Déjalo en blanco para anónimo"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-700"
+              placeholder={t('leaveBlankForAnonymous')}
+              className="w-full p-3 border border-border-color rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent outline-none text-text-primary bg-bg-primary"
               disabled={isLoading}
             />
           </div>
           <div className="flex justify-end">
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 flex items-center"
+              className="bg-accent hover:brightness-95 text-button-text font-semibold py-2 px-6 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 flex items-center"
               disabled={isLoading}
             >
               <MessageCircle size={18} className="mr-2" />
-              {isLoading ? 'Enviando...' : 'Enviar Pregunta'}
+              {isLoading ? t('sending') : t('sendQuestion')}
             </button>
           </div>
           {submitError && <p className="text-red-500 text-sm mt-1">{submitError}</p>}
@@ -205,91 +207,92 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
 
       {/* For non-admins, only show "no questions" message if Q&A is active */}
       {!isAdmin && isAudienceQAActive && questions.length === 0 && !isLoading && (
-        <p className="text-center text-gray-500">
-          Sé el primero en hacer una pregunta.
+        <p className="text-center text-text-secondary">
+          {t('beFirstToAsk')}
         </p>
       )}
       
       {/* Only render questions list if Q&A is active OR if user is admin (to allow management) */}
       {(isAudienceQAActive || isAdmin) && (
         <div className="space-y-4">
-        {questions.map((q) => {
-          const hasVoted = q.voters && currentParticipant?._id ? q.voters.includes(currentParticipant._id) : false;
-          const isHighlighted = highlightedQuestions.has(q._id);
-          return (
-            <div
-              key={q._id}
-              className={`p-4 rounded-lg shadow transition-all duration-300 ease-in-out 
-                ${ q.isAnswered
-                  ? isAdmin ? 'bg-green-700 border-l-4 border-green-400' : 'bg-green-100 border-l-4 border-green-500 text-green-800'
-                  : isAdmin ? (isHighlighted ? 'bg-blue-600 border-l-4 border-blue-400' : 'bg-gray-700 border-l-4 border-gray-500') 
-                            : 'bg-gray-50 border-l-4 border-gray-300'
-                }
-                ${isHighlighted && isAdmin ? 'ring-2 ring-blue-300' : ''}
-              `}
-            >
-              <p className={`text-lg ${isAdmin ? 'text-gray-100' : 'text-gray-800'}`}>{q.text}</p>
-              <div className={`text-xs mt-1 flex items-center flex-wrap ${isAdmin ? 'text-gray-400' : 'text-gray-500'}`}>
-                <span>Por: {q.author || 'Anónimo'}</span>
-                <span className="mx-1">|</span>
-                <span>{new Date(q.createdAt).toLocaleString()}</span>
-                {q.isAnswered && (
-                  <>
-                    <span className="mx-1">|</span>
-                    <span className={`font-semibold ${isAdmin ? 'text-green-300' : 'text-green-600'}`}>
-                      Respondida
-                    </span>
-                  </>
-                )}
-              </div>
+          {questions.map((q) => {
+            const hasVoted = q.voters && currentParticipant?._id ? q.voters.includes(currentParticipant._id) : false;
+            const isHighlighted = highlightedQuestions.has(q._id);
+            return (
+              <div
+                key={q._id}
+                className={`p-4 rounded-lg shadow transition-all duration-300 ease-in-out
+                  ${ q.isAnswered
+                    ? isAdmin ? 'bg-green-700 border-l-4 border-green-400' : 'bg-green-100 border-l-4 border-green-500 text-green-800'
+                    : isAdmin ? (isHighlighted ? 'bg-blue-600 border-l-4 border-blue-400' : 'bg-gray-700 border-l-4 border-gray-500')
+                              : 'bg-gray-50 border-l-4 border-gray-300'
+                  }
+                  ${isHighlighted && isAdmin ? 'ring-2 ring-blue-300' : ''}
+                `}
+              >
+                <p className={`text-lg ${isAdmin ? 'text-gray-100' : 'text-text-primary'}`}>{q.text}</p>
+                <div className={`text-xs mt-1 flex items-center flex-wrap ${isAdmin ? 'text-gray-400' : 'text-text-secondary'}`}>
+                  <span>{t('by')}: {q.author || t('anonymous')}</span>
+                  <span className="mx-1">|</span>
+                  <span>{new Date(q.createdAt).toLocaleString()}</span>
+                  {q.isAnswered && (
+                    <>
+                      <span className="mx-1">|</span>
+                      <span className={`font-semibold ${isAdmin ? 'text-green-300' : 'text-green-600'}`}>
+                        {t('answered')}
+                      </span>
+                    </>
+                  )}
+                </div>
 
-              <div className="mt-3 flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className={`mr-2 text-sm font-semibold ${isAdmin ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                    {q.upvotes} {q.upvotes === 1 ? 'voto' : 'votos'}
-                  </span>
-                  {!isAdmin && currentParticipant && (
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className={`mr-2 text-sm font-semibold ${isAdmin ? 'text-yellow-400' : 'text-accent'}`}>
+                      {q.upvotes} {q.upvotes === 1 ? t('vote') : t('votes')}
+                    </span>
+                    {!isAdmin && currentParticipant && (
+                      <button
+                        onClick={() => handleUpvote(q._id)}
+                        disabled={hasVoted || isLoading}
+                        className={`p-1 rounded-full transition-colors duration-150 ease-in-out
+                          ${hasVoted
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-blue-500 hover:bg-blue-100 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300'
+                          } disabled:opacity-70`}
+                        aria-label={hasVoted ? t('alreadyVoted') : t('voteForQuestion')}
+                      >
+                        <ThumbsUp size={18} className={hasVoted ? 'fill-current text-blue-500' : ''} />
+                      </button>
+                    )}
+                    {upvoteError[q._id] && <p className="text-red-500 text-xs ml-2">{upvoteError[q._id]}</p>}
+                  </div>
+
+                  {isAdmin && (
+                  <div className="flex gap-2">
+                  {!q.isAnswered && (
                     <button
-                      onClick={() => handleUpvote(q._id)}
-                      disabled={hasVoted || isLoading}
-                      className={`p-1 rounded-full transition-colors duration-150 ease-in-out
-                        ${hasVoted 
-                          ? 'text-gray-400 cursor-not-allowed' 
-                          : 'text-blue-500 hover:bg-blue-100 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300'
-                        } disabled:opacity-70`}
-                      aria-label={hasVoted ? 'Ya votaste' : 'Votar'}
+                      onClick={() => markAsAnswered(q._id)}
+                      className="bg-green-500 hover:bg-green-600 text-white font-medium py-1 px-3 rounded-md text-sm transition duration-150 ease-in-out disabled:opacity-50"
+                      disabled={isLoading}
                     >
-                      <ThumbsUp size={18} className={hasVoted ? 'fill-current text-blue-500' : ''} />
+                      Marcar como Respondida
                     </button>
                   )}
-                  {upvoteError[q._id] && <p className="text-red-500 text-xs ml-2">{upvoteError[q._id]}</p>}
+                    <button
+                      onClick={() => deleteQuestion(q._id)}
+                      className="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-3 rounded-md text-sm transition duration-150 ease-in-out disabled:opacity-50"
+                      disabled={isLoading}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                  )}
                 </div>
-
-                {isAdmin && (
-                <div className="flex gap-2">
-                {!q.isAnswered && (
-                  <button
-                    onClick={() => markAsAnswered(q._id)}
-                    className="bg-green-500 hover:bg-green-600 text-white font-medium py-1 px-3 rounded-md text-sm transition duration-150 ease-in-out disabled:opacity-50"
-                    disabled={isLoading}
-                  >
-                    Marcar como Respondida
-                  </button>
-                )}
-                  <button
-                    onClick={() => deleteQuestion(q._id)}
-                    className="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-3 rounded-md text-sm transition duration-150 ease-in-out disabled:opacity-50"
-                    disabled={isLoading}
-                  >
-                    Eliminar
-                  </button>
-                </div>
-                )}
               </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   );
 };

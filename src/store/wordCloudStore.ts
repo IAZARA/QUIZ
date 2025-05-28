@@ -32,7 +32,10 @@ export const useWordCloudStore = create<WordCloudState>((set, get) => ({
       }
       
       const data = await response.json();
-      set({ words: data.words || [] });
+      set({
+        words: data.words || [],
+        isActive: data.isActive || false
+      });
     } catch (error) {
       console.error('Error al cargar las palabras:', error);
       set({ error: 'No se pudieron cargar las palabras' });

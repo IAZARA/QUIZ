@@ -1010,6 +1010,7 @@ app.post('/api/audience-questions', async (req, res) => {
 // New routes for Audience Q&A status
 app.post('/api/audience-questions/status/activate', async (req, res) => {
   try {
+    audienceQAActive = true;
     io.emit('audienceQA:status', { isActive: true });
     console.log('Audience Q&A activated, event emitted via /api/audience-questions/status/activate');
     res.status(200).json({ success: true, message: 'Audience Q&A activated for audience' });
@@ -1021,6 +1022,7 @@ app.post('/api/audience-questions/status/activate', async (req, res) => {
 
 app.post('/api/audience-questions/status/deactivate', async (req, res) => {
   try {
+    audienceQAActive = false;
     io.emit('audienceQA:status', { isActive: false });
     console.log('Audience Q&A deactivated, event emitted via /api/audience-questions/status/deactivate');
     res.status(200).json({ success: true, message: 'Audience Q&A deactivated for audience' });
@@ -1031,10 +1033,13 @@ app.post('/api/audience-questions/status/deactivate', async (req, res) => {
 });
 // End of new Audience Q&A status routes
 
+// Variable global para mantener el estado de audienceQA
+let audienceQAActive = false;
+
 app.get('/api/audience-questions', async (req, res) => {
   try {
     const questions = await db.collection('audience_questions').find({}).sort({ upvotes: -1, createdAt: -1 }).toArray();
-    res.json(questions);
+    res.json({ questions, isActive: audienceQAActive });
   } catch (error) {
     console.error('Error al obtener preguntas de audiencia:', error);
     res.status(500).json({ error: 'Error interno del servidor al obtener las preguntas.' });

@@ -4,6 +4,7 @@ import { useWordCloudStore } from '../../store/wordCloudStore';
 import ReactWordcloud from 'react-wordcloud';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/animations/scale.css';
+import io from 'socket.io-client';
 
 interface WordCloudTabProps {
   showNotification: (message: string, type: 'success' | 'error' | 'info') => void;
@@ -29,6 +30,25 @@ const WordCloudTab: React.FC<WordCloudTabProps> = ({ showNotification }) => {
     };
     
     loadWords();
+    
+    // Configurar socket para escuchar actualizaciones en tiempo real
+    const socket = io({
+      path: '/socket.io',
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+    
+    socket.on('wordcloud:update', (updatedWords) => {
+      console.log('Recibida actualización de nube de palabras en admin');
+      useWordCloudStore.setState({ words: updatedWords });
+    });
+    
+    return () => {
+      socket.off('wordcloud:update');
+      socket.disconnect();
+    };
   }, [fetchWords]);
 
   const handleStartWordCloud = async () => {
@@ -72,14 +92,14 @@ const WordCloudTab: React.FC<WordCloudTabProps> = ({ showNotification }) => {
     enableTooltip: true,
     deterministic: false,
     fontFamily: 'impact',
-    fontSizes: [20, 60],
+    fontSizes: [20, 60] as [number, number],
     fontStyle: 'normal',
     fontWeight: 'normal',
     padding: 1,
     rotations: 3,
-    rotationAngles: [0, 90],
-    scale: 'sqrt',
-    spiral: 'archimedean',
+    rotationAngles: [0, 90] as [number, number],
+    scale: 'sqrt' as const,
+    spiral: 'archimedean' as const,
     transitionDuration: 1000
   };
 

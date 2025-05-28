@@ -103,7 +103,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Eventos de Socket.IO para contactos
-export const setupContactSockets = (io) => {
+const configureContactSocketListeners = (io) => {
   // Mostrar contactos a la audiencia
   io.on('connection', (socket) => {
     socket.on('contacts:show', () => {
@@ -146,13 +146,12 @@ router.post('/status/deactivate', (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to deactivate contacts' });
   }
 });
-
-// Modify setupContactSockets to capture the io instance
-const originalSetupContactSockets = setupContactSockets;
+// Export setupContactSockets to capture the io instance and configure listeners
 export const setupContactSockets = (io) => {
   ioInstance = io; // Capture the io instance
-  originalSetupContactSockets(io); // Call the original setup
+  configureContactSocketListeners(io); // Call the function that sets up listeners
 };
+
 
 
 export default router;

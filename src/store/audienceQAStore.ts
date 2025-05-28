@@ -83,8 +83,12 @@ export const useAudienceQAStore = create<AudienceQAState>((set, get) => ({
         const errorData = await response.json();
         throw new Error(errorData.error || 'Error al cargar las preguntas de la audiencia');
       }
-      const questions = await response.json();
-      set({ questions, isLoading: false });
+      const data = await response.json();
+      set({
+        questions: data.questions || data, // Handle both new format {questions, isActive} and old format (array)
+        isAudienceQAActive: data.isActive !== undefined ? data.isActive : get().isAudienceQAActive,
+        isLoading: false
+      });
     } catch (error: any) {
       set({ isLoading: false, error: error.message });
       console.error('Error fetching audience questions:', error);

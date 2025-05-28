@@ -1,69 +1,104 @@
 import React from 'react';
 import { useContactStore } from '../../store/contactStore';
-import { Phone, Mail } from 'lucide-react';
+import { useParticipantStore } from '../../store/participantStore';
+import { Phone, Mail, MessageCircle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const ContactsAudienceView: React.FC = () => {
-  const { contacts, isContactsVisible } = useContactStore();
+  const { t } = useTranslation();
+  const { contacts, isContactsActive } = useContactStore();
+  const { currentParticipant, logout } = useParticipantStore();
   
-  if (!isContactsVisible) return null;
+  if (!isContactsActive || contacts.length === 0) return null;
   
   // Función para crear un enlace de WhatsApp que permita agendar un contacto
   const getWhatsAppLink = (contact: { name: string, whatsapp: string }) => {
-    // El formato del enlace para agendar un contacto en WhatsApp es:
-    // https://wa.me/NUMEROSINSIGNO?text=MENSAJE
     const number = contact.whatsapp.replace(/\+/g, '');
-    const message = encodeURIComponent(`Hola, quiero agendar tu contacto. Mi nombre es...`);
+    const message = encodeURIComponent(t('whatsappContactMessage'));
     return `https://wa.me/${number}?text=${message}`;
+  };
+
+  const handleLogout = () => {
+    logout();
   };
   
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn transition-all duration-300">
-      <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-          Contáctanos
-        </h2>
-        
-        <div className="space-y-6">
-          {contacts.map((contact) => (
-            <div key={contact._id} className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                {contact.name}
-              </h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <Mail className="h-5 w-5 text-indigo-500 mr-3" />
-                  <a 
-                    href={`mailto:${contact.email}`}
-                    className="text-indigo-600 hover:text-indigo-800 text-lg"
-                  >
-                    {contact.email}
-                  </a>
-                </div>
+    <div className="min-h-screen bg-bg-secondary text-text-primary">
+      <header className="bg-bg-primary shadow">
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+          <h1 className="text-xl font-bold text-text-primary">{t('contactsTitle')}</h1>
+          {currentParticipant && (
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-text-secondary">
+                {t('participant')}: {currentParticipant.name}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400"
+              >
+                {t('logoutButton')}
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+      
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-5 sm:p-6">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-text-primary mb-2">
+              {t('contactUsTitle')}
+            </h2>
+            <p className="text-text-secondary">
+              {t('contactUsDescription')}
+            </p>
+          </div>
+          
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1">
+            {contacts.map((contact) => (
+              <div key={contact._id} className="bg-bg-primary rounded-lg p-6 shadow-lg border border-border-color hover:shadow-xl transition-shadow duration-300">
+                <h3 className="text-xl font-semibold text-text-primary mb-4">
+                  {contact.name}
+                </h3>
                 
-                <div className="flex items-center">
-                  <Phone className="h-5 w-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 text-lg">
-                    {contact.whatsapp}
-                  </span>
-                  <a
-                    href={getWhatsAppLink(contact)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    ¡Agéndame!
-                  </a>
+                <div className="space-y-4">
+                  <div className="flex items-center group">
+                    <Mail className="h-5 w-5 text-accent mr-3 flex-shrink-0" />
+                    <a
+                      href={`mailto:${contact.email}`}
+                      className="text-accent hover:text-accent/80 text-lg transition-colors duration-200 group-hover:underline"
+                    >
+                      {contact.email}
+                    </a>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Phone className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                      <span className="text-text-primary text-lg">
+                        {contact.whatsapp}
+                      </span>
+                    </div>
+                    <a
+                      href={getWhatsAppLink(contact)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 hover:scale-105"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      {t('addToWhatsApp')}
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          
+          <div className="mt-8 text-center text-text-secondary text-sm">
+            {t('contactDirectlyMessage')}
+          </div>
         </div>
-        
-        <div className="mt-8 text-center text-gray-500 text-sm">
-          Puedes contactarnos directamente a través de estos medios.
-        </div>
-      </div>
+      </main>
     </div>
   );
 };
