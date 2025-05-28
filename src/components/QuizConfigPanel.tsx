@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuizConfigStore } from '../store/quizConfigStore';
 import { QuizConfig } from '../types';
-import { Clock, EyeOff, Eye, UserPlus, Users, Save } from 'lucide-react';
+import { Clock, EyeOff, Eye, UserPlus, Users, Save, Check, AlertCircle } from 'lucide-react'; // Added Check, AlertCircle
 
 import { Volume2, VolumeX } from 'lucide-react'; // Import sound icons
 
@@ -163,20 +163,29 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
   };
 
   return (
-    <div className="bg-bg-primary shadow-md rounded-lg p-6 w-full max-w-2xl mx-auto text-text-primary"> {/* Updated */}
-      <h2 className="text-xl font-semibold mb-6 text-text-primary">Configuración del Quiz</h2> {/* Updated */}
+    <div className="bg-bg-primary shadow-md rounded-lg p-6 w-full max-w-2xl mx-auto text-text-primary">
+      <h2 className="text-xl font-semibold mb-6 text-text-primary">Configuración del Quiz</h2>
       
       {status.visible && (
         <div 
-          className={`mb-4 p-3 rounded-md ${status.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`} // Specific status colors kept
+          className={`mb-4 p-3 rounded-md border-l-4 ${status.success ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`}
         >
-          {status.message}
+          <div className="flex">
+            <div className="flex-shrink-0">
+              {status.success ? <Check className="h-5 w-5 text-green-500" /> : <AlertCircle className="h-5 w-5 text-red-500" />}
+            </div>
+            <div className="ml-3">
+              <p className={`text-sm font-medium ${status.success ? 'text-green-800' : 'text-red-800'}`}>
+                {status.message}
+              </p>
+            </div>
+          </div>
         </div>
       )}
       
       <form onSubmit={handleSubmit}>
         <div className="mb-6">
-          <label className="block text-text-secondary mb-2 font-medium"> {/* Updated */}
+          <label className="block text-text-secondary mb-2 font-medium">
             <Clock size={18} className="inline mr-2" />
             Tiempo por defecto para preguntas (segundos)
           </label>
@@ -185,15 +194,15 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
             name="defaultTimer"
             value={formState.defaultTimer}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-accent transition bg-bg-secondary text-text-primary
-              ${errors.defaultTimer ? 'border-red-500 bg-red-50' : 'border-border-color'}`} // Updated
+            className={`w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-accent focus:ring-offset-bg-primary transition bg-bg-secondary text-text-primary
+              ${errors.defaultTimer ? 'border-red-500 bg-red-50' : 'border-border-color'}`}
             min={MIN_TIMER}
             max={MAX_TIMER}
           />
           {errors.defaultTimer && (
-            <p className="mt-1 text-sm text-red-600">{errors.defaultTimer}</p> // Error color kept
+            <p className="mt-1 text-sm text-red-600">{errors.defaultTimer}</p>
           )}
-          <p className="mt-1 text-sm text-text-secondary"> {/* Updated */}
+          <p className="mt-1 text-sm text-text-secondary">
             Este es el tiempo predeterminado para cada pregunta si no se especifica otro valor.
           </p>
         </div>
@@ -206,9 +215,9 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               id="showRankings"
               checked={formState.showRankings}
               onChange={handleChange}
-              className="w-4 h-4 text-accent bg-bg-secondary rounded border-border-color focus:ring-accent" // Updated
+              className="w-4 h-4 text-accent bg-bg-secondary rounded border-border-color focus:ring-accent focus:ring-offset-bg-primary"
             />
-            <label htmlFor="showRankings" className="ml-2 text-text-secondary font-medium"> {/* Updated */}
+            <label htmlFor="showRankings" className="ml-2 text-text-secondary font-medium">
               {formState.showRankings ? (
                 <Eye size={18} className="inline mr-2" />
               ) : (
@@ -217,7 +226,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               Mostrar clasificación durante el quiz
             </label>
           </div>
-          <p className="text-sm text-text-secondary ml-6"> {/* Updated */}
+          <p className="text-sm text-text-secondary ml-6">
             Si está activado, los participantes podrán ver su posición en la clasificación durante el quiz.
           </p>
         </div>
@@ -230,9 +239,9 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               id="allowJoinDuringQuiz"
               checked={formState.allowJoinDuringQuiz}
               onChange={handleChange}
-              className="w-4 h-4 text-accent bg-bg-secondary rounded border-border-color focus:ring-accent" // Updated
+              className="w-4 h-4 text-accent bg-bg-secondary rounded border-border-color focus:ring-accent focus:ring-offset-bg-primary"
             />
-            <label htmlFor="allowJoinDuringQuiz" className="ml-2 text-text-secondary font-medium"> {/* Updated */}
+            <label htmlFor="allowJoinDuringQuiz" className="ml-2 text-text-secondary font-medium">
               {formState.allowJoinDuringQuiz ? (
                 <UserPlus size={18} className="inline mr-2" />
               ) : (
@@ -241,7 +250,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               Permitir unirse durante el quiz
             </label>
           </div>
-          <p className="text-sm text-text-secondary ml-6"> {/* Updated */}
+          <p className="text-sm text-text-secondary ml-6">
             Si está activado, los participantes podrán unirse incluso cuando el quiz ya haya comenzado.
           </p>
         </div>
@@ -255,9 +264,9 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               id="soundsEnabled"
               checked={formState.soundsEnabled}
               onChange={handleChange}
-              className="w-4 h-4 text-accent bg-bg-secondary rounded border-border-color focus:ring-accent" // Updated
+              className="w-4 h-4 text-accent bg-bg-secondary rounded border-border-color focus:ring-accent focus:ring-offset-bg-primary"
             />
-            <label htmlFor="soundsEnabled" className="ml-2 text-text-secondary font-medium"> {/* Updated */}
+            <label htmlFor="soundsEnabled" className="ml-2 text-text-secondary font-medium">
               {formState.soundsEnabled ? (
                 <Volume2 size={18} className="inline mr-2" />
               ) : (
@@ -266,14 +275,14 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
               Habilitar sonidos
             </label>
           </div>
-          <p className="text-sm text-text-secondary ml-6"> {/* Updated */}
+          <p className="text-sm text-text-secondary ml-6">
             Activa o desactiva todos los sonidos de la aplicación.
           </p>
         </div>
 
         {/* Control de Volumen Maestro */}
         <div className="mb-8">
-          <label className="block text-text-secondary mb-2 font-medium"> {/* Updated */}
+          <label className="block text-text-secondary mb-2 font-medium">
             <Volume2 size={18} className="inline mr-2" />
             Volumen maestro: {Math.round((formState.masterVolume || 0) * 100)}%
           </label>
@@ -285,14 +294,27 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
             min={MIN_VOLUME}
             max={MAX_VOLUME}
             step="0.01"
-            className={`w-full h-2 bg-bg-secondary rounded-lg appearance-none cursor-pointer
-              ${errors.masterVolume ? 'border-red-500 bg-red-50' : 'border-border-color'}`} // Updated
-            disabled={!formState.soundsEnabled} // Deshabilitar si los sonidos están apagados
+            className={`w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer
+              ${errors.masterVolume ? 'border-red-500 bg-red-50' : 'border-border-color'} 
+              disabled:opacity-50 disabled:cursor-not-allowed
+              focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-bg-primary
+              [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:h-4
+              [&::-webkit-slider-thumb]:w-4
+              [&::-webkit-slider-thumb]:rounded-full
+              [&::-webkit-slider-thumb]:bg-accent
+              [&::-webkit-slider-thumb]:cursor-pointer
+              [&::-moz-range-thumb]:h-4
+              [&::-moz-range-thumb]:w-4
+              [&::-moz-range-thumb]:rounded-full
+              [&::-moz-range-thumb]:bg-accent
+              [&::-moz-range-thumb]:cursor-pointer`}
+            disabled={!formState.soundsEnabled}
           />
           {errors.masterVolume && (
-            <p className="mt-1 text-sm text-red-600">{errors.masterVolume}</p> // Error color kept
+            <p className="mt-1 text-sm text-red-600">{errors.masterVolume}</p>
           )}
-          <p className="mt-1 text-sm text-text-secondary"> {/* Updated */}
+          <p className="mt-1 text-sm text-text-secondary">
             Ajusta el volumen general de todos los sonidos.
           </p>
         </div>
@@ -301,7 +323,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
           <button
             type="button"
             onClick={handleReset}
-            className="px-4 py-2 bg-bg-secondary text-text-secondary rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition flex items-center" // Updated hover:bg-gray-200 might need adjustment
+            className="px-4 py-2 bg-bg-secondary text-text-primary rounded-md hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-bg-primary transition flex items-center"
             disabled={isLoading}
           >
             <Users size={18} className="mr-2" />
@@ -310,7 +332,7 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
           
           <button
             type="submit"
-            className="px-6 py-2 bg-accent text-button-text rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-accent transition disabled:opacity-50 flex items-center" // Updated
+            className="px-6 py-2 bg-accent text-button-text rounded-md hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-bg-primary transition disabled:opacity-50 flex items-center"
             disabled={isLoading || !!errors.defaultTimer || !!errors.masterVolume}
           >
             <Save size={18} className="mr-2" />
@@ -322,4 +344,4 @@ const QuizConfigPanel: React.FC<Props> = ({ onSaved }) => {
   );
 };
 
-export default QuizConfigPanel; 
+export default QuizConfigPanel;

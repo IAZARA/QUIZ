@@ -38,5 +38,12 @@
   "waitingForNextQuestion": "Esperando a que comience la siguiente pregunta...",
   "presenterWillStartNextQuestion": "El presentador iniciará la próxima pregunta en breve. Mantén esta página abierta.",
   "currentRanking": "Clasificación Actual",
-  "closeButtonLabel": "Cerrar"
+  "closeButtonLabel": "Cerrar",
+  "appLogoDescription": "Escudo de la aplicación DNGBDS Quiz",
+  "explanationImageAlt": "Imagen de explicación para la pregunta actual",
+  "imagePreviewAlt": "Vista previa de la imagen de explicación",
+  "editContact": "Editar Contacto",
+  "deleteContact": "Eliminar Contacto",
+  "correctAnswer": "Respuesta Correcta",
+  "initializingAppPleaseWait": "Inicializando aplicación, por favor espera..."
 }

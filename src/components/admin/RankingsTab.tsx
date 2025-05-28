@@ -40,27 +40,27 @@ const RankingsTab: React.FC<RankingsTabProps> = ({ onResetSession, showNotificat
   };
 
   return (
-    <div className="px-4 py-5 sm:p-6">
+    <div className="px-4 py-5 sm:p-6 bg-bg-primary text-text-primary">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-medium text-gray-900">Estadísticas de Participantes</h2>
+        <h2 className="text-lg font-medium text-text-primary">Estadísticas de Participantes</h2>
         <div className="flex space-x-2">
           <button
             onClick={() => setActiveTab ? setActiveTab('tournament') : null}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent"
           >
             <Trophy className="h-4 w-4 mr-2" />
             Iniciar Torneo con Top 16
           </button>
           <button
             onClick={handleResetSession}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Reiniciar Sesión
           </button>
         </div>
       </div>
-      <p className="text-sm text-gray-600 mb-6">
+      <p className="text-sm text-text-secondary mb-6">
         Aquí puedes ver el ranking de participantes basado en respuestas correctas y tiempo de respuesta.
         Los participantes se ordenan por puntos (mayor a menor) y en caso de empate, por tiempo total (menor a mayor).
       </p>
