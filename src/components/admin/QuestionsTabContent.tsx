@@ -92,8 +92,12 @@ const QuestionsTabContent: React.FC<QuestionsTabContentProps> = ({
       <div className="mb-6 flex justify-end space-x-2">
         <button
           onClick={onClearView}
-          className="inline-flex items-center px-3 py-1.5 border border-border-color shadow-sm text-sm font-medium rounded-md text-text-primary bg-bg-primary hover:bg-bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-lg transform transition-all duration-300 hover:scale-105 animate-pulse"
         >
+          <span className="absolute flex h-3 w-3 -top-1 -right-1">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+          </span>
           {t('clearAudienceViewButton')}
         </button>
         {config.showRankings && (

@@ -32,6 +32,7 @@ i18n
           newQuestionButton: 'New Question',
           // Header
           headerTitle: 'National Directorate of Security Database Management',
+          toolsDropdownTitle: 'Tools',
           // General
           loading: 'Loading...',
           connectionError: 'Error connecting to the server. Please check your connection.',
@@ -58,6 +59,7 @@ i18n
           newQuestionButton: 'Nueva Pregunta',
           // Header
           headerTitle: 'Dirección Nacional Gestión de Bases de Datos de Seguridad',
+          toolsDropdownTitle: 'Herramientas',
           // General
           loading: 'Cargando...',
           connectionError: 'Error al conectar con el servidor. Por favor, verifica tu conexión.',
@@ -84,6 +86,7 @@ i18n
           newQuestionButton: 'Nova Pergunta',
           // Header
           headerTitle: 'Direção Nacional de Gestão de Bases de Dados de Segurança',
+          toolsDropdownTitle: 'Ferramentas',
           // General
           loading: 'Carregando...',
           connectionError: 'Erro ao conectar com o servidor. Por favor, verifique sua conexão.',

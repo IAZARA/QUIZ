@@ -12,6 +12,7 @@ import WordCloudParticipant from '../components/wordcloud/WordCloudParticipant';
 import TournamentAudienceView from '../components/tournament/TournamentAudienceView';
 import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
 import { playSound } from '../utils/soundManager';
+import io from 'socket.io-client';
 
 // Importar componentes modulares
 import AudienceHeader from '../components/audience/AudienceHeader';
@@ -20,10 +21,6 @@ import WaitingScreen from '../components/audience/WaitingScreen';
 import RankingModal from '../components/audience/RankingModal';
 import AudienceQA from '../components/AudienceQA';
 import DocumentDownloadList from '../components/DocumentDownloadList';
-
-// Importar componente y utilidades de socket
-import SocketManager from '../components/audience/SocketManager';
-import { setupSocketListeners, cleanupSocketListeners, SocketStores } from '../utils/socketUtils';
 
 export default function AudienceView() {
   const { t } = useTranslation();
@@ -62,23 +59,76 @@ export default function AudienceView() {
     loadDocuments();
   }, [getConfig, loadContacts, loadDocuments]);
 
-  // Configurar los listeners de Socket.IO
+  // Escuchar eventos de Socket.IO para mostrar/ocultar el ranking y actualizar la nube de palabras
   useEffect(() => {
-    // Crear un objeto con las funciones setState de las tiendas
-    const stores: SocketStores = {
-      setQuizConfig: useQuizConfigStore.setState,
-      setWordCloud: useWordCloudStore.setState,
-      setContact: useContactStore.setState,
-      setAudienceQA: useAudienceQAStore.setState,
-      setDocumentSharing: useDocumentSharingStore.setState
-    };
-    
-    // Configurar los listeners
-    setupSocketListeners(stores);
-    
-    // Limpiar listeners al desmontar
+    // Esta lógica ahora está en el componente SocketManager
+    // Pero la mantenemos aquí por ahora para evitar cambios bruscos
+    const socket = io({
+      path: '/socket.io',
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    // Evento para mostrar el ranking
+    socket.on('show_ranking', () => {
+      console.log('Recibido evento para mostrar ranking');
+      useQuizConfigStore.setState({ isRankingVisible: true });
+    });
+
+    // Evento para ocultar el ranking
+    socket.on('hide_ranking', () => {
+      console.log('Recibido evento para ocultar ranking');
+      useQuizConfigStore.setState({ isRankingVisible: false });
+    });
+
+    // Eventos para la nube de palabras
+    socket.on('wordcloud:status', (data) => {
+      console.log('Recibido evento de estado de nube de palabras:', data);
+      useWordCloudStore.setState({ isActive: data.isActive });
+    });
+
+    socket.on('wordcloud:update', (words) => {
+      console.log('Recibida actualización de nube de palabras');
+      useWordCloudStore.setState({ words });
+    });
+
+    // Notificar que el participante se unió a la nube de palabras
+    socket.emit('wordcloud:join');
+
+    // New listeners:
+    socket.on('contacts:status', (data: { isActive: boolean }) => {
+      console.log('Received contacts:status event:', data);
+      useContactStore.setState({ isContactsActive: data.isActive });
+    });
+
+    socket.on('audienceQA:status', (data: { isActive: boolean }) => {
+      console.log('Received audienceQA:status event:', data);
+      useAudienceQAStore.setState({ isAudienceQAActive: data.isActive });
+    });
+
+    socket.on('documents:status', (data: { isActive: boolean }) => {
+      console.log('Received documents:status event:', data);
+      useDocumentSharingStore.setState({ isDocumentsActive: data.isActive });
+    });
+
+    socket.on('documents:list_update', (updatedDocuments) => {
+      console.log('Received documents:list_update event:', updatedDocuments);
+      useDocumentSharingStore.setState({ documents: updatedDocuments });
+    });
+
     return () => {
-      cleanupSocketListeners();
+      // Limpiar listeners al desmontar
+      socket.off('show_ranking');
+      socket.off('hide_ranking');
+      socket.off('wordcloud:status');
+      socket.off('wordcloud:update');
+      socket.off('contacts:status');
+      socket.off('audienceQA:status');
+      socket.off('documents:status');
+      socket.off('documents:list_update');
+      socket.disconnect();
     };
   }, []);
 
@@ -285,7 +335,6 @@ export default function AudienceView() {
 
   // If there's an active question, show the voting interface
   return (
-    <SocketManager>
     <div className="min-h-screen bg-bg-secondary text-text-primary">
       <AudienceHeader 
         title={t('liveQuiz')}
@@ -311,6 +360,5 @@ export default function AudienceView() {
         <RankingModal isVisible={isRankingVisible} />
       )}
     </div>
-    </SocketManager>
   );
 }

@@ -107,15 +107,15 @@ const ToolsDropdown: React.FC<{
   // Encontrar la herramienta activa
   const activeTool = tools.find(tool => tool.id === activeTab);
   
-  // Si estamos en la pestaña de preguntas, mostrar "Herramientas" como título del desplegable
-  const dropdownTitle = activeTab === 'questions' ? t('toolsDropdownTitle') : (activeTool?.name || t('toolsDropdownTitle')); // Assuming 'toolsDropdownTitle' key exists for "Herramientas"
+  // Mostrar el nombre de la herramienta activa o "Herramientas" si estamos en la pestaña de preguntas
+  const dropdownTitle = activeTab === 'questions' ? t('toolsDropdownTitle') : activeTool?.name;
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative h-full flex items-center" ref={dropdownRef}>
       <button
         id="tools-dropdown-button-id"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-text-secondary hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-primary"
+        className="h-full inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium border-transparent text-text-secondary hover:border-border-color hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-primary"
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
@@ -126,7 +126,7 @@ const ToolsDropdown: React.FC<{
 
       {/* Menú desplegable */}
       {isOpen && (
-        <div className="absolute z-10 mt-2 w-56 rounded-md shadow-lg bg-bg-primary ring-1 ring-black ring-opacity-5"> {/* Updated to use theme variable */}
+        <div className="absolute left-0 top-full z-10 mt-0 w-56 rounded-md shadow-lg bg-bg-primary ring-1 ring-black ring-opacity-5"> {/* Updated to use theme variable */}
           <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="tools-dropdown-button-id">
             {tools.map((tool) => (
               <button
