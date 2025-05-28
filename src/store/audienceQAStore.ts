@@ -12,6 +12,9 @@ interface AudienceQAState {
   deleteQuestion: (id: string) => Promise<void>;
   upvoteQuestion: (id: string, userId: string) => Promise<void>; // Added upvoteQuestion
   initializeSocket: () => void;
+  isAudienceQAActive: boolean;
+  activateAudienceQA: () => Promise<void>;
+  deactivateAudienceQA: () => Promise<void>;
 }
 
 let socket: ReturnType<typeof io> | null = null;
@@ -22,6 +25,7 @@ export const useAudienceQAStore = create<AudienceQAState>((set, get) => ({
   questions: [],
   isLoading: false,
   error: null,
+  isAudienceQAActive: false,
 
   initializeSocket: () => {
     if (!socket) {
@@ -169,6 +173,40 @@ export const useAudienceQAStore = create<AudienceQAState>((set, get) => ({
       console.error('Error upvoting question:', error);
       // Re-throw to allow components to handle it
       throw error;
+    }
+  },
+
+  activateAudienceQA: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch(`${API_BASE_URL}/status/activate`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error activating Audience Q&A');
+      }
+      set({ isAudienceQAActive: true, isLoading: false, error: null });
+    } catch (error: any) {
+      console.error('Error activating Audience Q&A:', error);
+      set({ isLoading: false, error: error.message });
+    }
+  },
+
+  deactivateAudienceQA: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch(`${API_BASE_URL}/status/deactivate`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error deactivating Audience Q&A');
+      }
+      set({ isAudienceQAActive: false, isLoading: false, error: null });
+    } catch (error: any) {
+      console.error('Error deactivating Audience Q&A:', error);
+      set({ isLoading: false, error: error.message });
     }
   },
 }));

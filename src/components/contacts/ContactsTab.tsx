@@ -9,7 +9,16 @@ interface ContactsTabProps {
 }
 
 const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
-  const { contacts, loadContacts, addContact, updateContact, deleteContact, showContacts } = useContactStore();
+  const { 
+    contacts, 
+    loadContacts, 
+    addContact, 
+    updateContact, 
+    deleteContact, 
+    isContactsActive,
+    activateContacts,
+    deactivateContacts
+  } = useContactStore();
   const { t } = useTranslation(); // Initialize useTranslation
   
   const [isLoading, setIsLoading] = useState(true);
@@ -101,9 +110,19 @@ const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
     }
   };
   
-  const handleShowContacts = () => {
-    showContacts();
-    showNotification('Contactos mostrados en la vista de audiencia', 'success');
+  const handleToggleContactsVisibility = async () => {
+    try {
+      if (isContactsActive) {
+        await deactivateContacts();
+        showNotification('Vista de contactos desactivada para la audiencia.', 'info');
+      } else {
+        await activateContacts();
+        showNotification('Vista de contactos activada para la audiencia.', 'success');
+      }
+    } catch (error) {
+      showNotification('Error al cambiar la visibilidad de los contactos.', 'error');
+      console.error("Error toggling contacts visibility:", error);
+    }
   };
   
   return (
@@ -120,11 +139,11 @@ const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
               Nuevo Contacto
             </button>
             <button
-              onClick={handleShowContacts}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent"
+              onClick={handleToggleContactsVisibility}
+              className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isContactsActive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent`}
             >
               <Mail className="h-4 w-4 mr-2" />
-              Mostrar en Audiencia
+              {isContactsActive ? 'Desactivar Vista de Contactos' : 'Activar Vista de Contactos'}
             </button>
           </div>
         </div>

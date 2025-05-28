@@ -328,6 +328,45 @@ app.delete('/api/questions/:id', async (req, res) => {
 });
 
 // --- Document Routes ---
+
+// Helper function to get all documents for emitting
+async function getAllDocumentsForEmit(database) {
+  if (!database) {
+    console.error('Database instance is not available for getAllDocumentsForEmit');
+    return [];
+  }
+  try {
+    return await database.collection('documents').find({}).sort({ uploadDate: -1 }).toArray();
+  } catch (error) {
+    console.error('Error fetching documents for emit:', error);
+    return []; // Return empty array on error
+  }
+}
+
+// New status routes for Documents
+app.post('/api/documents/status/activate', async (req, res) => {
+  try {
+    io.emit('documents:status', { isActive: true });
+    console.log('Documents view activated, event emitted via /api/documents/status/activate.');
+    res.status(200).json({ success: true, message: 'Documents view activated for audience' });
+  } catch (error) {
+    console.error('Error activating documents view:', error);
+    res.status(500).json({ success: false, message: 'Failed to activate documents view', details: error.message });
+  }
+});
+
+app.post('/api/documents/status/deactivate', async (req, res) => {
+  try {
+    io.emit('documents:status', { isActive: false });
+    console.log('Documents view deactivated, event emitted via /api/documents/status/deactivate.');
+    res.status(200).json({ success: true, message: 'Documents view deactivated for audience' });
+  } catch (error) {
+    console.error('Error deactivating documents view:', error);
+    res.status(500).json({ success: false, message: 'Failed to deactivate documents view', details: error.message });
+  }
+});
+// End of new status routes for Documents
+
 // Endpoint para subir documentos
 app.post('/api/documents/upload', documentUpload.single('document'), async (req, res) => {
   try {
@@ -348,6 +387,13 @@ app.post('/api/documents/upload', documentUpload.single('document'), async (req,
     const result = await db.collection('documents').insertOne(newDocument);
     // Construct the response object including the insertedId
     const createdDocument = { ...newDocument, _id: result.insertedId };
+    
+    // After successful insert, emit update
+    if (result.insertedId) {
+      const updatedDocumentList = await getAllDocumentsForEmit(db);
+      io.emit('documents:list_update', updatedDocumentList);
+      console.log('Document uploaded, documents:list_update event emitted.');
+    }
     
     res.status(201).json(createdDocument);
 
@@ -406,6 +452,12 @@ app.delete('/api/documents/:id', async (req, res) => {
         // Delete document from MongoDB
         try {
           await db.collection('documents').deleteOne({ _id: new ObjectId(id) });
+          
+          // After successful DB deletion, emit update
+          const updatedDocumentList = await getAllDocumentsForEmit(db);
+          io.emit('documents:list_update', updatedDocumentList);
+          console.log('Document file deleted, documents:list_update event emitted.');
+
           res.json({ success: true, message: 'Documento eliminado correctamente.' });
         } catch (dbError) {
           console.error('Error al eliminar el documento de la base de datos:', dbError);
@@ -416,6 +468,12 @@ app.delete('/api/documents/:id', async (req, res) => {
       console.warn(`El archivo físico no se encontró en ${filePath}, eliminando solo el registro de la base de datos.`);
       // If file does not exist, still attempt to delete the DB record
       await db.collection('documents').deleteOne({ _id: new ObjectId(id) });
+
+      // After successful DB deletion (even if file was not found), emit update
+      const updatedDocumentList = await getAllDocumentsForEmit(db);
+      io.emit('documents:list_update', updatedDocumentList);
+      console.log('Document record deleted (file not found), documents:list_update event emitted.');
+      
       res.json({ success: true, message: 'Registro del documento eliminado. El archivo físico no se encontró.' });
     }
 
@@ -948,6 +1006,30 @@ app.post('/api/audience-questions', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor al crear la pregunta.' });
   }
 });
+
+// New routes for Audience Q&A status
+app.post('/api/audience-questions/status/activate', async (req, res) => {
+  try {
+    io.emit('audienceQA:status', { isActive: true });
+    console.log('Audience Q&A activated, event emitted via /api/audience-questions/status/activate');
+    res.status(200).json({ success: true, message: 'Audience Q&A activated for audience' });
+  } catch (error) {
+    console.error('Error activating Audience Q&A:', error);
+    res.status(500).json({ success: false, message: 'Failed to activate Audience Q&A', details: error.message });
+  }
+});
+
+app.post('/api/audience-questions/status/deactivate', async (req, res) => {
+  try {
+    io.emit('audienceQA:status', { isActive: false });
+    console.log('Audience Q&A deactivated, event emitted via /api/audience-questions/status/deactivate');
+    res.status(200).json({ success: true, message: 'Audience Q&A deactivated for audience' });
+  } catch (error) {
+    console.error('Error deactivating Audience Q&A:', error);
+    res.status(500).json({ success: false, message: 'Failed to deactivate Audience Q&A', details: error.message });
+  }
+});
+// End of new Audience Q&A status routes
 
 app.get('/api/audience-questions', async (req, res) => {
   try {
