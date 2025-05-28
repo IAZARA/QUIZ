@@ -6,6 +6,10 @@ import { useQuizConfigStore } from '../store/quizConfigStore';
 import { useWordCloudStore } from '../store/wordCloudStore';
 import { useTournamentStore } from '../store/tournamentStore';
 import { useContactStore } from '../store/contactStore';
+import { useAudienceQAStore } from '../store/audienceQAStore'; // Explicit import
+import { useDocumentSharingStore } from '../store/documentSharingStore'; // New import
+import { IDocument } // Assuming IDocument is in types, for documents:list_update
+from '../types';
 import { Clock, QrCode, X, Check, Award, Cloud, Trophy, AlertCircle } from 'lucide-react'; // Added AlertCircle
 import TimerSound from '../components/TimerSound';
 import QRCode from 'react-qr-code';
@@ -32,7 +36,9 @@ export default function AudienceView() {
   const { currentParticipant, logout } = useParticipantStore();
   const { isActive: isWordCloudActive } = useWordCloudStore();
   const { isActive: isTournamentActive } = useTournamentStore();
-  const { loadContacts } = useContactStore();
+  const { isContactsActive, loadContacts } = useContactStore(); // isContactsActive (renamed)
+  const { isAudienceQAActive } = useAudienceQAStore(); // New state
+  const { isDocumentsActive, documents, loadDocuments } = useDocumentSharingStore(); // New store and states
   
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -51,7 +57,8 @@ export default function AudienceView() {
   useEffect(() => {
     getConfig();
     loadContacts();
-  }, [getConfig, loadContacts]);
+    loadDocuments(); // New: Load initial documents
+  }, [getConfig, loadContacts, loadDocuments]); // Add loadDocuments to dependency array
   
   // Escuchar eventos de Socket.IO para mostrar/ocultar el ranking y actualizar la nube de palabras
   useEffect(() => {
@@ -89,6 +96,27 @@ export default function AudienceView() {
     
     // Notificar que el participante se unió a la nube de palabras
     socket.emit('wordcloud:join');
+
+    // New listeners:
+    socket.on('contacts:status', (data: { isActive: boolean }) => {
+      console.log('Received contacts:status event:', data);
+      useContactStore.setState({ isContactsActive: data.isActive });
+    });
+
+    socket.on('audienceQA:status', (data: { isActive: boolean }) => {
+      console.log('Received audienceQA:status event:', data);
+      useAudienceQAStore.setState({ isAudienceQAActive: data.isActive });
+    });
+
+    socket.on('documents:status', (data: { isActive: boolean }) => {
+      console.log('Received documents:status event:', data);
+      useDocumentSharingStore.setState({ isDocumentsActive: data.isActive });
+    });
+
+    socket.on('documents:list_update', (updatedDocuments: IDocument[]) => {
+      console.log('Received documents:list_update event:', updatedDocuments);
+      useDocumentSharingStore.setState({ documents: updatedDocuments });
+    });
     
     return () => {
       // Limpiar listeners al desmontar
@@ -96,6 +124,10 @@ export default function AudienceView() {
       socket.off('hide_ranking');
       socket.off('wordcloud:status');
       socket.off('wordcloud:update');
+      socket.off('contacts:status'); // Cleanup new listener
+      socket.off('audienceQA:status'); // Cleanup new listener
+      socket.off('documents:status'); // Cleanup new listener
+      socket.off('documents:list_update'); // Cleanup new listener
       socket.disconnect();
     };
   }, []);
@@ -334,58 +366,74 @@ export default function AudienceView() {
   // Obtenemos los datos de la función calculateStats
   const { stats, showResults } = calculateStats();
 
-  return (
-    <div className="min-h-screen bg-bg-secondary text-text-primary">
-      <header className="bg-bg-primary shadow">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-text-primary">{t('liveQuiz')}</h1>
-          {currentParticipant && (
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-text-secondary">
-                {t('participant')}: {currentParticipant.name}
-              </span>
-              <button 
-                onClick={handleLogout}
-                className="text-sm text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400" // Semantic color kept
-              >
-                {t('logoutButton')}
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
+  // New Exclusive Render Logic:
+  if (isTournamentActive) {
+    return <TournamentAudienceView />; 
+  }
+  if (isWordCloudActive) {
+    // For WordCloud, we might want to wrap it in a minimal layout if it doesn't have one.
+    // For now, returning directly as per initial thought.
+    // It might need a header similar to other views or be entirely standalone.
+    // A simple container to center it if it's not full-width by default:
+    return (
+      <div className="min-h-screen bg-bg-secondary text-text-primary flex flex-col items-center justify-center p-4">
+        <WordCloudParticipant />
+      </div>
+    );
+  }
+  if (isContactsActive) {
+    // ContactsAudienceView is likely designed to be a full-page or significant section.
+    // It might define its own background and layout.
+    return <ContactsAudienceView />;
+  }
+  if (isAudienceQAActive) {
+    // AudienceQA is also likely a major view section.
+    return (
+      <div className="min-h-screen bg-bg-secondary text-text-primary p-4">
+        <AudienceQA isAdmin={false} />
+      </div>
+    );
+  }
+  if (isDocumentsActive) {
+    return (
+      <div className="min-h-screen bg-bg-secondary text-text-primary p-4">
+        <header className="bg-bg-primary shadow mb-6">
+          <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <h1 className="text-xl font-bold text-text-primary">{t('sharedDocuments')}</h1>
+            {/* Optional: Add participant info or logout like in quiz header if needed */}
+          </div>
+        </header>
+        <main className="max-w-7xl mx-auto">
+          <DocumentDownloadList documents={documents} />
+        </main>
+      </div>
+    );
+  }
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Mostrar la nube de palabras si está activa */}
-        {isTournamentActive ? (
-          <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg leading-6 font-medium text-text-primary flex items-center">
-                    <Trophy className="h-5 w-5 mr-2 text-amber-500" /> {/* Semantic color kept */}
-                    {t('tournamentInProgress')}
-                  </h2>
-                </div>
-                <TournamentAudienceView />
+  // If there's an active question, show the voting interface
+  if (currentQuestion) {
+    return (
+      <div className="min-h-screen bg-bg-secondary text-text-primary">
+        <header className="bg-bg-primary shadow">
+          <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <h1 className="text-xl font-bold text-text-primary">{t('liveQuiz')}</h1>
+            {currentParticipant && (
+              <div className="flex items-center space-x-4">
+                <span className="text-sm font-medium text-text-secondary">
+                  {t('participant')}: {currentParticipant.name}
+                </span>
+                <button 
+                  onClick={handleLogout}
+                  className="text-sm text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400" // Semantic color kept
+                >
+                  {t('logoutButton')}
+                </button>
               </div>
-            </div>
+            )}
           </div>
-        ) : isWordCloudActive ? (
-          <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg mb-6">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg leading-6 font-medium text-text-primary flex items-center">
-                  <Cloud className="h-5 w-5 text-accent mr-2" />
-                  {t('interactiveWordCloud')}
-                </h2>
-              </div>
-              <WordCloudParticipant />
-            </div>
-          </div>
-        ) : null}
-        
-        {currentQuestion ? (
+        </header>
+        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          {/* The main quiz question interface JSX starts here */}
           <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg">
             {/* Temporizador */}
             {timeRemaining !== null && (
@@ -614,21 +662,91 @@ export default function AudienceView() {
           </div>
         </div>
       )}
+      {/* QR Code modal logic is part of the Waiting Screen, so it's covered below */}
+    </div>
+  );
+  }
 
-      {/* Contenedor para el QR Code (modal) */}
+  // Fallback: Waiting screen (original logic when !currentQuestion and no other view is active)
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-bg-primary to-bg-secondary flex flex-col items-center justify-center relative overflow-hidden text-text-primary">
+      {/* Elementos decorativos de fondo */}
+      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-accent/10 blur-3xl rounded-full animate-pulse-slow"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/10 blur-3xl rounded-full animate-pulse-slow delay-1000"></div>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/5 blur-3xl rounded-full animate-spin-slow"></div>
       
-      {/* Vista de contactos */}
-      <ContactsAudienceView />
-
-      {/* Sección de Documentos Compartidos */}
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <DocumentDownloadList />
+      <div className="absolute top-4 right-4 z-20">
+        <button 
+          onClick={() => setShowQR(!showQR)}
+          className="bg-bg-primary/20 dark:bg-bg-primary/30 hover:bg-bg-primary/30 dark:hover:bg-bg-primary/40 p-2 rounded-full transition-all shadow-lg shadow-accent/20"
+        >
+          {showQR ? <X className="h-6 w-6 text-text-primary" /> : <QrCode className="h-6 w-6 text-text-primary" />}
+        </button>
       </div>
-
-      {/* Sección de Preguntas de la Audiencia */}
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <AudienceQA isAdmin={false} />
-      </div>
+      
+      {showQR ? (
+        <div 
+          className="text-center bg-bg-primary/90 backdrop-blur-md p-8 rounded-xl shadow-2xl relative overflow-hidden z-10 animate-fadeIn"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="qrModalTitle"
+        >
+          <div className="absolute -inset-1 bg-gradient-to-r from-accent to-accent/80 blur-sm opacity-50 rounded-xl"></div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent to-accent/80"></div>
+          <div className="relative z-10">
+            <h2 id="qrModalTitle" className="text-2xl font-bold text-text-primary mb-4 bg-clip-text text-transparent bg-gradient-to-r from-accent to-text-primary">
+              {t('scanToParticipate')}
+            </h2>
+            <div className="p-3 bg-bg-primary rounded-lg shadow-inner mb-4">
+              <QRCode 
+                value="https://iazarate.com" 
+                size={200} 
+                className="mx-auto"
+              />
+            </div>
+            <p className="mt-4 text-text-secondary font-medium flex items-center justify-center">
+              <span className="mr-2">iazarate.com</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center text-text-primary relative z-10">
+          <div className="mb-8 flex flex-col items-center justify-center">
+            <div className="relative">
+              <div className="absolute -inset-8 bg-accent/20 blur-xl rounded-full animate-pulse-slow"></div>
+              <img 
+                src="/escudo.png" 
+                alt={t('appLogoDescription')}
+                className="h-36 mb-4 drop-shadow-2xl animate-fadeIn relative z-10"
+              />
+            </div>
+            <div className="relative">
+              <div className="absolute -inset-6 bg-gradient-to-r from-accent/20 to-accent/10 blur-xl rounded-full"></div>
+              <h1 className="text-5xl font-bold mb-3 relative z-10 bg-clip-text text-transparent bg-gradient-to-r from-text-primary to-text-secondary">{t('interactiveQuiz')}</h1>
+              <div className="h-1 w-32 mx-auto bg-gradient-to-r from-accent to-accent/70 rounded-full mb-3"></div>
+              <p className="text-xl text-text-secondary relative z-10 font-medium">{t('getReadyToParticipate')}</p>
+            </div>
+          </div>
+          
+          <div className="mb-10 relative">
+            <div className="absolute -inset-4 bg-accent/10 blur-lg rounded-xl"></div>
+            <div className="bg-bg-primary/5 dark:bg-bg-primary/10 backdrop-blur-sm border border-border-color/30 rounded-xl p-6 relative z-10 shadow-xl">
+              <h2 className="text-2xl font-semibold text-text-primary animate-fadeIn">
+                {t('waitingForPresenter')}
+              </h2>
+              
+              <div className="mt-6 flex justify-center space-x-4">
+                <div className="animate-bounce delay-100 h-4 w-4 bg-accent rounded-full shadow-lg shadow-accent/30"></div>
+                <div className="animate-bounce delay-300 h-4 w-4 bg-accent/80 rounded-full shadow-lg shadow-accent/30"></div>
+                <div className="animate-bounce delay-500 h-4 w-4 bg-accent/60 rounded-full shadow-lg shadow-accent/30"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

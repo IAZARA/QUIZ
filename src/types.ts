@@ -176,7 +176,7 @@ export interface Contact {
 // Tipo para el estado de contactos
 export interface ContactState {
   contacts: Contact[];
-  isContactsVisible: boolean;
+  isContactsActive: boolean;
   error: string | null;
   
   // Funciones
@@ -184,8 +184,8 @@ export interface ContactState {
   updateContact: (id: string, updates: Partial<Contact>) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
   loadContacts: () => Promise<void>;
-  showContacts: () => void;
-  hideContacts: () => void;
+  activateContacts: () => Promise<void>;
+  deactivateContacts: () => Promise<void>;
 }
 
 // Tipo para una pregunta de la audiencia (Audience Q&A)
@@ -209,4 +209,16 @@ export interface IDocument {
   fileSize: number;
   uploadDate: string; // O Date
   url: string;
+}
+
+// Tipo para el estado de compartición de documentos
+export interface DocumentSharingState {
+  isDocumentsActive: boolean;
+  documents: IDocument[];
+  error: string | null;
+  isLoading: boolean;
+  activateDocumentsView: () => Promise<void>;
+  deactivateDocumentsView: () => Promise<void>;
+  loadDocuments: () => Promise<void>;
+  setDocuments: (documents: IDocument[]) => void;
 }

@@ -3,7 +3,7 @@ import { ContactState, Contact } from '../types';
 
 export const useContactStore = create<ContactState>((set, get) => ({
   contacts: [],
-  isContactsVisible: false,
+  isContactsActive: false,
   error: null,
   
   addContact: async (contact) => {
@@ -92,11 +92,33 @@ export const useContactStore = create<ContactState>((set, get) => ({
     }
   },
   
-  showContacts: () => {
-    set({ isContactsVisible: true });
+  activateContacts: async () => {
+    try {
+      const response = await fetch('/api/contacts/status/activate', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw new Error('Error activating contacts');
+      }
+      set({ isContactsActive: true, error: null });
+    } catch (error) {
+      console.error('Error activating contacts:', error);
+      set({ error: error instanceof Error ? error.message : 'Error activating contacts' });
+    }
   },
   
-  hideContacts: () => {
-    set({ isContactsVisible: false });
+  deactivateContacts: async () => {
+    try {
+      const response = await fetch('/api/contacts/status/deactivate', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw new Error('Error deactivating contacts');
+      }
+      set({ isContactsActive: false, error: null });
+    } catch (error) {
+      console.error('Error deactivating contacts:', error);
+      set({ error: error instanceof Error ? error.message : 'Error deactivating contacts' });
+    }
   },
 }));

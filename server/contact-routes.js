@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { getDb } from './db.js';
 
 const router = express.Router();
+let ioInstance = null; // Variable to hold the io instance
 
 // Obtener todos los contactos
 router.get('/', async (req, res) => {
@@ -114,5 +115,44 @@ export const setupContactSockets = (io) => {
     });
   });
 };
+
+// New routes for activating/deactivating contacts status
+router.post('/status/activate', (req, res) => {
+  if (!ioInstance) {
+    console.error('Socket.IO instance not available in contact-routes for activate');
+    return res.status(500).json({ success: false, message: 'Server error: Socket.IO not initialized' });
+  }
+  try {
+    ioInstance.emit('contacts:status', { isActive: true });
+    console.log('Contacts activated, event emitted via /api/contacts/status/activate');
+    res.status(200).json({ success: true, message: 'Contacts activated for audience' });
+  } catch (error) {
+    console.error('Error activating contacts:', error);
+    res.status(500).json({ success: false, message: 'Failed to activate contacts' });
+  }
+});
+
+router.post('/status/deactivate', (req, res) => {
+  if (!ioInstance) {
+    console.error('Socket.IO instance not available in contact-routes for deactivate');
+    return res.status(500).json({ success: false, message: 'Server error: Socket.IO not initialized' });
+  }
+  try {
+    ioInstance.emit('contacts:status', { isActive: false });
+    console.log('Contacts deactivated, event emitted via /api/contacts/status/deactivate');
+    res.status(200).json({ success: true, message: 'Contacts deactivated for audience' });
+  } catch (error) {
+    console.error('Error deactivating contacts:', error);
+    res.status(500).json({ success: false, message: 'Failed to deactivate contacts' });
+  }
+});
+
+// Modify setupContactSockets to capture the io instance
+const originalSetupContactSockets = setupContactSockets;
+export const setupContactSockets = (io) => {
+  ioInstance = io; // Capture the io instance
+  originalSetupContactSockets(io); // Call the original setup
+};
+
 
 export default router;

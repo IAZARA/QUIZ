@@ -19,6 +19,9 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
     deleteQuestion,
     upvoteQuestion, // Added upvoteQuestion
     initializeSocket,
+    isAudienceQAActive,
+    activateAudienceQA,
+    deactivateAudienceQA,
   } = useAudienceQAStore();
 
   const { currentParticipant } = useParticipantStore(); // Get current participant
@@ -104,7 +107,49 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
         {isAdmin ? 'Gestionar Preguntas de la Audiencia' : 'Preguntas de la Audiencia'}
       </h2>
 
-      {!isAdmin && (
+      {isAdmin && (
+        <div className="mb-6 p-4 border border-gray-600 rounded-lg bg-gray-700">
+          <h3 className="text-lg font-semibold mb-3 text-gray-100">Control de Visibilidad para Audiencia</h3>
+          <button
+            onClick={async () => {
+              try {
+                if (isAudienceQAActive) {
+                  await deactivateAudienceQA();
+                } else {
+                  await activateAudienceQA();
+                }
+              } catch (err) {
+                // Error is set in the store, and will be displayed by the {error && ...} block below
+                console.error("Error toggling Audience Q&A activation", err);
+              }
+            }}
+            disabled={isLoading} 
+            className={`w-full px-4 py-2 font-semibold rounded-md transition-colors duration-150 ease-in-out
+              ${isAudienceQAActive 
+                ? 'bg-red-600 hover:bg-red-700 text-white' 
+                : 'bg-green-600 hover:bg-green-700 text-white'}
+              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 
+              ${isAudienceQAActive ? 'focus:ring-red-500' : 'focus:ring-green-500'}
+              ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {isLoading 
+              ? (isAudienceQAActive ? 'Desactivando...' : 'Activando...') 
+              : (isAudienceQAActive ? 'Desactivar Q&A para Audiencia' : 'Activar Q&A para Audiencia')}
+          </button>
+          {/* Display error from store if any occurred during activation/deactivation */}
+          {error && <p className="text-red-400 text-sm mt-2">Error: {error}</p>}
+        </div>
+      )}
+
+      {!isAdmin && !isAudienceQAActive && (
+         <div className="text-center p-4 my-6 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-blue-700">
+            La sección de preguntas y respuestas de la audiencia no está activa en este momento.
+          </p>
+        </div>
+      )}
+
+      {!isAdmin && isAudienceQAActive && (
         <form onSubmit={handleSubmitQuestion} className="mb-6 space-y-3">
           <div>
             <label htmlFor="questionText" className="block text-sm font-medium text-gray-700 mb-1">Tu Pregunta:</label>
@@ -144,13 +189,30 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
         </form>
       )}
 
-      {questions.length === 0 && !isLoading && (
-        <p className={`text-center ${isAdmin ? 'text-gray-400' : 'text-gray-500'}`}>
-          {isAdmin ? 'No hay preguntas de la audiencia por el momento.' : 'Sé el primero en hacer una pregunta.'}
-        </p>
+      {/* Show this message to admins if Q&A is active but no questions */}
+      {isAdmin && isAudienceQAActive && questions.length === 0 && !isLoading && (
+         <p className="text-center text-gray-400 my-4">
+           El Q&A está activo para la audiencia. Aún no hay preguntas.
+         </p>
+      )}
+      
+      {/* Show this message to admins if Q&A is not active */}
+      {isAdmin && !isAudienceQAActive && (
+         <p className="text-center text-gray-400 my-4">
+           El Q&A para la audiencia está actualmente desactivado. Actívalo para que puedan enviar preguntas.
+         </p>
       )}
 
-      <div className="space-y-4">
+      {/* For non-admins, only show "no questions" message if Q&A is active */}
+      {!isAdmin && isAudienceQAActive && questions.length === 0 && !isLoading && (
+        <p className="text-center text-gray-500">
+          Sé el primero en hacer una pregunta.
+        </p>
+      )}
+      
+      {/* Only render questions list if Q&A is active OR if user is admin (to allow management) */}
+      {(isAudienceQAActive || isAdmin) && (
+        <div className="space-y-4">
         {questions.map((q) => {
           const hasVoted = q.voters && currentParticipant?._id ? q.voters.includes(currentParticipant._id) : false;
           const isHighlighted = highlightedQuestions.has(q._id);
