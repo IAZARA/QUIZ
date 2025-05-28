@@ -351,8 +351,8 @@ export default function AdminDashboard() {
             onNewQuestion={() => setShowForm(true)}
             onEditQuestion={handleEdit}
             onDeleteQuestion={handleDelete}
-            onStartVoting={handleStartVotingAction} // Renamed to avoid conflict if QuestionsTabContent uses onStartVoting internally for something else
-            onStopVoting={stopVoting}
+            onStartVoting={handleStartVoting} // Corregido para usar la función definida
+            onStopVoting={handleStopVoting}
             onToggleCheatSheet={handleToggleCheatSheet}
             onTimerChange={updateQuestionTimer}
             onQuestionFormSubmit={handleSubmit}

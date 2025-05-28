@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { playSound } from '../../utils/soundManager';
+import { playSound } from '../utils/soundManager';
 
 interface TimerSoundProps {
   warning: boolean;

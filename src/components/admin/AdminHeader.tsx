@@ -3,6 +3,7 @@ import { LogOut, Trophy, Cloud, Phone, MessageSquare, Settings, BarChart2, Chevr
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../LanguageSwitcher';
 import ThemeSwitcher from './ThemeSwitcher'; // Import ThemeSwitcher
+import { useThemeStore } from '../../store/themeStore'; // Import useThemeStore
 
 interface AdminHeaderProps {
   activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents';
