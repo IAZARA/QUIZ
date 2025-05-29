@@ -91,19 +91,19 @@ const WordCloudParticipant: React.FC = () => {
   }
 
   const options = {
-    colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'],
+    colors: ['#8b9dff', '#6f80ff', '#5363ff', '#3746ff', '#1b29ff'], // Blue shades
     enableTooltip: true,
     deterministic: false,
     fontFamily: 'impact',
-    fontSizes: [20, 60] as [number, number],
+    fontSizes: [15, 70] as [number, number], // Adjusted font sizes
     fontStyle: 'normal',
     fontWeight: 'normal',
     padding: 1,
-    rotations: 3,
-    rotationAngles: [0, 90] as [number, number],
-    scale: 'log' as const,
+    rotations: 2, // Reduced rotations
+    rotationAngles: [0, 45] as [number, number], // Adjusted rotation angles
+    scale: 'sqrt' as const, // Changed scale for better differentiation
     spiral: 'archimedean' as const,
-    transitionDuration: 800,
+    transitionDuration: 1000, // Increased transition duration
     // Callbacks para animar palabras
     getWordTooltip: (word: WordCloudWord) => {
       return `${word.text}: ${word.value} ${word.value === 1 ? t('time') : t('times')}`;

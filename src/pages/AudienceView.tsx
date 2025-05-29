@@ -24,6 +24,7 @@ import DocumentDownloadList from '../components/DocumentDownloadList';
 // Importar componente y utilidades de socket
 import SocketManager from '../components/audience/SocketManager';
 import { setupSocketListeners, cleanupSocketListeners, SocketStores } from '../utils/socketUtils';
+import AudienceDataForm from '../components/audience/AudienceDataForm'; // Import the new form
 
 export default function AudienceView() {
   const { t } = useTranslation();
@@ -50,6 +51,7 @@ export default function AudienceView() {
   const [timerWarning, setTimerWarning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
+  const [showAudienceDataForm, setShowAudienceDataForm] = useState(true); // State to control form visibility
 
   const prevQuestionIdRef = useRef<string | null | undefined>(null);
   const isInitialRenderQRRef = useRef(true);
@@ -277,6 +279,27 @@ export default function AudienceView() {
 
   // Pantalla de conexión cuando no hay pregunta activa ni funciones especiales activas
   if (!currentQuestion) {
+    // Show data form if no question and showAudienceDataForm is true
+    if (showAudienceDataForm) {
+      return (
+        <div className="min-h-screen bg-bg-secondary text-text-primary flex flex-col items-center justify-center p-4">
+          <AudienceHeader 
+            title={t('audienceDataForm.headerTitle') || t('quizEndedThanks')} // Provide a fallback title
+            currentParticipant={currentParticipant}
+            onLogout={handleLogout}
+          />
+          <main className="w-full max-w-lg">
+            <AudienceDataForm onSubmitSuccess={() => setShowAudienceDataForm(false)} />
+            <button 
+              onClick={() => setShowAudienceDataForm(false)} 
+              className="mt-4 text-sm text-accent hover:underline"
+            >
+              {t('audienceDataForm.skipButton') || 'Skip for now'}
+            </button>
+          </main>
+        </div>
+      );
+    }
     return <WaitingScreen showQR={showQR} setShowQR={setShowQR} />;
   }
 

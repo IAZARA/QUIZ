@@ -19,6 +19,7 @@ import WordCloudTab from '../components/wordcloud/WordCloudTab';
 import ContactsTab from '../components/contacts/ContactsTab';
 import AudienceQA from '../components/AudienceQA'; // Importar AudienceQA
 import DocumentSharingTab from '../components/admin/DocumentSharingTab';
+import AudienceDataTable from '../components/admin/AudienceDataTable'; // Import the new table component
 
 // Definición de la interfaz QuestionWithId
 interface QuestionWithId {
@@ -53,7 +54,7 @@ export default function AdminDashboard() {
   });
   
   // Estado para la interfaz de usuario
-  const [activeTab, setActiveTab] = useState<'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData'>('questions');
   const [showCheatSheet, setShowCheatSheet] = useState<Record<string, boolean>>({});
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   
@@ -396,6 +397,8 @@ export default function AdminDashboard() {
           <AudienceQA isAdmin={true} />
         ) : activeTab === 'documents' ? (
           <DocumentSharingTab />
+        ) : activeTab === 'audienceData' ? ( // Add new tab for Audience Data
+          <AudienceDataTable />
         ) : ( // QuizConfigPanel como caso por defecto
           <QuizConfigPanel 
             onSaved={() => showNotification('Configuración guardada correctamente', 'success')} 
