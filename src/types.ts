@@ -222,3 +222,14 @@ export interface DocumentSharingState {
   loadDocuments: () => Promise<void>;
   setDocuments: (documents: IDocument[]) => void;
 }
+
+// Tipo para una reseña de evento
+export interface Review {
+  _id: string;
+  eventId: string;
+  rating: number;
+  comment: string;
+  authorId: string; // Puede ser 'anonymous' o el ID de un participante
+  isAnonymous: boolean;
+  createdAt: string; // Fecha en formato ISO string
+}

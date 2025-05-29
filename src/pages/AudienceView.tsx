@@ -25,6 +25,7 @@ import DocumentDownloadList from '../components/DocumentDownloadList';
 import SocketManager from '../components/audience/SocketManager';
 import { setupSocketListeners, cleanupSocketListeners, SocketStores } from '../utils/socketUtils';
 import AudienceDataForm from '../components/audience/AudienceDataForm'; // Import the new form
+import FeedbackForm from '../components/audience/FeedbackForm'; // Import FeedbackForm
 
 export default function AudienceView() {
   const { t } = useTranslation();
@@ -328,6 +329,15 @@ export default function AudienceView() {
           stats={stats}
           handleVote={handleVote}
         />
+
+        {/* Section for Feedback Form */}
+        <section className="mt-12 mb-8 p-4 md:p-6 max-w-2xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-100 border-b pb-2">
+            {t('feedbackForm.title') || 'Deja tu Reseña del Evento'}
+          </h2>
+          {/* TODO: Replace "active_event_001" with a dynamic eventId from a store or prop */}
+          <FeedbackForm eventId={"active_event_001"} />
+        </section>
       </main>
 
       {config.showRankings && isRankingVisible && (

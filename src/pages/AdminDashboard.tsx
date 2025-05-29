@@ -20,6 +20,7 @@ import ContactsTab from '../components/contacts/ContactsTab';
 import AudienceQA from '../components/AudienceQA'; // Importar AudienceQA
 import DocumentSharingTab from '../components/admin/DocumentSharingTab';
 import AudienceDataTable from '../components/admin/AudienceDataTable'; // Import the new table component
+import ReviewView from '../components/admin/ReviewView'; // Import ReviewView
 
 // Definición de la interfaz QuestionWithId
 interface QuestionWithId {
@@ -54,7 +55,7 @@ export default function AdminDashboard() {
   });
   
   // Estado para la interfaz de usuario
-  const [activeTab, setActiveTab] = useState<'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData' | 'reviews'>('questions');
   const [showCheatSheet, setShowCheatSheet] = useState<Record<string, boolean>>({});
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   
@@ -399,6 +400,9 @@ export default function AdminDashboard() {
           <DocumentSharingTab />
         ) : activeTab === 'audienceData' ? ( // Add new tab for Audience Data
           <AudienceDataTable />
+        ) : activeTab === 'reviews' ? (
+          // TODO: Implement event selection for admin instead of hardcoding "active_event_001"
+          <ReviewView eventId={"active_event_001"} />
         ) : ( // QuizConfigPanel como caso por defecto
           <QuizConfigPanel 
             onSaved={() => showNotification('Configuración guardada correctamente', 'success')} 
