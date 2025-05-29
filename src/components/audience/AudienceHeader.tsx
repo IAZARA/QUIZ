@@ -15,12 +15,12 @@ const AudienceHeader: React.FC<AudienceHeaderProps> = ({
   const { t } = useTranslation();
 
   return (
-    <header className="bg-bg-primary shadow">
+    <header className="bg-blue-700 shadow">
       <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-text-primary">{title}</h1>
+        <h1 className="text-xl font-bold text-white">{title}</h1>
         {currentParticipant && (
           <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-text-secondary">
+            <span className="text-sm font-medium text-blue-100">
               {t('participant')}: {currentParticipant.name}
             </span>
             <button

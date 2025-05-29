@@ -41,12 +41,12 @@ const QuestionInterface: React.FC<QuestionInterfaceProps> = ({
 
   if (currentQuestion.votingClosed) {
     return (
-      <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg">
+      <div className="bg-blue-800 shadow overflow-hidden sm:rounded-lg">
         <div className="px-4 py-5 sm:p-6 text-center">
-          <h2 className="text-lg font-medium text-text-primary mb-4">
+          <h2 className="text-lg font-medium text-white mb-4">
             {t('waitingForNextQuestion')}
           </h2>
-          <p className="text-text-secondary">
+          <p className="text-blue-100">
             {t('presenterWillStartNextQuestion')}
           </p>
         </div>
@@ -55,9 +55,9 @@ const QuestionInterface: React.FC<QuestionInterfaceProps> = ({
   }
 
   return (
-    <div className="bg-bg-primary shadow overflow-hidden sm:rounded-lg">
+    <div className="bg-blue-800 shadow overflow-hidden sm:rounded-lg">
       {/* Temporizador */}
-      <QuestionTimer 
+      <QuestionTimer
         timeRemaining={timeRemaining}
         timerWarning={timerWarning}
         showTimer={showTimer}
@@ -65,12 +65,12 @@ const QuestionInterface: React.FC<QuestionInterfaceProps> = ({
 
       <div className="px-4 py-5 sm:p-6">
         {/* Contenido de la pregunta */}
-        <h2 className="text-lg leading-6 font-medium text-text-primary mb-4">
+        <h2 className="text-lg leading-6 font-medium text-white mb-4">
           {currentQuestion.content}
         </h2>
 
         {currentQuestion.case && (
-          <div className="bg-bg-secondary rounded-md p-4 mb-6 text-sm text-text-secondary whitespace-pre-wrap">
+          <div className="bg-blue-700 rounded-md p-4 mb-6 text-sm text-blue-100 whitespace-pre-wrap">
             {currentQuestion.case}
           </div>
         )}
@@ -94,7 +94,7 @@ const QuestionInterface: React.FC<QuestionInterfaceProps> = ({
             const optionContent = currentQuestion[optionKey] as string;
             const statForOption = stats.find(s => s.option === option);
             const isCorrect = currentQuestion.votingClosed &&
-                              currentQuestion.correct_option?.toLowerCase() === option;
+                               currentQuestion.correct_option?.toLowerCase() === option;
             const isSelected = selectedOption === option;
 
             return (
@@ -119,7 +119,7 @@ const QuestionInterface: React.FC<QuestionInterfaceProps> = ({
           <button
             onClick={() => selectedOption && handleVote(selectedOption)}
             disabled={!selectedOption || submitting}
-            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-button-text bg-accent hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-blue-800 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? t('submittingAnswerButton') : t('submitAnswerButton')}
           </button>
@@ -146,8 +146,8 @@ const QuestionInterface: React.FC<QuestionInterfaceProps> = ({
         )}
 
         {currentQuestion.votingClosed && currentQuestion.explanation && (
-          <QuestionExplanation 
-            explanation={currentQuestion.explanation} 
+          <QuestionExplanation
+            explanation={currentQuestion.explanation}
             explanationImage={currentQuestion.explanation_image}
           />
         )}

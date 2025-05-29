@@ -12,6 +12,18 @@ export default {
         'accent': 'var(--color-accent)',
         'button-text': 'var(--color-button-text)',
       },
+      blue: {
+        50: '#eef2ff',
+        100: '#e0e7ff',
+        200: '#c3daff',
+        300: '#a7bcff',
+        400: '#8b9dff',
+        500: '#6f80ff',
+        600: '#5363ff',
+        700: '#3746ff',
+        800: '#1b29ff',
+        900: '#000cff',
+      },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'fadeIn': 'fadeIn 0.5s ease-in-out',

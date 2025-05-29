@@ -19,10 +19,10 @@ const QuestionTimer: React.FC<QuestionTimerProps> = ({
   if (timeRemaining === null) return null;
 
   return (
-    <div className={`p-4 ${timerWarning ? 'bg-red-100 dark:bg-red-500/20' : 'bg-accent/10 dark:bg-accent/20'} flex items-center justify-between border-b border-border-color`}>
+    <div className={`p-4 ${timerWarning ? 'bg-red-100 dark:bg-red-500/20' : 'bg-blue-600/10 dark:bg-blue-600/20'} flex items-center justify-between border-b border-blue-700`}>
       <div className="flex items-center">
-        <Clock className={`h-5 w-5 ${timerWarning ? 'text-red-600 dark:text-red-400' : 'text-accent'} mr-2`} />
-        <span className={`font-medium ${timerWarning ? 'text-red-600 dark:text-red-400' : 'text-accent'}`}>
+        <Clock className={`h-5 w-5 ${timerWarning ? 'text-red-600 dark:text-red-400' : 'text-blue-600'} mr-2`} />
+        <span className={`font-medium ${timerWarning ? 'text-red-600 dark:text-red-400' : 'text-blue-600'}`}>
           {t('timeRemaining')}: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
         </span>
       </div>
