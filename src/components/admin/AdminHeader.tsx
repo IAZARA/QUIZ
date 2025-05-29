@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, Trophy, Cloud, Phone, MessageSquare, Settings, BarChart2, ChevronDown, FileText, Users } from 'lucide-react'; // Added Users icon
+import { LogOut, Trophy, Cloud, Phone, MessageSquare, Settings, BarChart2, ChevronDown, FileText, Users, Star } from 'lucide-react'; // Added Users and Star icons
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../LanguageSwitcher';
 import ThemeSwitcher from './ThemeSwitcher'; // Import ThemeSwitcher
 import { useThemeStore } from '../../store/themeStore'; // Import useThemeStore
 
 interface AdminHeaderProps {
-  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData';
-  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData') => void;
+  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData' | 'reviews';
+  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData' | 'reviews') => void;
   onSignOut: () => void;
 }
 
@@ -71,8 +71,8 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
 // Example for ToolsDropdown items:
 // className={`w-full text-left block px-4 py-2 text-sm ${activeTab === tool.id ? 'bg-bg-secondary text-text-primary' : 'text-text-secondary hover:bg-gray-50'}`}
 const ToolsDropdown: React.FC<{
-  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData';
-  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData') => void;
+  activeTab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData' | 'reviews';
+  setActiveTab: (tab: 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData' | 'reviews') => void;
 }> = ({ activeTab, setActiveTab }) => {
   const { t } = useTranslation();
   const { theme } = useThemeStore(); // Access theme for conditional styling if needed
@@ -102,7 +102,8 @@ const ToolsDropdown: React.FC<{
     { id: 'config', name: t('configurationTab'), icon: <Settings className="h-4 w-4 mr-2" /> },
     { id: 'audienceQA', name: t('audienceQATab'), icon: <MessageSquare className="h-4 w-4 mr-2" /> },
     { id: 'documents', name: t('documentsTab'), icon: <FileText className="h-4 w-4 mr-2" /> },
-    { id: 'audienceData', name: t('audienceDataTabTitle') || 'Audience Data', icon: <Users className="h-4 w-4 mr-2" /> }, // Added Audience Data tab
+    { id: 'audienceData', name: t('audienceDataTabTitle') || 'Audience Data', icon: <Users className="h-4 w-4 mr-2" /> },
+    { id: 'reviews', name: t('reviewsTabTitle') || 'Reseñas', icon: <Star className="h-4 w-4 mr-2" /> },
   ];
 
   // Encontrar la herramienta activa
@@ -133,7 +134,7 @@ const ToolsDropdown: React.FC<{
               <button
                 key={tool.id}
                 onClick={() => {
-                  setActiveTab(tool.id as 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData');
+                  setActiveTab(tool.id as 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData' | 'reviews');
                   setIsOpen(false);
                 }}
                 className={`w-full text-left block px-4 py-2 text-sm ${activeTab === tool.id ? 'bg-bg-secondary text-text-primary' : 'text-text-secondary hover:bg-bg-tertiary focus:bg-bg-tertiary focus:text-text-primary focus:outline-none'}`} 

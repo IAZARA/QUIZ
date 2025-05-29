@@ -11,6 +11,7 @@ import setupTournamentRoutes from './tournament-routes.js';
 import wordCloudRoutes from './wordcloud-routes.js';
 import contactRoutes, { setupContactSockets } from './contact-routes.js';
 import audienceDataRoutes from './audience-data-routes.js'; // Import new audience data routes
+import reviewRoutes from './review-routes.js'; // Import review routes
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Cargar variables de entorno
@@ -152,6 +153,7 @@ app.use('/uploads/documents', express.static(path.join(process.cwd(), 'uploads/d
 app.use('/api/wordcloud', wordCloudRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/audience-data', audienceDataRoutes); // Use new audience data routes
+app.use('/api/reviews', reviewRoutes); // Use review routes
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(process.cwd(), 'dist');
