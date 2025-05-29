@@ -166,6 +166,11 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+const logosDir = path.join(process.cwd(), 'uploads/logos');
+if (!fs.existsSync(logosDir)) {
+  fs.mkdirSync(logosDir, { recursive: true });
+}
+
 const documentsUploadsDir = path.join(process.cwd(), 'uploads/documents');
 if (!fs.existsSync(documentsUploadsDir)) {
   fs.mkdirSync(documentsUploadsDir, { recursive: true });
@@ -173,7 +178,7 @@ if (!fs.existsSync(documentsUploadsDir)) {
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadsDir)
+    cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
@@ -182,16 +187,42 @@ const storage = multer.diskStorage({
   }
 });
 
+const logoStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, logosDir); // Guardar logos en uploads/logos/
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'logo-' + uniqueSuffix + ext); // Nombre de archivo específico para logos
+  }
+});
+
 const upload = multer({ 
-  storage: storage,
+  storage: storage, // General image uploads
   limits: {
-    fileSize: 20 * 1024 * 1024 
+    fileSize: 20 * 1024 * 1024 // 20 MB para imágenes generales
   },
   fileFilter: function (req, file, cb) {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('Solo se permiten imágenes'), false);
+      cb(new Error('Solo se permiten imágenes generales.'), false);
+    }
+  }
+});
+
+const uploadLogo = multer({
+  storage: logoStorage, // Usar el almacenamiento específico para logos
+  limits: {
+    fileSize: 5 * 1024 * 1024 // Límite de 5MB para logos
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no permitido para el logo. Solo JPEG, PNG, GIF, SVG.'), false);
     }
   }
 });
@@ -609,50 +640,94 @@ app.get('/api/admin/config', async (req, res) => {
 
 app.post('/api/admin/config', async (req, res) => {
   try {
-    const { defaultTimer, showRankings, allowJoinDuringQuiz } = req.body;
-    
-    if (defaultTimer === undefined || showRankings === undefined || allowJoinDuringQuiz === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: 'Faltan campos requeridos en la configuración'
-      });
+    // Extrayendo todos los campos esperados del cuerpo de la solicitud
+    const { 
+      defaultTimer, 
+      showRankings, 
+      allowJoinDuringQuiz, 
+      soundsEnabled, 
+      masterVolume,
+      logoUrl // Este es el campo para la URL del logo si no se sube un archivo
+    } = req.body;
+
+    // Validaciones básicas (puedes expandirlas según sea necesario)
+    if (defaultTimer === undefined || typeof defaultTimer !== 'number' || defaultTimer < 5 || defaultTimer > 300) {
+      return res.status(400).json({ success: false, message: 'El timer debe ser un número entre 5 y 300 segundos.' });
     }
-    
-    if (typeof defaultTimer !== 'number' || defaultTimer < 5 || defaultTimer > 300) {
-      return res.status(400).json({
-        success: false,
-        message: 'El timer debe ser un número entre 5 y 300 segundos'
-      });
+    if (showRankings === undefined || typeof showRankings !== 'boolean') {
+      // Convert 'true'/'false' strings to boolean if necessary, or ensure client sends boolean
+      if (typeof req.body.showRankings === 'string') {
+        req.body.showRankings = req.body.showRankings === 'true';
+      } else {
+        return res.status(400).json({ success: false, message: 'showRankings debe ser un valor booleano.' });
+      }
     }
-    
+     if (allowJoinDuringQuiz === undefined || typeof allowJoinDuringQuiz !== 'boolean') {
+      if (typeof req.body.allowJoinDuringQuiz === 'string') {
+        req.body.allowJoinDuringQuiz = req.body.allowJoinDuringQuiz === 'true';
+      } else {
+        return res.status(400).json({ success: false, message: 'allowJoinDuringQuiz debe ser un valor booleano.' });
+      }
+    }
+    if (soundsEnabled === undefined || typeof soundsEnabled !== 'boolean') {
+       if (typeof req.body.soundsEnabled === 'string') {
+        req.body.soundsEnabled = req.body.soundsEnabled === 'true';
+      } else {
+        return res.status(400).json({ success: false, message: 'soundsEnabled debe ser un valor booleano.' });
+      }
+    }
+    if (masterVolume === undefined || typeof masterVolume !== 'number' || masterVolume < 0 || masterVolume > 1) {
+       // Convert string to number if necessary
+      if (typeof req.body.masterVolume === 'string') {
+        req.body.masterVolume = parseFloat(req.body.masterVolume);
+        if (isNaN(req.body.masterVolume) || req.body.masterVolume < 0 || req.body.masterVolume > 1) {
+          return res.status(400).json({ success: false, message: 'masterVolume debe ser un número entre 0 y 1.' });
+        }
+      } else {
+        return res.status(400).json({ success: false, message: 'masterVolume debe ser un número entre 0 y 1.' });
+      }
+    }
+    // Validación opcional para logoUrl si se proporciona
+    if (logoUrl !== undefined && typeof logoUrl !== 'string') {
+        return res.status(400).json({ success: false, message: 'La URL del logo debe ser una cadena de texto.' });
+    }
+
+    const updateData = {
+      defaultTimer: Number(req.body.defaultTimer),
+      showRankings: req.body.showRankings,
+      allowJoinDuringQuiz: req.body.allowJoinDuringQuiz,
+      soundsEnabled: req.body.soundsEnabled,
+      masterVolume: Number(req.body.masterVolume),
+      updated_at: new Date()
+    };
+
+    // Solo incluir logoUrl en updateData si se proporcionó explícitamente.
+    // Si logoUrl es una cadena vacía, se guardará para borrar el logo existente.
+    // Si logoUrl no está en el body, no se incluirá en updateData, preservando el logo existente.
+    if (req.body.hasOwnProperty('logoUrl')) {
+      updateData.logoUrl = req.body.logoUrl;
+    }
+
+
     const existingConfig = await db.collection('quiz_config').findOne({});
     let config;
-    
+
     if (existingConfig) {
       await db.collection('quiz_config').updateOne(
         { _id: existingConfig._id },
-        { 
-          $set: {
-            defaultTimer,
-            showRankings,
-            allowJoinDuringQuiz,
-            updated_at: new Date()
-          }
-        }
+        { $set: updateData }
       );
       config = await db.collection('quiz_config').findOne({ _id: existingConfig._id });
     } else {
       const newConfigData = {
-        defaultTimer,
-        showRankings,
-        allowJoinDuringQuiz,
-        created_at: new Date(),
-        updated_at: new Date()
+        ...updateData,
+        logoUrl: req.body.logoUrl || '', // Establecer a vacío si no se proporciona en la creación
+        created_at: new Date()
       };
       const result = await db.collection('quiz_config').insertOne(newConfigData);
       config = { ...newConfigData, _id: result.insertedId };
     }
-    
+
     io.emit('quiz_config_updated', config);
     res.json(config);
   } catch (error) {
@@ -663,6 +738,111 @@ app.post('/api/admin/config', async (req, res) => {
     });
   }
 });
+
+// Nuevo endpoint para manejar la subida de logo y configuración
+app.post('/api/admin/config-upload', uploadLogo.single('logoFile'), async (req, res) => {
+  try {
+    const { defaultTimer, showRankings, allowJoinDuringQuiz, soundsEnabled, masterVolume } = req.body;
+    let logoUrl = req.body.logoUrl || ''; // Tomar la URL existente si se envía, o la URL del logo anterior
+
+    // Validaciones para los campos del formulario (similar a /api/admin/config)
+    // Asegurarse de que los valores booleanos y numéricos se parseen correctamente desde FormData
+    const numDefaultTimer = parseInt(defaultTimer, 10);
+    const boolShowRankings = showRankings === 'true';
+    const boolAllowJoinDuringQuiz = allowJoinDuringQuiz === 'true';
+    const boolSoundsEnabled = soundsEnabled === 'true';
+    const numMasterVolume = parseFloat(masterVolume);
+
+    if (isNaN(numDefaultTimer) || numDefaultTimer < 5 || numDefaultTimer > 300) {
+        return res.status(400).json({ success: false, message: 'Timer inválido.' });
+    }
+     if (typeof boolShowRankings !== 'boolean') {
+        return res.status(400).json({ success: false, message: 'showRankings inválido.' });
+    }
+    if (typeof boolAllowJoinDuringQuiz !== 'boolean') {
+        return res.status(400).json({ success: false, message: 'allowJoinDuringQuiz inválido.' });
+    }
+    if (typeof boolSoundsEnabled !== 'boolean') {
+        return res.status(400).json({ success: false, message: 'soundsEnabled inválido.' });
+    }
+    if (isNaN(numMasterVolume) || numMasterVolume < 0 || numMasterVolume > 1) {
+        return res.status(400).json({ success: false, message: 'Volumen inválido.' });
+    }
+    
+    const existingConfig = await db.collection('quiz_config').findOne({});
+
+    // Si se sube un nuevo archivo de logo, este tiene prioridad
+    if (req.file) {
+      // Si había un logo anterior (ya sea de URL o de archivo), intentar eliminarlo
+      if (existingConfig && existingConfig.logoUrl) {
+        const oldLogoPath = path.join(process.cwd(), existingConfig.logoUrl);
+        // Solo eliminar si es un archivo local en la carpeta de logos
+        if (fs.existsSync(oldLogoPath) && existingConfig.logoUrl.startsWith('/uploads/logos/')) {
+          try {
+            fs.unlinkSync(oldLogoPath);
+            console.log(`Antiguo logo eliminado: ${oldLogoPath}`);
+          } catch (unlinkErr) {
+            console.error(`Error al eliminar el antiguo logo ${oldLogoPath}:`, unlinkErr);
+          }
+        }
+      }
+      logoUrl = `/uploads/logos/${req.file.filename}`; // URL del nuevo logo
+    } else if (logoUrl === '' && existingConfig && existingConfig.logoUrl && existingConfig.logoUrl.startsWith('/uploads/logos/')) {
+      // Si se envía una URL vacía Y NO se sube un nuevo archivo, Y el logo existente es un archivo local, eliminarlo
+        const oldLogoPath = path.join(process.cwd(), existingConfig.logoUrl);
+        if (fs.existsSync(oldLogoPath)) {
+          try {
+            fs.unlinkSync(oldLogoPath);
+            console.log(`Logo existente eliminado por URL vacía: ${oldLogoPath}`);
+          } catch (unlinkErr)            {
+            console.error(`Error al eliminar el logo ${oldLogoPath} por URL vacía:`, unlinkErr);
+          }
+        }
+    }
+    // Si no se sube archivo y logoUrl no es '', se mantiene la URL que llegó en el body (podría ser una URL externa o la misma de antes)
+
+
+    const updateData = {
+      defaultTimer: numDefaultTimer,
+      showRankings: boolShowRankings,
+      allowJoinDuringQuiz: boolAllowJoinDuringQuiz,
+      soundsEnabled: boolSoundsEnabled,
+      masterVolume: numMasterVolume,
+      logoUrl: logoUrl, 
+      updated_at: new Date()
+    };
+
+    let config;
+
+    if (existingConfig) {
+      await db.collection('quiz_config').updateOne(
+        { _id: existingConfig._id },
+        { $set: updateData }
+      );
+      config = await db.collection('quiz_config').findOne({ _id: existingConfig._id });
+    } else {
+      const newConfigData = {
+        ...updateData,
+        created_at: new Date()
+      };
+      const result = await db.collection('quiz_config').insertOne(newConfigData);
+      config = { ...newConfigData, _id: result.insertedId };
+    }
+
+    io.emit('quiz_config_updated', config);
+    res.json(config); // Devuelve la configuración actualizada (incluyendo la URL del logo)
+
+  } catch (error) {
+    console.error('Error al guardar configuración con logo:', error);
+    if (error instanceof multer.MulterError) {
+      return res.status(400).json({ success: false, message: `Error de Multer: ${error.message}` });
+    } else if (error.message.startsWith('Tipo de archivo no permitido')) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    res.status(500).json({ success: false, message: 'Error interno del servidor al guardar configuración.' });
+  }
+});
+
 
 app.post('/api/questions/:id/start', async (req, res) => {
   try {
