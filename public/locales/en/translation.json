@@ -45,5 +45,17 @@
   "editContact": "Edit Contact",
   "deleteContact": "Delete Contact",
   "correctAnswer": "Correct Answer",
-  "initializingAppPleaseWait": "Initializing application, please wait..."
+  "initializingAppPleaseWait": "Initializing application, please wait...",
+  "audienceDataTabTitle": "Audience Data",
+  "audienceDataTable.title": "Audience Submitted Data",
+  "audienceDataTable.exportButton": "Export to CSV",
+  "audienceDataTable.noData": "No audience data submitted yet.",
+  "audienceDataTable.nameHeader": "Name",
+  "audienceDataTable.emailHeader": "Email",
+  "audienceDataTable.commentsHeader": "Comments",
+  "audienceDataTable.dateHeader": "Submission Date",
+  "audienceDataTable.noDataToExport": "No data to export.",
+  "audienceDataTable.browserNotSupported": "CSV export not fully supported in this browser.",
+  "audienceDataForm.successMessage": "Data submitted successfully!",
+  "audienceDataForm.errorMessage": "Failed to submit data. Please try again."
 }
