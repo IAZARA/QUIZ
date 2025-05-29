@@ -7,7 +7,8 @@ const DEFAULT_CONFIG: QuizConfig = {
   showRankings: true,
   allowJoinDuringQuiz: true,
   soundsEnabled: true, // Habilitar sonidos por defecto
-  masterVolume: 0.75 // Volumen maestro por defecto (0.0 a 1.0)
+  masterVolume: 0.75, // Volumen maestro por defecto (0.0 a 1.0)
+  logoUrl: '' // URL del logo por defecto
 };
 
 // Constantes para validación
@@ -15,6 +16,16 @@ const MIN_TIMER = 10;
 const MAX_TIMER = 120;
 const MIN_VOLUME = 0.0;
 const MAX_VOLUME = 1.0;
+
+// Función para validar URLs
+const isValidUrl = (url: string): boolean => {
+  try {
+    new URL(url);
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
 
 // Función para validar la configuración
 const validateConfig = (config: Partial<QuizConfig>): { isValid: boolean; error?: string } => {
@@ -43,6 +54,13 @@ const validateConfig = (config: Partial<QuizConfig>): { isValid: boolean; error?
         isValid: false, 
         error: `El volumen maestro debe estar entre ${MIN_VOLUME} y ${MAX_VOLUME}` 
       };
+    }
+  }
+
+  // Validar la URL del logo si está presente y no está vacía
+  if (config.logoUrl !== undefined && config.logoUrl.trim() !== '') {
+    if (!isValidUrl(config.logoUrl)) {
+      return { isValid: false, error: 'La URL del logo no es válida' };
     }
   }
   

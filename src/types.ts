@@ -25,6 +25,7 @@ export interface QuizConfig {
   allowJoinDuringQuiz: boolean; // Permitir que nuevos participantes se unan durante el quiz
   soundsEnabled?: boolean; // Habilitar o deshabilitar sonidos globalmente
   masterVolume?: number; // Volumen maestro para todos los sonidos (0.0 a 1.0)
+  logoUrl?: string; // URL del logo para el quiz
   created_at?: Date;
   updated_at?: Date;
 }
