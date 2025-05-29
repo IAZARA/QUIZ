@@ -86,5 +86,15 @@
   "errorVoting": "Error al votar.",
   "loadingQuestions": "Cargando preguntas...",
   "error": "Error",
-  "writeYourQuestionHere": "Escribe tu pregunta aquí..."
+  "writeYourQuestionHere": "Escribe tu pregunta aquí...",
+  "audienceDataTabTitle": "Datos de Audiencia",
+  "audienceDataTable.title": "Datos Enviados por la Audiencia",
+  "audienceDataTable.exportButton": "Exportar a CSV",
+  "audienceDataTable.noData": "Aún no se han enviado datos de audiencia.",
+  "audienceDataTable.nameHeader": "Nombre",
+  "audienceDataTable.emailHeader": "Correo Electrónico",
+  "audienceDataTable.commentsHeader": "Comentarios",
+  "audienceDataTable.dateHeader": "Fecha de Envío",
+  "audienceDataTable.noDataToExport": "No hay datos para exportar.",
+  "audienceDataTable.browserNotSupported": "La exportación CSV no es totalmente compatible con este navegador."
 }
