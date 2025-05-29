@@ -1,106 +1,61 @@
-# Plan de Implementación: Módulo de Reseñas/Evaluación de Conferencia
+# Plan para Personalizar el Logo de la Audiencia
 
-Este documento detalla el plan para añadir un módulo de reseñas y evaluación a la aplicación, permitiendo a la audiencia proporcionar feedback sobre la conferencia y al presentador visualizar y exportar estos datos.
+Este plan detalla los pasos necesarios para permitir que el administrador personalice el logo que se muestra a la audiencia desde la vista de configuración.
 
-## 1. Objetivos
+## 1. Análisis Inicial
 
-*   Permitir a la audiencia calificar la conferencia (ej. 1-10) y dejar comentarios.
-*   Ofrecer la opción de enviar feedback de forma anónima o con el nombre registrado.
-*   Almacenar de forma persistente las reseñas y calificaciones.
-*   Permitir al presentador visualizar el feedback recibido.
-*   Implementar una funcionalidad para exportar el feedback a formatos PDF y Word.
+- Se identificó que el componente `AudienceHeader.tsx` es el encargado de mostrar el encabezado a la audiencia, pero actualmente no incluye un logo.
+- Se determinó que el componente `QuizConfigPanel.tsx` es el panel de configuración del administrador y es el lugar adecuado para añadir la opción de personalización del logo.
+- Se observó la existencia del directorio `server/uploads/`, lo que sugiere que la aplicación ya tiene alguna capacidad de manejo de archivos subidos.
 
-## 2. Análisis de Componentes Existentes
+## 2. Pasos a Seguir
 
-La aplicación ya cuenta con:
-*   Sistema de Preguntas y Respuestas (`src/components/AudienceQA.tsx`, `src/store/audienceQAStore.ts`).
-*   Sistema de Quiz/Preguntas de Opción Múltiple (`src/components/audience/QuestionInterface.tsx`).
-*   Funcionalidad de Nube de Palabras (`src/components/wordcloud/WordCloudParticipant.tsx`, `src/store/wordCloudStore.ts`).
-*   Manejo de participantes (`src/store/participantStore.ts`).
-*   Posiblemente una base de datos (basado en `src/lib/mongodb.ts`).
-*   Rutas API en el servidor (`server/`).
+### 2.1. Actualización de Tipos y Estado Global
 
-Este nuevo módulo se integrará con la estructura existente, utilizando la base de datos y añadiendo nuevas rutas API y componentes frontend.
+- Modificar la interfaz `QuizConfig` en `src/types.ts` para incluir un campo que almacene la ruta o URL del logo (ej: `logoUrl?: string;`).
+- Actualizar el store de configuración (`src/store/quizConfigStore.ts`) para:
+    - Incluir el nuevo campo `logoUrl` en el estado.
+    - Modificar las acciones `saveConfig` y `getConfig` para manejar este nuevo campo, interactuando con el backend.
 
-## 3. Diseño de la Solución
+### 2.2. Modificación del Panel de Configuración (Frontend - Admin)
 
-### 3.1. Base de Datos
+- Editar `src/components/QuizConfigPanel.tsx` para añadir:
+    - Un campo de entrada de tipo `file` para que el administrador seleccione el archivo de imagen del logo.
+    - Lógica en el estado del componente para manejar el archivo seleccionado.
+    - Una función para previsualizar la imagen seleccionada antes de subirla.
+    - Modificar la función `handleSubmit` para incluir la lógica de subida del archivo del logo al backend cuando se guarda la configuración. Esto probablemente requerirá usar `FormData` para enviar el archivo.
+    - Mostrar la URL del logo actualmente configurado (si existe) y una opción para eliminarlo.
 
-Se creará una nueva colección (ej. `reviews` o `feedback`) para almacenar las reseñas.
-Campos propuestos:
-*   `_id`: ID único de la reseña.
-*   `eventId`: ID del evento/conferencia al que pertenece la reseña (para asociar feedback a eventos específicos).
-*   `rating`: Calificación numérica (ej. 1-10).
-*   `comment`: Texto del comentario/opinión.
-*   `authorId`: ID del participante si no es anónimo (opcional, referencia a la colección de participantes).
-*   `isAnonymous`: Booleano para indicar si la reseña es anónima.
-*   `createdAt`: Marca de tiempo de la creación de la reseña.
+### 2.3. Implementación en el Backend
 
-### 3.2. Backend (Server)
+- Modificar `server/index.js` o crear un nuevo archivo de rutas (ej: `server/config-routes.js`) para manejar las operaciones relacionadas con la configuración, incluyendo la subida del logo.
+- Implementar un endpoint API (ej: `POST /api/config/upload-logo`) que:
+    - Reciba el archivo de imagen subido.
+    - Valide el tipo de archivo y tamaño.
+    - Guarde el archivo en el directorio `server/uploads/` con un nombre único y seguro.
+    - Actualice la configuración del quiz en la base de datos (probablemente usando `src/lib/mongodb.ts` o `src/lib/supabase.ts` dependiendo de cuál se use para la configuración) con la ruta o URL del archivo guardado.
+    - Devuelva la URL del logo guardado al frontend.
+- Asegurar que el backend pueda servir archivos estáticos desde el directorio `server/uploads/` para que el logo sea accesible públicamente.
 
-Se añadirán nuevas rutas API en `server/` (ej. en un nuevo archivo `server/review-routes.js` o integradas en uno existente si aplica):
-*   `POST /api/reviews`: Recibe los datos de la reseña (rating, comment, authorId si no es anónimo, isAnonymous, eventId) y los guarda en la base de datos.
-*   `GET /api/reviews?eventId=<id>`: Recupera todas las reseñas asociadas a un `eventId` específico. Esta ruta será utilizada por el panel de administración.
-*   `GET /api/reviews/export?eventId=<id>&format=<pdf|word>`: Recupera las reseñas para el `eventId` dado, genera el documento en el formato especificado (PDF o Word) y lo envía como respuesta.
+### 2.4. Visualización del Logo (Frontend - Audiencia)
 
-### 3.3. Frontend (Audiencia)
+- Editar `src/components/audience/AudienceHeader.tsx` para:
+    - Obtener la configuración del quiz, incluyendo la `logoUrl`, probablemente usando el mismo `useQuizConfigStore` o una versión de solo lectura para la audiencia.
+    - Añadir un elemento `<img>` en el encabezado.
+    - Establecer el atributo `src` del `<img>` a la `logoUrl` obtenida de la configuración.
+    - Añadir estilos CSS para posicionar y dimensionar el logo adecuadamente en el encabezado.
+    - Considerar un logo por defecto si no se ha configurado uno personalizado.
 
-*   **Componente `FeedbackForm.tsx`:** Se creará un nuevo componente React en `src/components/audience/` (o similar).
-    *   Incluirá un control para seleccionar la calificación (ej. slider, radio buttons).
-    *   Un área de texto (`textarea`) para el comentario.
-    *   Un checkbox "Enviar de forma anónima".
-    *   Un botón de "Enviar Reseña".
-    *   Utilizará el store de participantes (`useParticipantStore`) para obtener el ID del usuario si no es anónimo.
-    *   Manejará el estado local del formulario y la llamada a la API `POST /api/reviews`.
-*   **Integración en `AudienceView.tsx`:** Se decidirá cuándo y dónde mostrar este formulario a la audiencia (ej. al finalizar el evento, en una pestaña dedicada).
+## 3. Pruebas
 
-### 3.4. Frontend (Administrador/Presentador)
+- Probar la subida de diferentes tipos y tamaños de imágenes en el panel de administración.
+- Verificar que el logo se muestra correctamente en la vista de audiencia después de ser configurado.
+- Probar la opción de eliminar el logo.
+- Asegurar que la configuración del logo persiste después de recargar la aplicación.
+- Verificar que la aplicación maneja correctamente los casos donde no hay logo configurado.
 
-*   **Store `reviewStore.ts`:** Se creará un nuevo store Zustand en `src/store/` para manejar el estado del feedback en el panel de administración (lista de reseñas, estado de carga, errores).
-*   **Componente `ReviewView.tsx`:** Se creará un nuevo componente React en `src/components/admin/` (o similar).
-    *   Recuperará las reseñas usando el `reviewStore` y la ruta `GET /api/reviews`.
-    *   Mostrará las reseñas en una lista, incluyendo calificación, comentario y autor (indicando si es anónimo).
-    *   Incluirá un botón "Exportar Feedback".
-    *   El botón de exportar llamará a la ruta `GET /api/reviews/export`, manejando la descarga del archivo.
-*   **Integración en `AdminDashboard.tsx`:** Se añadirá una nueva sección o pestaña en el dashboard de administración para mostrar el `ReviewView`.
+## 4. Consideraciones Adicionales
 
-### 3.5. Exportación (Backend)
-
-*   Se investigarán y utilizarán librerías Node.js para la generación de documentos (ej. `pdfmake` para PDF, `docx` para Word).
-*   La ruta `GET /api/reviews/export` formateará los datos de las reseñas y utilizará la librería seleccionada para crear el archivo.
-*   El archivo generado se enviará al cliente con los headers HTTP adecuados para forzar la descarga.
-
-## 4. Diagrama de Flujo (Simplificado)
-
-```mermaid
-graph TD
-    A[Audiencia] --> B(Frontend Audiencia: Componente FeedbackForm)
-    B --> C(Backend: POST /api/reviews)
-    C --> D(Base de Datos: Colección 'reviews')
-    E[Presentador] --> F(Frontend Admin: Componente ReviewView)
-    F --> G(Backend: GET /api/reviews)
-    G --> D
-    F --> H(Backend: GET /api/reviews/export)
-    H --> D
-    H --> I[Archivo PDF/Word]
-    I --> E
-```
-
-## 5. Pasos de Implementación (Orden Propuesto)
-
-1.  Definir el esquema de la colección `reviews` en la base de datos.
-2.  Implementar la ruta API `POST /api/reviews` en el backend.
-3.  Crear el componente `FeedbackForm.tsx` en el frontend de audiencia.
-4.  Integrar `FeedbackForm.tsx` en `AudienceView.tsx`.
-5.  Crear el store `reviewStore.ts` en el frontend.
-6.  Implementar la ruta API `GET /api/reviews` en el backend.
-7.  Crear el componente `ReviewView.tsx` en el frontend de administración.
-8.  Integrar `ReviewView.tsx` en `AdminDashboard.tsx`.
-9.  Investigar y seleccionar librerías de exportación (PDF/Word) para Node.js.
-10. Implementar la ruta API `GET /api/reviews/export` en el backend.
-11. Añadir la funcionalidad de exportación en el componente `ReviewView.tsx`.
-12. Realizar pruebas exhaustivas de todas las funcionalidades.
-
-## 6. Próximos Pasos
-
-Una vez revisado y aprobado este plan, se procederá a la implementación de cada uno de los pasos detallados.
+- Implementar validaciones de seguridad en el backend para la subida de archivos (tipos permitidos, tamaño máximo).
+- Considerar la limpieza de archivos de logo antiguos o no utilizados en el servidor.
+- Asegurar una buena experiencia de usuario durante la subida del archivo (indicadores de carga, mensajes de error).
