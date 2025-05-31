@@ -24,6 +24,8 @@ export interface SocketStores {
   setContact: (state: { isContactsActive?: boolean }) => void;
   setAudienceQA: (state: { isAudienceQAActive?: boolean }) => void;
   setDocumentSharing: (state: { isDocumentsActive?: boolean; documents?: IDocument[] }) => void;
+  setAudienceData: (state: { isActive?: boolean }) => void;
+  setReviews: (state: { isReviewsActive?: boolean }) => void;
 }
 
 /**
@@ -78,6 +80,18 @@ export const setupSocketListeners = (stores: SocketStores) => {
     console.log('Received documents:list_update event:', updatedDocuments);
     stores.setDocumentSharing({ documents: updatedDocuments });
   });
+
+  // Eventos para datos de audiencia
+  socket.on('audienceData:status', (data: { isActive: boolean }) => {
+    console.log('Recibido evento de estado de datos de audiencia:', data);
+    stores.setAudienceData({ isActive: data.isActive });
+  });
+
+  // Eventos para reviews
+  socket.on('reviews:status', (data: { isActive: boolean }) => {
+    console.log('Recibido evento de estado de reviews:', data);
+    stores.setReviews({ isReviewsActive: data.isActive });
+  });
 };
 
 /**
@@ -95,4 +109,6 @@ export const cleanupSocketListeners = () => {
   socket.off('audienceQA:status');
   socket.off('documents:status');
   socket.off('documents:list_update');
+  socket.off('audienceData:status');
+  socket.off('reviews:status');
 };

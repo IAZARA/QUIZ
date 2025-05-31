@@ -7,11 +7,14 @@ interface ReviewState {
   reviews: Review[];
   isLoading: boolean;
   error: string | null;
+  isReviewsActive: boolean;
 }
 
 // Define the actions interface
 interface ReviewActions {
   fetchReviews: (eventId: string) => Promise<void>;
+  activateReviews: () => Promise<void>;
+  deactivateReviews: () => Promise<void>;
 }
 
 // Create the Zustand store
@@ -20,6 +23,7 @@ export const useReviewStore = create<ReviewState & ReviewActions>((set) => ({
   reviews: [],
   isLoading: false,
   error: null,
+  isReviewsActive: false,
 
   // Actions
   fetchReviews: async (eventId: string) => {
@@ -43,6 +47,26 @@ export const useReviewStore = create<ReviewState & ReviewActions>((set) => ({
       }
       console.error('Error fetching reviews:', err);
       set({ error: errorMessage, isLoading: false, reviews: [] }); // Clear reviews on error
+    }
+  },
+
+  activateReviews: async () => {
+    try {
+      await apiClient.post('/api/reviews/status/activate');
+      set({ isReviewsActive: true });
+    } catch (err: any) {
+      console.error('Error activating reviews:', err);
+      set({ error: 'Error activating reviews form' });
+    }
+  },
+
+  deactivateReviews: async () => {
+    try {
+      await apiClient.post('/api/reviews/status/deactivate');
+      set({ isReviewsActive: false });
+    } catch (err: any) {
+      console.error('Error deactivating reviews:', err);
+      set({ error: 'Error deactivating reviews form' });
     }
   },
 }));

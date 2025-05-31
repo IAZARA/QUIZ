@@ -7,7 +7,15 @@ interface ReviewViewProps {
 }
 
 const ReviewView: React.FC<ReviewViewProps> = ({ eventId }) => {
-  const { reviews, isLoading, error, fetchReviews } = useReviewStore();
+  const { 
+    reviews, 
+    isLoading, 
+    error, 
+    isReviewsActive, 
+    fetchReviews, 
+    activateReviews, 
+    deactivateReviews 
+  } = useReviewStore();
   const [exportFormat, setExportFormat] = useState<'pdf' | 'word'>('pdf'); // Default to PDF
 
   useEffect(() => {
@@ -15,6 +23,14 @@ const ReviewView: React.FC<ReviewViewProps> = ({ eventId }) => {
       fetchReviews(eventId);
     }
   }, [eventId, fetchReviews]);
+
+  const handleActivateReviews = async () => {
+    await activateReviews();
+  };
+
+  const handleDeactivateReviews = async () => {
+    await deactivateReviews();
+  };
 
   const formatDateTime = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -200,6 +216,57 @@ const ReviewView: React.FC<ReviewViewProps> = ({ eventId }) => {
               </div>
             </div>
           ))}
+      {/* Reviews Activation Controls */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+          Gestión de Reseñas del Evento
+        </h2>
+        
+        <div className="flex gap-3">
+          <button
+            onClick={handleActivateReviews}
+            disabled={isReviewsActive}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              isReviewsActive
+                ? 'bg-green-100 text-green-800 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+          >
+            {isReviewsActive ? 'Formulario Activo' : 'Activar Formulario'}
+          </button>
+          
+          <button
+            onClick={handleDeactivateReviews}
+            disabled={!isReviewsActive}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              !isReviewsActive
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-red-600 text-white hover:bg-red-700'
+            }`}
+          >
+            Desactivar Formulario
+          </button>
+        </div>
+      </div>
+
+      {/* Status Indicator */}
+      <div className="mb-4 p-3 rounded-lg border">
+        <div className="flex items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${
+            isReviewsActive ? 'bg-green-500' : 'bg-red-500'
+          }`}></div>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Estado del formulario: {isReviewsActive ? 'Activo' : 'Inactivo'}
+          </span>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {isReviewsActive 
+            ? 'Los participantes pueden enviar reseñas del evento'
+            : 'El formulario de reseñas está oculto para los participantes'
+          }
+        </p>
+      </div>
+
         </div>
       </div>
     </div>

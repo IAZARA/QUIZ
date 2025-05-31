@@ -1,15 +1,21 @@
-const express = require('express');
-const Review = require('./models/Review'); // Adjust path as necessary
+import express from 'express';
+import Review from './models/Review.js';
+
+// Use createRequire for CommonJS modules that don't support ES modules
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
+// Import CommonJS modules
 const PdfPrinter = require('pdfmake');
 const { Document, Packer, Paragraph, TextRun, Table, TableCell, TableRow, WidthType, BorderStyle } = require('docx');
 
-// Define fonts for pdfmake
+// Define fonts for pdfmake - simplified configuration
 const fonts = {
   Roboto: {
-    normal: Buffer.from(require('pdfmake/build/vfs_fonts.js').pdfMake.vfs['Roboto-Regular.ttf'], 'base64'),
-    bold: Buffer.from(require('pdfmake/build/vfs_fonts.js').pdfMake.vfs['Roboto-Medium.ttf'], 'base64'),
-    italics: Buffer.from(require('pdfmake/build/vfs_fonts.js').pdfMake.vfs['Roboto-Italic.ttf'], 'base64'),
-    bolditalics: Buffer.from(require('pdfmake/build/vfs_fonts.js').pdfMake.vfs['Roboto-MediumItalic.ttf'], 'base64')
+    normal: 'Helvetica',
+    bold: 'Helvetica-Bold',
+    italics: 'Helvetica-Oblique',
+    bolditalics: 'Helvetica-BoldOblique'
   }
 };
 const printer = new PdfPrinter(fonts);
@@ -244,4 +250,46 @@ router.get('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+// Estado global para controlar si el formulario de reviews está activo
+let isReviewsActive = false;
+
+// POST /api/reviews/status/activate - Activate reviews form
+router.post('/status/activate', (req, res) => {
+  try {
+    isReviewsActive = true;
+    
+    // Emitir evento de Socket.IO para notificar a todos los clientes
+    if (req.app.get('io')) {
+      req.app.get('io').emit('reviews:status', { isActive: true });
+    }
+    
+    res.json({ message: 'Reviews form activated', isActive: true });
+  } catch (error) {
+    console.error('Error activating reviews form:', error);
+    res.status(500).json({ error: 'Error activating reviews form' });
+  }
+});
+
+// POST /api/reviews/status/deactivate - Deactivate reviews form
+router.post('/status/deactivate', (req, res) => {
+  try {
+    isReviewsActive = false;
+    
+    // Emitir evento de Socket.IO para notificar a todos los clientes
+    if (req.app.get('io')) {
+      req.app.get('io').emit('reviews:status', { isActive: false });
+    }
+    
+    res.json({ message: 'Reviews form deactivated', isActive: false });
+  } catch (error) {
+    console.error('Error deactivating reviews form:', error);
+    res.status(500).json({ error: 'Error deactivating reviews form' });
+  }
+});
+
+// GET /api/reviews/status - Get current status
+router.get('/status', (req, res) => {
+  res.json({ isActive: isReviewsActive });
+});
+
+export default router;

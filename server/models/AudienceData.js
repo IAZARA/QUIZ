@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const audienceDataSchema = new mongoose.Schema({
   name: {
@@ -26,4 +26,4 @@ const audienceDataSchema = new mongoose.Schema({
 
 const AudienceData = mongoose.model('AudienceData', audienceDataSchema);
 
-module.exports = AudienceData;
+export default AudienceData;

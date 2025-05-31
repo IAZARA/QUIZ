@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuizConfigStore } from '../../store/quizConfigStore'; // Import the store
+import LanguageSwitcher from '../LanguageSwitcher';
 
 interface AudienceHeaderProps {
   title: string;
@@ -38,19 +39,22 @@ const AudienceHeader: React.FC<AudienceHeaderProps> = ({
           )}
           <h1 className="text-xl font-bold text-white">{title}</h1>
         </div>
-        {currentParticipant && (
-          <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-blue-100">
-              {t('participant')}: {currentParticipant.name}
-            </span>
-            <button
-              onClick={onLogout}
-              className="text-sm text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400"
-            >
-              {t('logoutButton')}
-            </button>
-          </div>
-        )}
+        <div className="flex items-center space-x-4">
+          <LanguageSwitcher />
+          {currentParticipant && (
+            <>
+              <span className="text-sm font-medium text-blue-100">
+                {t('participant')}: {currentParticipant.name}
+              </span>
+              <button
+                onClick={onLogout}
+                className="text-sm text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400"
+              >
+                {t('logoutButton')}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

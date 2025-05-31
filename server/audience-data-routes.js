@@ -1,5 +1,5 @@
-const express = require('express');
-const AudienceData = require('./models/AudienceData'); // Adjust path if your model is elsewhere
+import express from 'express';
+import AudienceData from './models/AudienceData.js';
 
 const router = express.Router();
 
@@ -46,4 +46,46 @@ router.get('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+// Estado global para controlar si el formulario de datos de audiencia está activo
+let isAudienceDataActive = false;
+
+// POST /api/audience-data/status/activate - Activate audience data form
+router.post('/status/activate', (req, res) => {
+  try {
+    isAudienceDataActive = true;
+    
+    // Emitir evento de Socket.IO para notificar a todos los clientes
+    if (req.app.get('io')) {
+      req.app.get('io').emit('audienceData:status', { isActive: true });
+    }
+    
+    res.json({ message: 'Audience data form activated', isActive: true });
+  } catch (error) {
+    console.error('Error activating audience data form:', error);
+    res.status(500).json({ error: 'Error activating audience data form' });
+  }
+});
+
+// POST /api/audience-data/status/deactivate - Deactivate audience data form
+router.post('/status/deactivate', (req, res) => {
+  try {
+    isAudienceDataActive = false;
+    
+    // Emitir evento de Socket.IO para notificar a todos los clientes
+    if (req.app.get('io')) {
+      req.app.get('io').emit('audienceData:status', { isActive: false });
+    }
+    
+    res.json({ message: 'Audience data form deactivated', isActive: false });
+  } catch (error) {
+    console.error('Error deactivating audience data form:', error);
+    res.status(500).json({ error: 'Error deactivating audience data form' });
+  }
+});
+
+// GET /api/audience-data/status - Get current status
+router.get('/status', (req, res) => {
+  res.json({ isActive: isAudienceDataActive });
+});
+
+export default router;

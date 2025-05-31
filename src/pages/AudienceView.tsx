@@ -8,6 +8,8 @@ import { useTournamentStore } from '../store/tournamentStore';
 import { useContactStore } from '../store/contactStore';
 import { useAudienceQAStore } from '../store/audienceQAStore';
 import { useDocumentSharingStore } from '../store/documentSharingStore';
+import { useAudienceDataStore } from '../store/audienceDataStore';
+import { useReviewStore } from '../store/reviewStore';
 import WordCloudParticipant from '../components/wordcloud/WordCloudParticipant';
 import TournamentAudienceView from '../components/tournament/TournamentAudienceView';
 import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
@@ -45,6 +47,8 @@ export default function AudienceView() {
   const { isContactsActive, loadContacts } = useContactStore();
   const { isAudienceQAActive } = useAudienceQAStore();
   const { isDocumentsActive, loadDocuments } = useDocumentSharingStore();
+  const { isAudienceDataActive, initializeSocket: initializeAudienceDataSocket } = useAudienceDataStore();
+  const { isReviewsActive } = useReviewStore();
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -52,7 +56,6 @@ export default function AudienceView() {
   const [timerWarning, setTimerWarning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
-  const [showAudienceDataForm, setShowAudienceDataForm] = useState(true); // State to control form visibility
 
   const prevQuestionIdRef = useRef<string | null | undefined>(null);
   const isInitialRenderQRRef = useRef(true);
@@ -65,6 +68,11 @@ export default function AudienceView() {
     loadDocuments();
   }, [getConfig, loadContacts, loadDocuments]);
 
+  // Inicializar socket para audience data
+  useEffect(() => {
+    initializeAudienceDataSocket();
+  }, [initializeAudienceDataSocket]);
+
   // Configurar los listeners de Socket.IO
   useEffect(() => {
     // Crear un objeto con las funciones setState de las tiendas
@@ -73,7 +81,9 @@ export default function AudienceView() {
       setWordCloud: useWordCloudStore.setState,
       setContact: useContactStore.setState,
       setAudienceQA: useAudienceQAStore.setState,
-      setDocumentSharing: useDocumentSharingStore.setState
+      setDocumentSharing: useDocumentSharingStore.setState,
+      setAudienceData: useAudienceDataStore.setState,
+      setReviews: useReviewStore.setState
     };
     
     // Configurar los listeners
@@ -278,29 +288,24 @@ export default function AudienceView() {
     );
   }
 
+  // Mostrar formulario de datos de audiencia si está activo
+  if (isAudienceDataActive) {
+    return (
+      <div className="min-h-screen bg-bg-secondary text-text-primary flex flex-col items-center justify-center p-4">
+        <AudienceHeader 
+          title={t('audienceDataForm.headerTitle') || t('audienceDataForm.title')} 
+          currentParticipant={currentParticipant}
+          onLogout={handleLogout}
+        />
+        <main className="w-full max-w-lg">
+          <AudienceDataForm onSubmitSuccess={() => {}} />
+        </main>
+      </div>
+    );
+  }
+
   // Pantalla de conexión cuando no hay pregunta activa ni funciones especiales activas
   if (!currentQuestion) {
-    // Show data form if no question and showAudienceDataForm is true
-    if (showAudienceDataForm) {
-      return (
-        <div className="min-h-screen bg-bg-secondary text-text-primary flex flex-col items-center justify-center p-4">
-          <AudienceHeader 
-            title={t('audienceDataForm.headerTitle') || t('quizEndedThanks')} // Provide a fallback title
-            currentParticipant={currentParticipant}
-            onLogout={handleLogout}
-          />
-          <main className="w-full max-w-lg">
-            <AudienceDataForm onSubmitSuccess={() => setShowAudienceDataForm(false)} />
-            <button 
-              onClick={() => setShowAudienceDataForm(false)} 
-              className="mt-4 text-sm text-accent hover:underline"
-            >
-              {t('audienceDataForm.skipButton') || 'Skip for now'}
-            </button>
-          </main>
-        </div>
-      );
-    }
     return <WaitingScreen showQR={showQR} setShowQR={setShowQR} />;
   }
 
@@ -330,14 +335,16 @@ export default function AudienceView() {
           handleVote={handleVote}
         />
 
-        {/* Section for Feedback Form */}
-        <section className="mt-12 mb-8 p-4 md:p-6 max-w-2xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-100 border-b pb-2">
-            {t('feedbackForm.title') || 'Deja tu Reseña del Evento'}
-          </h2>
-          {/* TODO: Replace "active_event_001" with a dynamic eventId from a store or prop */}
-          <FeedbackForm eventId={"active_event_001"} />
-        </section>
+        {/* Section for Feedback Form - Only show when reviews are active */}
+        {isReviewsActive && (
+          <section className="mt-12 mb-8 p-4 md:p-6 max-w-2xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-100 border-b pb-2">
+              {t('feedbackForm.title') || 'Deja tu Reseña del Evento'}
+            </h2>
+            {/* TODO: Replace "active_event_001" with a dynamic eventId from a store or prop */}
+            <FeedbackForm eventId={"active_event_001"} />
+          </section>
+        )}
       </main>
 
       {config.showRankings && isRankingVisible && (

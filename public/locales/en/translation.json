@@ -56,6 +56,20 @@
   "audienceDataTable.dateHeader": "Submission Date",
   "audienceDataTable.noDataToExport": "No data to export.",
   "audienceDataTable.browserNotSupported": "CSV export not fully supported in this browser.",
+  "audienceDataTable.activateForm": "Request Audience Data",
+  "audienceDataTable.deactivateForm": "Deactivate Form",
+  "audienceDataTable.formActive": "Form Active",
+  "audienceDataTable.formInactive": "Form Inactive",
   "audienceDataForm.successMessage": "Data submitted successfully!",
-  "audienceDataForm.errorMessage": "Failed to submit data. Please try again."
+  "audienceDataForm.errorMessage": "Failed to submit data. Please try again.",
+  "audienceDataForm.title": "Audience Data Form",
+  "audienceDataForm.name": "Name",
+  "audienceDataForm.namePlaceholder": "Enter your name",
+  "audienceDataForm.email": "Email",
+  "audienceDataForm.emailPlaceholder": "Enter your email",
+  "audienceDataForm.age": "Age",
+  "audienceDataForm.agePlaceholder": "Enter your age",
+  "audienceDataForm.occupation": "Occupation",
+  "audienceDataForm.occupationPlaceholder": "Enter your occupation",
+  "audienceDataForm.submit": "Submit Information"
 }

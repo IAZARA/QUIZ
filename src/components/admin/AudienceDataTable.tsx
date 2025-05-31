@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Loader2, AlertTriangle, Table } from 'lucide-react';
+import { Download, Loader2, AlertTriangle, Table, Play, Square } from 'lucide-react';
+import { useAudienceDataStore } from '../../store/audienceDataStore';
 
 interface AudienceData {
   _id: string;
@@ -15,6 +16,12 @@ const AudienceDataTable: React.FC = () => {
   const [data, setData] = useState<AudienceData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { 
+    isAudienceDataActive, 
+    isLoading: storeLoading, 
+    activateAudienceData, 
+    deactivateAudienceData 
+  } = useAudienceDataStore();
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -41,6 +48,22 @@ const AudienceDataTable: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
+  };
+
+  const handleActivateForm = async () => {
+    try {
+      await activateAudienceData();
+    } catch (error) {
+      console.error('Error activating audience data form:', error);
+    }
+  };
+
+  const handleDeactivateForm = async () => {
+    try {
+      await deactivateAudienceData();
+    } catch (error) {
+      console.error('Error deactivating audience data form:', error);
+    }
   };
 
   const convertToCSV = (dataToConvert: AudienceData[]) => {
@@ -112,14 +135,45 @@ const AudienceDataTable: React.FC = () => {
           <Table className="h-6 w-6 mr-3 text-accent" />
           {t('audienceDataTable.title') || 'Audience Submitted Data'}
         </h2>
-        <button
-          onClick={handleExportCSV}
-          disabled={data.length === 0}
-          className="px-4 py-2 bg-accent text-button-text rounded-md hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-primary transition-all flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Download className="h-5 w-5 mr-2" />
-          {t('audienceDataTable.exportButton') || 'Export to CSV'}
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Status indicator */}
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium">
+            <div className={`w-2 h-2 rounded-full ${isAudienceDataActive ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+            <span className="text-text-secondary">
+              {isAudienceDataActive 
+                ? (t('audienceDataTable.formActive') || 'Formulario Activo') 
+                : (t('audienceDataTable.formInactive') || 'Formulario Inactivo')
+              }
+            </span>
+          </div>
+          {/* Control buttons for activating/deactivating the form */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleActivateForm}
+              disabled={isAudienceDataActive || storeLoading}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-bg-primary transition-all flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              {t('audienceDataTable.activateForm') || 'Solicitar Datos de la Audiencia'}
+            </button>
+            <button
+              onClick={handleDeactivateForm}
+              disabled={!isAudienceDataActive || storeLoading}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-bg-primary transition-all flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Square className="h-4 w-4 mr-2" />
+              {t('audienceDataTable.deactivateForm') || 'Desactivar Formulario'}
+            </button>
+          </div>
+          <button
+            onClick={handleExportCSV}
+            disabled={data.length === 0}
+            className="px-4 py-2 bg-accent text-button-text rounded-md hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-primary transition-all flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            {t('audienceDataTable.exportButton') || 'Export to CSV'}
+          </button>
+        </div>
       </div>
 
       {data.length === 0 ? (
