@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import io from 'socket.io-client';
 
 interface WordCloudWord {
   text: string;
@@ -8,19 +9,28 @@ interface WordCloudWord {
 
 interface WordCloudState {
   isActive: boolean;
+  isLoading: boolean;
   words: WordCloudWord[];
   error: string | null;
-  
+
   // Métodos para gestionar el estado
   fetchWords: () => Promise<void>;
   startWordCloud: () => Promise<void>;
   stopWordCloud: () => Promise<void>;
   resetWordCloud: () => Promise<void>;
   addWord: (word: string) => Promise<void>;
+  setWordCloudData: (words: { text: string; value: number }[]) => void;
+  setIsActive: (isActive: boolean) => void;
+  setIsLoading: (isLoading: boolean) => void;
+  initializeSocket: () => void;
 }
+
+// Variable para almacenar la instancia del socket
+let socket: any = null;
 
 export const useWordCloudStore = create<WordCloudState>((set, get) => ({
   isActive: false,
+  isLoading: false,
   words: [],
   error: null,
   
@@ -98,6 +108,19 @@ export const useWordCloudStore = create<WordCloudState>((set, get) => ({
     }
   },
   
+  setWordCloudData: (words: { text: string; value: number }[]) => {
+    // Convert value to count if needed
+    set({ words: words.map(w => ({ text: w.text, count: w.value ?? 1 })) });
+  },
+
+  setIsActive: (isActive: boolean) => {
+    set({ isActive });
+  },
+
+  setIsLoading: (isLoading: boolean) => {
+    set({ isLoading });
+  },
+
   addWord: async (word: string) => {
     try {
       const response = await fetch('/api/wordcloud/word', {
@@ -132,6 +155,36 @@ export const useWordCloudStore = create<WordCloudState>((set, get) => ({
     } catch (error) {
       console.error('Error al añadir palabra:', error);
       set({ error: 'No se pudo añadir la palabra' });
+    }
+  },
+
+  initializeSocket: () => {
+    if (!socket) {
+      socket = io({
+        path: '/socket.io',
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+
+      socket.on('connect', () => {
+        console.log('WordCloud Socket connected');
+      });
+
+      socket.on('disconnect', () => {
+        console.log('WordCloud Socket disconnected');
+      });
+
+      socket.on('wordcloud:status', (data: { isActive: boolean }) => {
+        console.log('Recibido evento de estado de nube de palabras:', data);
+        set({ isActive: data.isActive });
+      });
+
+      socket.on('wordcloud:update', (words: WordCloudWord[]) => {
+        console.log('Recibida actualización de nube de palabras:', words);
+        set({ words });
+      });
     }
   },
 }));

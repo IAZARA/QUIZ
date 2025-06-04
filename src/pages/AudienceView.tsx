@@ -45,9 +45,10 @@ export default function AudienceView() {
   const { isActive: isWordCloudActive } = useWordCloudStore();
   const { isActive: isTournamentActive } = useTournamentStore();
   const { isContactsActive, loadContacts } = useContactStore();
-  const { isAudienceQAActive } = useAudienceQAStore();
+  const { isAudienceQAActive, initializeSocket: initializeAudienceQASocket } = useAudienceQAStore();
   const { isDocumentsActive, loadDocuments } = useDocumentSharingStore();
   const { isAudienceDataActive, initializeSocket: initializeAudienceDataSocket } = useAudienceDataStore();
+  const { initializeSocket: initializeWordCloudSocket } = useWordCloudStore();
   const { isReviewsActive } = useReviewStore();
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -68,10 +69,12 @@ export default function AudienceView() {
     loadDocuments();
   }, [getConfig, loadContacts, loadDocuments]);
 
-  // Inicializar socket para audience data
+  // Inicializar sockets
   useEffect(() => {
     initializeAudienceDataSocket();
-  }, [initializeAudienceDataSocket]);
+    initializeWordCloudSocket();
+    initializeAudienceQASocket();
+  }, [initializeAudienceDataSocket, initializeWordCloudSocket, initializeAudienceQASocket]);
 
   // Configurar los listeners de Socket.IO
   useEffect(() => {

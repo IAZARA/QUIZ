@@ -32,9 +32,18 @@ export interface SocketStores {
  * Configura los listeners para los eventos de Socket.IO
  * @param stores Objeto con las funciones setState de las diferentes tiendas
  */
-export const setupSocketListeners = (stores: SocketStores) => {
+export const setupSocketListeners = (stores: SocketStores, retryCount: number = 0) => {
   const socket = getSocket();
-  if (!socket) return;
+  if (!socket) {
+    // Si el socket no está disponible, intentar de nuevo después de un breve delay
+    // Máximo 50 intentos (5 segundos)
+    if (retryCount < 50) {
+      setTimeout(() => setupSocketListeners(stores, retryCount + 1), 100);
+    } else {
+      console.warn('No se pudo establecer conexión con el socket después de múltiples intentos');
+    }
+    return;
+  }
 
   // Eventos para el ranking
   socket.on('show_ranking', () => {
