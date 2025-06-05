@@ -23,7 +23,7 @@ interface WordCloudTabProps {
 const WordCloudTab: React.FC<WordCloudTabProps> = ({ socket }) => {
   const { t } = useTranslation();
   const {
-    wordCloudData,
+    words,
     isActive,
     isLoading,
     setWordCloudData,
@@ -33,6 +33,7 @@ const WordCloudTab: React.FC<WordCloudTabProps> = ({ socket }) => {
     stopWordCloud,
     resetWordCloud
   } = useWordCloudStore();
+  const wordCloudData: { text: string; value: number }[] = words.map(w => ({ text: w.text, value: w.count }));
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -288,7 +289,7 @@ const WordCloudTab: React.FC<WordCloudTabProps> = ({ socket }) => {
                   <div className="flex items-center space-x-2">
                     <Eye className="h-4 w-4 text-green-500" />
                     <span className="text-sm font-medium text-gray-700">
-                      {wordCloudData.reduce((sum, word) => sum + word.count, 0)} total
+                      {wordCloudData.reduce((sum: number, word: { text: string; value: number }): number => sum + word.value, 0)} total
                     </span>
                   </div>
                 </div>
