@@ -184,9 +184,13 @@ export interface ContactState {
   addContact: (contact: Omit<Contact, '_id' | 'created_at'>) => Promise<void>;
   updateContact: (id: string, updates: Partial<Contact>) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
-  loadContacts: () => Promise<void>;
+  loadContacts: () => Promise<Contact[]>;
   activateContacts: () => Promise<void>;
   deactivateContacts: () => Promise<void>;
+  
+  // Nuevas funciones para WebSocket
+  initializeSocketListeners: () => void;
+  init: () => Promise<Contact[]>;
 }
 
 // Tipo para una pregunta de la audiencia (Audience Q&A)

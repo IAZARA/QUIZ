@@ -10,6 +10,7 @@ import Registration from './pages/Registration';
 import { useAuthStore } from './store/authStore';
 import { useQuestionStore } from './store/questionStore';
 import { useParticipantStore } from './store/participantStore';
+import { useContactStore } from './store/contactStore';
 
 // Definir future flags para eliminar advertencias
 const router = {
@@ -45,14 +46,19 @@ function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Inicializar el store de preguntas
-  const initialize = useQuestionStore((state) => state.initialize);
-  const initialized = useQuestionStore((state) => state.initialized);
+  // Inicializar los stores necesarios
+  const initializeQuestions = useQuestionStore((state) => state.initialize);
+  const initializedQuestions = useQuestionStore((state) => state.initialized);
+  const initializeContacts = useContactStore((state) => state.init);
   
   useEffect(() => {
     const initApp = async () => {
       try {
-        await initialize();
+        // Inicializar preguntas y contactos en paralelo
+        await Promise.all([
+          initializeQuestions(),
+          initializeContacts()
+        ]);
       } catch (err) {
         console.error('Error al inicializar la aplicación:', err);
         setError('Error al conectar con el servidor. Por favor, verifica tu conexión.');
@@ -61,12 +67,12 @@ function AppContent() {
       }
     };
     
-    if (!initialized) {
+    if (!initializedQuestions) {
       initApp();
     } else {
       setIsLoading(false);
     }
-  }, [initialize, initialized]);
+  }, [initializeQuestions, initializeContacts, initializedQuestions]);
   
   // Pantalla de carga
   if (isLoading) {
