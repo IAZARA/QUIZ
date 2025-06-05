@@ -21,18 +21,34 @@ router.get('/', async (req, res) => {
 // Crear un nuevo contacto
 router.post('/', async (req, res) => {
   try {
-    const { name, email, whatsapp } = req.body;
+    const { name, contactMethods = [], email, whatsapp } = req.body;
     
-    if (!name || !email || !whatsapp) {
-      return res.status(400).json({ success: false, message: 'Todos los campos son obligatorios' });
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'El nombre es obligatorio' });
     }
     
     const db = await getDb();
     
+    // Migrar campos legacy si existen
+    const methods = [...contactMethods];
+    if (email) {
+      methods.push({
+        _id: new ObjectId(),
+        type: 'email',
+        value: email
+      });
+    }
+    if (whatsapp) {
+      methods.push({
+        _id: new ObjectId(),
+        type: 'whatsapp',
+        value: whatsapp
+      });
+    }
+    
     const newContact = {
       name,
-      email,
-      whatsapp,
+      contactMethods: methods,
       created_at: new Date()
     };
     
@@ -52,9 +68,9 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, whatsapp } = req.body;
+    const { name, contactMethods, email, whatsapp } = req.body;
     
-    if (!name && !email && !whatsapp) {
+    if (!name && !contactMethods && !email && !whatsapp) {
       return res.status(400).json({ success: false, message: 'Se debe proporcionar al menos un campo para actualizar' });
     }
     
@@ -62,8 +78,43 @@ router.put('/:id', async (req, res) => {
     
     const updates = {};
     if (name) updates.name = name;
-    if (email) updates.email = email;
-    if (whatsapp) updates.whatsapp = whatsapp;
+    if (contactMethods) updates.contactMethods = contactMethods;
+    
+    // Soporte legacy para email y whatsapp
+    if (email || whatsapp) {
+      const contact = await db.collection('contacts').findOne({ _id: new ObjectId(id) });
+      if (contact) {
+        const methods = contact.contactMethods || [];
+        
+        if (email) {
+          const emailIndex = methods.findIndex(m => m.type === 'email');
+          if (emailIndex >= 0) {
+            methods[emailIndex].value = email;
+          } else {
+            methods.push({
+              _id: new ObjectId(),
+              type: 'email',
+              value: email
+            });
+          }
+        }
+        
+        if (whatsapp) {
+          const whatsappIndex = methods.findIndex(m => m.type === 'whatsapp');
+          if (whatsappIndex >= 0) {
+            methods[whatsappIndex].value = whatsapp;
+          } else {
+            methods.push({
+              _id: new ObjectId(),
+              type: 'whatsapp',
+              value: whatsapp
+            });
+          }
+        }
+        
+        updates.contactMethods = methods;
+      }
+    }
     
     const result = await db.collection('contacts').findOneAndUpdate(
       { _id: new ObjectId(id) },
@@ -144,6 +195,99 @@ router.post('/status/deactivate', (req, res) => {
   } catch (error) {
     console.error('Error deactivating contacts:', error);
     res.status(500).json({ success: false, message: 'Failed to deactivate contacts' });
+  }
+});
+
+// Agregar método de contacto a un contacto existente
+router.post('/:id/methods', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, value, label } = req.body;
+    
+    if (!type || !value) {
+      return res.status(400).json({ success: false, message: 'Tipo y valor son obligatorios' });
+    }
+    
+    const db = await getDb();
+    
+    const newMethod = {
+      _id: new ObjectId(),
+      type,
+      value,
+      label: label || undefined
+    };
+    
+    const result = await db.collection('contacts').findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $push: { contactMethods: newMethod } },
+      { returnDocument: 'after' }
+    );
+    
+    if (!result) {
+      return res.status(404).json({ success: false, message: 'Contacto no encontrado' });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error al agregar método de contacto:', error);
+    res.status(500).json({ success: false, message: 'Error al agregar método de contacto' });
+  }
+});
+
+// Actualizar método de contacto específico
+router.put('/:id/methods/:methodId', async (req, res) => {
+  try {
+    const { id, methodId } = req.params;
+    const { type, value, label } = req.body;
+    
+    const db = await getDb();
+    
+    const updates = {};
+    if (type) updates['contactMethods.$.type'] = type;
+    if (value) updates['contactMethods.$.value'] = value;
+    if (label !== undefined) updates['contactMethods.$.label'] = label || undefined;
+    
+    const result = await db.collection('contacts').findOneAndUpdate(
+      {
+        _id: new ObjectId(id),
+        'contactMethods._id': new ObjectId(methodId)
+      },
+      { $set: updates },
+      { returnDocument: 'after' }
+    );
+    
+    if (!result) {
+      return res.status(404).json({ success: false, message: 'Contacto o método no encontrado' });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error al actualizar método de contacto:', error);
+    res.status(500).json({ success: false, message: 'Error al actualizar método de contacto' });
+  }
+});
+
+// Eliminar método de contacto específico
+router.delete('/:id/methods/:methodId', async (req, res) => {
+  try {
+    const { id, methodId } = req.params;
+    
+    const db = await getDb();
+    
+    const result = await db.collection('contacts').findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $pull: { contactMethods: { _id: new ObjectId(methodId) } } },
+      { returnDocument: 'after' }
+    );
+    
+    if (!result) {
+      return res.status(404).json({ success: false, message: 'Contacto no encontrado' });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error al eliminar método de contacto:', error);
+    res.status(500).json({ success: false, message: 'Error al eliminar método de contacto' });
   }
 });
 // Export setupContactSockets to capture the io instance and configure listeners

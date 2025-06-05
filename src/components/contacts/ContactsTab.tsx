@@ -1,34 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useContactStore } from '../../store/contactStore';
-import { Contact } from '../../types';
-import { Phone, Mail, Trash, Edit, Plus, Save, X } from 'lucide-react';
-import { useTranslation } from 'react-i18next'; // Import useTranslation
+import { Contact, ContactMethod } from '../../types';
+import { Trash, Edit, Plus, Save, X, User, ChevronDown, ChevronUp, Mail, MessageCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import ContactMethodsList from './ContactMethodsList';
 
 interface ContactsTabProps {
   showNotification: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
-  const { 
-    contacts, 
-    loadContacts, 
-    addContact, 
-    updateContact, 
-    deleteContact, 
+  const {
+    contacts,
+    loadContacts,
+    addContact,
+    updateContact,
+    deleteContact,
+    addContactMethod,
+    updateContactMethod,
+    deleteContactMethod,
     isContactsActive,
     activateContacts,
     deactivateContacts
   } = useContactStore();
-  const { t } = useTranslation(); // Initialize useTranslation
+  const { t } = useTranslation();
   
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<string | null>(null);
+  const [expandedContacts, setExpandedContacts] = useState<Set<string>>(new Set());
   
   const [formData, setFormData] = useState<Omit<Contact, '_id' | 'created_at'>>({
     name: '',
-    email: '',
-    whatsapp: '',
+    contactMethods: [],
   });
   
   // Cargar contactos al montar el componente
@@ -40,6 +44,18 @@ const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
     
     fetchContacts();
   }, [loadContacts]);
+
+  // Expandir automáticamente contactos que tienen métodos
+  useEffect(() => {
+    const contactsWithMethods = contacts
+      .filter(contact => contact.contactMethods && contact.contactMethods.length > 0)
+      .map(contact => contact._id)
+      .filter(Boolean) as string[];
+    
+    if (contactsWithMethods.length > 0) {
+      setExpandedContacts(new Set(contactsWithMethods));
+    }
+  }, [contacts]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -49,8 +65,7 @@ const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
   const resetForm = () => {
     setFormData({
       name: '',
-      email: '',
-      whatsapp: '',
+      contactMethods: [],
     });
     setEditingContact(null);
     setShowForm(false);
@@ -60,20 +75,13 @@ const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
     e.preventDefault();
     
     try {
-      // Validar formato de WhatsApp (debe comenzar con + y tener solo números)
-      if (!/^\+[0-9]+$/.test(formData.whatsapp)) {
-        showNotification('El número de WhatsApp debe tener formato internacional (ej: +5491112345678)', 'error');
-        return;
-      }
-      
-      // Validar email
-      if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        showNotification('Por favor ingresa un email válido', 'error');
+      if (!formData.name.trim()) {
+        showNotification('El nombre es obligatorio', 'error');
         return;
       }
       
       if (editingContact) {
-        await updateContact(editingContact, formData);
+        await updateContact(editingContact, { name: formData.name });
         showNotification('Contacto actualizado correctamente', 'success');
       } else {
         await addContact(formData);
@@ -91,8 +99,7 @@ const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
     
     setFormData({
       name: contact.name,
-      email: contact.email,
-      whatsapp: contact.whatsapp,
+      contactMethods: contact.contactMethods || [],
     });
     
     setEditingContact(contact._id);
@@ -108,6 +115,45 @@ const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
         showNotification('Error al eliminar el contacto', 'error');
       }
     }
+  };
+
+  const handleAddContactMethod = async (contactId: string, method: Omit<ContactMethod, '_id'>) => {
+    try {
+      await addContactMethod(contactId, method);
+      showNotification('Método de contacto agregado correctamente', 'success');
+    } catch (error) {
+      showNotification('Error al agregar método de contacto', 'error');
+    }
+  };
+
+  const handleUpdateContactMethod = async (contactId: string, methodId: string, updates: Partial<ContactMethod>) => {
+    try {
+      await updateContactMethod(contactId, methodId, updates);
+      showNotification('Método de contacto actualizado correctamente', 'success');
+    } catch (error) {
+      showNotification('Error al actualizar método de contacto', 'error');
+    }
+  };
+
+  const handleDeleteContactMethod = async (contactId: string, methodId: string) => {
+    try {
+      await deleteContactMethod(contactId, methodId);
+      showNotification('Método de contacto eliminado correctamente', 'success');
+    } catch (error) {
+      showNotification('Error al eliminar método de contacto', 'error');
+    }
+  };
+
+  const toggleContactExpansion = (contactId: string) => {
+    setExpandedContacts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(contactId)) {
+        newSet.delete(contactId);
+      } else {
+        newSet.add(contactId);
+      }
+      return newSet;
+    });
   };
   
   const handleToggleContactsVisibility = async () => {
@@ -163,62 +209,24 @@ const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
             </div>
             
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                <div className="sm:col-span-3">
-                  <label htmlFor="name" className="block text-sm font-medium text-text-secondary">
-                    Nombre
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-text-secondary mb-2">
+                    Nombre del contacto
                   </label>
-                  <div className="mt-1">
-                    <input
-                      type="text"
-                      name="name"
-                      id="name"
-                      required
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="shadow-sm focus:ring-accent focus:border-accent block w-full sm:text-sm border-border-color rounded-md bg-bg-primary text-text-primary"
-                    />
-                  </div>
-                </div>
-                
-                <div className="sm:col-span-3">
-                  <label htmlFor="email" className="block text-sm font-medium text-text-secondary">
-                    Email
-                  </label>
-                  <div className="mt-1">
-                    <input
-                      type="email"
-                      name="email"
-                      id="email"
-                      required
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="shadow-sm focus:ring-accent focus:border-accent block w-full sm:text-sm border-border-color rounded-md bg-bg-primary text-text-primary"
-                    />
-                  </div>
-                </div>
-                
-                <div className="sm:col-span-6">
-                  <label htmlFor="whatsapp" className="block text-sm font-medium text-text-secondary">
-                    WhatsApp (formato internacional)
-                  </label>
-                  <div className="mt-1 relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-text-secondary sm:text-sm">+</span>
-                    </div>
-                    <input
-                      type="text"
-                      name="whatsapp"
-                      id="whatsapp"
-                      required
-                      value={formData.whatsapp.replace(/^\+/, '')}
-                      onChange={(e) => setFormData(prev => ({ ...prev, whatsapp: '+' + e.target.value.replace(/^\+/, '') }))}
-                      placeholder="5491112345678"
-                      className="focus:ring-accent focus:border-accent block w-full pl-7 sm:text-sm border-border-color rounded-md bg-bg-primary text-text-primary"
-                    />
-                  </div>
-                  <p className="mt-1 text-sm text-text-secondary">
-                    Ejemplo: +5491112345678 (incluye código de país y área)
+                  <input
+                    type="text"
+                    name="name"
+                    id="name"
+                    required
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="Ej: Juan Pérez"
+                    className="shadow-sm focus:ring-accent focus:border-accent block w-full sm:text-sm border-border-color rounded-md bg-bg-primary text-text-primary"
+                    autoFocus
+                  />
+                  <p className="mt-1 text-sm text-text-muted">
+                    Después de crear el contacto podrás agregar sus métodos de contacto (email, teléfono, redes sociales, etc.)
                   </p>
                 </div>
               </div>
@@ -266,62 +274,77 @@ const ContactsTab: React.FC<ContactsTabProps> = ({ showNotification }) => {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border-color">
-              <thead className="bg-bg-secondary">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    Nombre
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    WhatsApp
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-bg-primary divide-y divide-border-color">
-                {contacts.map((contact) => (
-                  <tr key={contact._id} className="hover:bg-bg-secondary">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-text-primary">{contact.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-text-secondary">
-                        <Mail className="h-4 w-4 mr-2 text-text-secondary opacity-75" />
-                        {contact.email}
+          <div className="space-y-4">
+            {contacts.map((contact) => {
+              const isExpanded = expandedContacts.has(contact._id || '');
+              const methodsCount = contact.contactMethods?.length || 0;
+              
+              return (
+                <div key={contact._id} className="bg-bg-secondary rounded-lg border border-border-color overflow-hidden">
+                  {/* Header del contacto */}
+                  <div className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-accent/10">
+                          <User className="h-5 w-5 text-accent" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-text-primary">{contact.name}</h3>
+                          <p className="text-sm text-text-secondary">
+                            {methodsCount === 0
+                              ? 'Sin métodos de contacto'
+                              : `${methodsCount} método${methodsCount !== 1 ? 's' : ''} de contacto`
+                            }
+                          </p>
+                        </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-text-secondary">
-                        <Phone className="h-4 w-4 mr-2 text-text-secondary opacity-75" />
-                        {contact.whatsapp}
+                      
+                      <div className="flex items-center space-x-2">
+                        {methodsCount > 0 && (
+                          <button
+                            onClick={() => toggleContactExpansion(contact._id || '')}
+                            className="p-2 text-text-secondary hover:text-text-primary transition-colors"
+                            title={isExpanded ? 'Contraer' : 'Expandir'}
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleEdit(contact)}
+                          className="p-2 text-text-secondary hover:text-accent transition-colors"
+                          title="Editar nombre"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => contact._id && handleDelete(contact._id)}
+                          className="p-2 text-text-secondary hover:text-red-500 transition-colors"
+                          title="Eliminar contacto"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </button>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleEdit(contact)}
-                        className="text-accent hover:brightness-125 mr-4"
-                        aria-label={t('editContact')}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => contact._id && handleDelete(contact._id)}
-                        className="text-red-600 hover:text-red-900"
-                        aria-label={t('deleteContact')}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                  
+                  {/* Métodos de contacto expandibles */}
+                  {(isExpanded || methodsCount === 0) && (
+                    <div className="border-t border-border-color p-4 bg-bg-primary">
+                      <ContactMethodsList
+                        contact={contact}
+                        onAddMethod={(method) => contact._id && handleAddContactMethod(contact._id, method)}
+                        onUpdateMethod={(methodId, updates) => contact._id && handleUpdateContactMethod(contact._id, methodId, updates)}
+                        onDeleteMethod={(methodId) => contact._id && handleDeleteContactMethod(contact._id, methodId)}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

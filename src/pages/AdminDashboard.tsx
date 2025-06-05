@@ -1,26 +1,29 @@
 import React, { useState, useEffect } from 'react';
-// Removed Award as it's now in QuestionsTabContent
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
-import { useThemeStore } from '../store/themeStore'; // Import the store
+import { useThemeStore } from '../store/themeStore';
 import { useQuestionStore } from '../store/questionStore';
 import { useQuizConfigStore } from '../store/quizConfigStore';
-import QuizConfigPanel from '../components/QuizConfigPanel';
+import { useTournamentStore } from '../store/tournamentStore';
+import { useWordCloudStore } from '../store/wordCloudStore';
 
 // Componentes del panel de administración
 import AdminHeader from '../components/admin/AdminHeader';
 import NotificationToast from '../components/admin/NotificationToast';
-// QuestionForm and QuestionsList are now primarily used by QuestionsTabContent
-import QuestionsTabContent from '../components/admin/QuestionsTabContent'; // Import the new component
+import DashboardHome from '../components/admin/DashboardHome';
+import ConfigurationPage from '../components/admin/ConfigurationPage';
+import QuestionsTabContent from '../components/admin/QuestionsTabContent';
 import RankingsTab from '../components/admin/RankingsTab';
 import TournamentTab from '../components/tournament/TournamentTab';
 import WordCloudTab from '../components/wordcloud/WordCloudTab';
 import ContactsTab from '../components/contacts/ContactsTab';
-import AudienceQA from '../components/AudienceQA'; // Importar AudienceQA
+import AudienceQA from '../components/AudienceQA';
 import DocumentSharingTab from '../components/admin/DocumentSharingTab';
-import AudienceDataTable from '../components/admin/AudienceDataTable'; // Import the new table component
-import ReviewView from '../components/admin/ReviewView'; // Import ReviewView
+import LinkSharingTab from '../components/admin/LinkSharingTab';
+import AudienceDataTable from '../components/admin/AudienceDataTable';
+import ReviewView from '../components/admin/ReviewView';
+import AIQuestionModule from '../components/admin/AIQuestionModule';
 
 // Definición de la interfaz QuestionWithId
 interface QuestionWithId {
@@ -39,7 +42,8 @@ interface QuestionWithId {
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
-  const { theme, setTheme } = useThemeStore(); // Use the store
+  const { theme, setTheme } = useThemeStore();
+  
   // Estado para el formulario de preguntas
   const [showForm, setShowForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
@@ -54,8 +58,8 @@ export default function AdminDashboard() {
     explanation_image: '',
   });
   
-  // Estado para la interfaz de usuario
-  const [activeTab, setActiveTab] = useState<'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData' | 'reviews'>('questions');
+  // Estado para la interfaz de usuario - NUEVO DISEÑO
+  const [activeView, setActiveView] = useState<'dashboard' | 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData' | 'reviews' | 'aiQuestions' | 'linkSharing'>('dashboard');
   const [showCheatSheet, setShowCheatSheet] = useState<Record<string, boolean>>({});
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   
@@ -64,13 +68,14 @@ export default function AdminDashboard() {
   const signOut = useAuthStore((state) => state.signOut);
   
   // Estado de las preguntas y configuración
-  const { 
+  const {
     questions,
     createQuestion,
-    updateQuestion, 
-    currentQuestion, 
-    startVoting: startVotingAction, 
+    updateQuestion,
+    currentQuestion,
+    startVoting: startVotingAction,
     stopVoting,
+    showResults,
     deleteQuestion,
     votes,
     updateQuestionTimer,
@@ -81,13 +86,16 @@ export default function AdminDashboard() {
   
   const { config, isRankingVisible, showRanking, hideRanking, getConfig } = useQuizConfigStore();
   
+  // Stores adicionales para resetear en clearView
+  const { resetTournament } = useTournamentStore();
+  const { resetWordCloud } = useWordCloudStore();
+  
   // Estado de carga
   const [isLoading, setIsLoading] = useState(!initialized);
 
   // Función para mostrar notificaciones
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
-    // Limpiar la notificación después de 5 segundos
     setTimeout(() => {
       setNotification(null);
     }, 5000);
@@ -95,8 +103,6 @@ export default function AdminDashboard() {
 
   // Efecto para inicializar y cargar datos
   useEffect(() => {
-    // Ensure the theme attribute is set on the body when the dashboard mounts
-    // The store already does this on init and toggle, but this reinforces it
     document.body.setAttribute('data-theme', theme);
   }, [theme]);
 
@@ -104,16 +110,14 @@ export default function AdminDashboard() {
     if (initialized && isLoading) {
       setIsLoading(false);
     }
-    
-    // Cargar la configuración del quiz
     getConfig();
   }, [initialized, isLoading, getConfig]);
   
   // Efecto para manejar la navegación desde otras partes de la aplicación
   useEffect(() => {
     const locationState = history.state?.usr;
-    if (locationState && locationState.activeTab) {
-      setActiveTab(locationState.activeTab);
+    if (locationState && locationState.activeView) {
+      setActiveView(locationState.activeView);
     }
   }, []);
 
@@ -215,7 +219,7 @@ export default function AdminDashboard() {
   const handleStopVoting = async () => {
     try {
       if (currentQuestion) {
-        await stopVoting(currentQuestion._id, currentQuestion.correct_option || '');
+        await stopVoting(currentQuestion._id);
         showNotification('Votación detenida correctamente', 'success');
       } else {
         showNotification('No hay una pregunta activa para detener', 'error');
@@ -223,6 +227,18 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error al detener la votación:', error);
       showNotification('Error al detener la votación', 'error');
+    }
+  };
+
+  const handleShowResults = async (correctOption: string) => {
+    try {
+      if (currentQuestion) {
+        await showResults(currentQuestion._id, correctOption);
+        showNotification('Resultados mostrados correctamente', 'success');
+      }
+    } catch (error) {
+      console.error('Error al mostrar resultados:', error);
+      showNotification('Error al mostrar los resultados', 'error');
     }
   };
 
@@ -237,19 +253,50 @@ export default function AdminDashboard() {
     updateQuestionTimer(questionId, seconds);
   };
 
+  // FUNCIÓN MEJORADA DE LIMPIAR VISTA
   const handleClearView = async () => {
     try {
+      // Detener votaciones activas
+      if (currentQuestion) {
+        await stopVoting(currentQuestion._id, '');
+      }
+      
+      // Limpiar vista general
       await clearView();
-      showNotification('Vista de audiencia limpiada correctamente', 'success');
+      
+      // Resetear módulos específicos que tienen funciones de reset
+      try {
+        await resetTournament();
+        await resetWordCloud();
+      } catch (moduleError) {
+        console.warn('Error reseteando algunos módulos:', moduleError);
+      }
+      
+      showNotification('Todas las vistas han sido limpiadas correctamente', 'success');
     } catch (error) {
-      console.error('Error al limpiar la vista:', error);
-      showNotification('Error al limpiar la vista', 'error');
+      console.error('Error al limpiar las vistas:', error);
+      showNotification('Error al limpiar las vistas', 'error');
     }
   };
 
   const handleSignOut = () => {
     signOut();
     navigate('/login');
+  };
+
+  // Función para manejar la selección de herramientas desde el dashboard
+  const handleToolSelect = (toolId: string) => {
+    setActiveView(toolId as typeof activeView);
+  };
+
+  // Función para volver al dashboard
+  const handleBackToDashboard = () => {
+    setActiveView('dashboard');
+  };
+
+  // Función para ir al home desde el header
+  const handleGoHome = () => {
+    setActiveView('dashboard');
   };
 
   // Función para calcular estadísticas
@@ -259,30 +306,21 @@ export default function AdminDashboard() {
     const options = ['a', 'b', 'c'];
     const totalVotes = Object.values(votes).reduce((sum, count) => sum + count, 0);
     
-    // Depuración para ver los votos recibidos
-    console.log('Votos actuales:', votes);
-    console.log('Total de votos:', totalVotes);
-    
     return options.map(option => {
       const count = votes[option] || 0;
       const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-      
-      // Depuración para cada opción
-      console.log(`Opción ${option.toUpperCase()}: ${count} votos (${percentage}%)`);
       
       return {
         option,
         count,
         percentage,
-        showPercentage: true // Siempre mostrar porcentajes
+        showPercentage: true
       };
     });
   };
 
-  // Función para manejar el reinicio de sesión
   const handleResetSession = async () => {
     try {
-      // Esta función será implementada en el componente RankingsTab
       showNotification('Sesión reiniciada correctamente', 'success');
     } catch (error) {
       console.error('Error al reiniciar la sesión:', error);
@@ -293,15 +331,15 @@ export default function AdminDashboard() {
   // Renderizado condicional basado en el estado de carga
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-bg-secondary flex items-center justify-center"> {/* Updated */}
-        <div className="bg-bg-primary p-8 rounded-lg shadow-md"> {/* Updated */}
-          <h2 className="text-xl font-semibold mb-4 text-text-primary">{t('loading')}</h2> {/* Updated */}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">{t('loading')}</h2>
           <div className="animate-pulse flex space-x-4">
             <div className="flex-1 space-y-4 py-1">
-              <div className="h-4 bg-bg-secondary rounded w-3/4"></div> {/* Updated (assuming gray-200 was for loading placeholder) */}
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
               <div className="space-y-2">
-                <div className="h-4 bg-bg-secondary rounded"></div> {/* Updated */}
-                <div className="h-4 bg-bg-secondary rounded w-5/6"></div> {/* Updated */}
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
               </div>
             </div>
           </div>
@@ -319,7 +357,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-secondary text-text-primary"> {/* Updated */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Notificación */}
       {notification && (
         <NotificationToast
@@ -331,14 +369,18 @@ export default function AdminDashboard() {
 
       {/* Encabezado */}
       <AdminHeader
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        onClearView={handleClearView}
         onSignOut={handleSignOut}
+        onGoHome={handleGoHome}
       />
 
       {/* Contenido principal */}
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {activeTab === 'questions' ? (
+        {activeView === 'dashboard' ? (
+          <DashboardHome onToolSelect={handleToolSelect} />
+        ) : activeView === 'config' ? (
+          <ConfigurationPage onBack={handleBackToDashboard} />
+        ) : activeView === 'questions' ? (
           <QuestionsTabContent
             showForm={showForm}
             editingQuestion={editingQuestion}
@@ -353,8 +395,9 @@ export default function AdminDashboard() {
             onNewQuestion={() => setShowForm(true)}
             onEditQuestion={handleEdit}
             onDeleteQuestion={handleDelete}
-            onStartVoting={handleStartVoting} // Corregido para usar la función definida
+            onStartVoting={handleStartVoting}
             onStopVoting={handleStopVoting}
+            onShowResults={handleShowResults}
             onToggleCheatSheet={handleToggleCheatSheet}
             onTimerChange={updateQuestionTimer}
             onQuestionFormSubmit={handleSubmit}
@@ -376,37 +419,37 @@ export default function AdminDashboard() {
             calculateStats={calculateStats}
             newQuestionButtonText={t('newQuestionButton')}
           />
-        ) : activeTab === 'rankings' ? (
+        ) : activeView === 'rankings' ? (
           <RankingsTab
             onResetSession={handleResetSession}
             showNotification={showNotification}
-            setActiveTab={setActiveTab}
+            setActiveTab={setActiveView}
+            onToggleRanking={handleToggleRanking}
           />
-        ) : activeTab === 'tournament' ? (
+        ) : activeView === 'tournament' ? (
           <TournamentTab
             showNotification={showNotification}
           />
-        ) : activeTab === 'wordcloud' ? (
-          <WordCloudTab
-            showNotification={showNotification}
-          />
-        ) : activeTab === 'contacts' ? (
+        ) : activeView === 'wordcloud' ? (
+          <WordCloudTab />
+        ) : activeView === 'contacts' ? (
           <ContactsTab
             showNotification={showNotification}
           />
-        ) : activeTab === 'audienceQA' ? (
+        ) : activeView === 'audienceQA' ? (
           <AudienceQA isAdmin={true} />
-        ) : activeTab === 'documents' ? (
+        ) : activeView === 'documents' ? (
           <DocumentSharingTab />
-        ) : activeTab === 'audienceData' ? ( // Add new tab for Audience Data
+        ) : activeView === 'audienceData' ? (
           <AudienceDataTable />
-        ) : activeTab === 'reviews' ? (
-          // TODO: Implement event selection for admin instead of hardcoding "active_event_001"
+        ) : activeView === 'reviews' ? (
           <ReviewView eventId={"active_event_001"} />
-        ) : ( // QuizConfigPanel como caso por defecto
-          <QuizConfigPanel 
-            onSaved={() => showNotification('Configuración guardada correctamente', 'success')} 
-          />
+        ) : activeView === 'aiQuestions' ? (
+          <AIQuestionModule />
+        ) : activeView === 'linkSharing' ? (
+          <LinkSharingTab />
+        ) : (
+          <DashboardHome onToolSelect={handleToolSelect} />
         )}
       </div>
     </div>

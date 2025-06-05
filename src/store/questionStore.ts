@@ -103,7 +103,14 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
           });
         });
     
-        socket.on('vote_submitted', (data: { question_id: string, votes: { total: number, counts: Record<string, number> } }) => {
+        // Evento para audiencia - solo confirmación de voto sin estadísticas
+        socket.on('vote_submitted', (data: { question_id: string }) => {
+          // Solo confirmar que el voto fue recibido, sin actualizar estadísticas
+          console.log('Voto confirmado para pregunta:', data.question_id);
+        });
+
+        // Evento para presentador - estadísticas en tiempo real
+        socket.on('presenter_stats_update', (data: { question_id: string, votes: { total: number, counts: Record<string, number> } }) => {
           set((state) => {
             if (state.currentQuestion?._id === data.question_id) {
               const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
@@ -113,6 +120,26 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
               };
             }
             return state;
+          });
+        });
+
+        // Evento para mostrar resultados a la audiencia (NUEVO)
+        socket.on('show_question_results', (data: { question: Question, votes: { total: number, counts: Record<string, number> }, showStatistics: boolean }) => {
+          const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
+          set({
+            currentQuestion: data.question,
+            votes: votesData,
+            timeRemaining: null
+          });
+        });
+
+        // Mantener compatibilidad con evento anterior
+        socket.on('show_results', (data: { question: Question, votes: { total: number, counts: Record<string, number> }, showStatistics: boolean }) => {
+          const votesData: Votes = { a: 0, b: 0, c: 0, ...data.votes.counts };
+          set({
+            currentQuestion: data.question,
+            votes: votesData,
+            timeRemaining: null
           });
         });
         
@@ -325,6 +352,26 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
       throw error;
     }
   },
+
+  showResults: async (id: string, correctOption: string) => {
+    try {
+      const response = await fetch(`/api/questions/${id}/show-results`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ correctOption }),
+      });
+      
+      if (!response.ok) throw new Error('Error al mostrar resultados');
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error showing results:', error);
+      throw error;
+    }
+  },
     
     submitVote: async (questionId, option) => {
     try {
@@ -339,8 +386,8 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
         throw new Error('Debes iniciar sesión para votar');
       }
 
-      // Normalizar la opción para que sea mayúscula (caso insensitivo)
-      const normalizedOption = option.toUpperCase();
+      // Normalizar la opción a minúscula para consistencia con el servidor
+      const normalizedOption = option.toLowerCase();
 
       const response = await fetch(`/api/questions/${questionId}/vote`, {
         method: 'POST',
@@ -361,14 +408,11 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
       const data = await response.json();
       
       // Asegurarnos de que los contadores de votos estén correctos
-      const votesData: Votes = { 
-        a: 0, 
-        b: 0, 
+      const votesData: Votes = {
+        a: 0,
+        b: 0,
         c: 0,
-        A: 0,
-        B: 0, 
-        C: 0,
-        ...data.votes.counts 
+        ...data.votes.counts
       };
       
       console.log("Votos actualizados:", votesData);

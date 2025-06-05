@@ -8,12 +8,15 @@ import { useTournamentStore } from '../store/tournamentStore';
 import { useContactStore } from '../store/contactStore';
 import { useAudienceQAStore } from '../store/audienceQAStore';
 import { useDocumentSharingStore } from '../store/documentSharingStore';
+import { useLinkSharingStore } from '../store/linkSharingStore';
 import { useAudienceDataStore } from '../store/audienceDataStore';
 import { useReviewStore } from '../store/reviewStore';
+import { useThemeStore } from '../store/themeStore';
 import WordCloudParticipant from '../components/wordcloud/WordCloudParticipant';
 import TournamentAudienceView from '../components/tournament/TournamentAudienceView';
 import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
 import { playSound } from '../utils/soundManager';
+import { X, MessageCircle, Sun, Moon, FileText, Users, Link } from 'lucide-react';
 
 // Importar componentes modulares
 import AudienceHeader from '../components/audience/AudienceHeader';
@@ -22,6 +25,7 @@ import WaitingScreen from '../components/audience/WaitingScreen';
 import RankingModal from '../components/audience/RankingModal';
 import AudienceQA from '../components/AudienceQA';
 import DocumentDownloadList from '../components/DocumentDownloadList';
+import LinkSharingView from '../components/audience/LinkSharingView';
 
 // Importar componente y utilidades de socket
 import SocketManager from '../components/audience/SocketManager';
@@ -44,12 +48,14 @@ export default function AudienceView() {
   const { currentParticipant, logout } = useParticipantStore();
   const { isActive: isWordCloudActive } = useWordCloudStore();
   const { isActive: isTournamentActive } = useTournamentStore();
-  const { isContactsActive, loadContacts } = useContactStore();
+  const { isContactsActive, loadContacts, initializeSocketListeners: initializeContactSocket } = useContactStore();
   const { isAudienceQAActive, initializeSocket: initializeAudienceQASocket } = useAudienceQAStore();
-  const { isDocumentsActive, loadDocuments } = useDocumentSharingStore();
+  const { isDocumentsActive, loadDocuments, initializeSocketListeners: initializeDocumentSocket } = useDocumentSharingStore();
+  const { isLinkSharingActive, initializeSocket: initializeLinkSharingSocket } = useLinkSharingStore();
   const { isAudienceDataActive, initializeSocket: initializeAudienceDataSocket } = useAudienceDataStore();
   const { initializeSocket: initializeWordCloudSocket } = useWordCloudStore();
   const { isReviewsActive } = useReviewStore();
+  const { theme, toggleTheme } = useThemeStore();
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -74,7 +80,10 @@ export default function AudienceView() {
     initializeAudienceDataSocket();
     initializeWordCloudSocket();
     initializeAudienceQASocket();
-  }, [initializeAudienceDataSocket, initializeWordCloudSocket, initializeAudienceQASocket]);
+    initializeContactSocket();
+    initializeDocumentSocket();
+    initializeLinkSharingSocket();
+  }, [initializeAudienceDataSocket, initializeWordCloudSocket, initializeAudienceQASocket, initializeContactSocket, initializeDocumentSocket, initializeLinkSharingSocket]);
 
   // Configurar los listeners de Socket.IO
   useEffect(() => {
@@ -85,7 +94,9 @@ export default function AudienceView() {
       setContact: useContactStore.setState,
       setAudienceQA: useAudienceQAStore.setState,
       setDocumentSharing: useDocumentSharingStore.setState,
-      setAudienceData: useAudienceDataStore.setState,
+      setLinkSharing: useLinkSharingStore.setState,
+      setAudienceData: (state: { isAudienceDataActive?: boolean }) =>
+        useAudienceDataStore.setState(state),
       setReviews: useReviewStore.setState
     };
     
@@ -164,10 +175,25 @@ export default function AudienceView() {
     if (timeRemaining !== null && timeRemaining <= 5 && timeRemaining > 0) {
       setTimerWarning(true);
       setShowTimer(true);
+      
+      // Reproducir sonido de advertencia cuando queden 5 segundos
+      if (timeRemaining === 5) {
+        playSound('ui_click.mp3');
+      }
+      
+      // Reproducir sonido de cuenta regresiva en los últimos 3 segundos
+      if (timeRemaining <= 3) {
+        playSound('ui_click.mp3');
+      }
     } else {
       setTimerWarning(false);
       if (timeRemaining === null || timeRemaining === 0) {
         setShowTimer(false);
+        
+        // Reproducir sonido cuando se acaba el tiempo
+        if (timeRemaining === 0) {
+          playSound('countdown.mp3');
+        }
       }
     }
   }, [timeRemaining, currentQuestion]);
@@ -179,10 +205,13 @@ export default function AudienceView() {
   const calculateStats = () => {
     const totalVotes = Object.values(votes).reduce((sum, count) => sum + count, 0);
 
-    // Si no hay pregunta activa o está cerrada, mostrar los resultados
-    const showResultsCondition = !currentQuestion ||
-                               currentQuestion.votingClosed ||
-                               (config.showRankings && hasVoted);
+    // Mostrar resultados cuando:
+    // 1. No hay pregunta activa
+    // 2. La votación está cerrada Y hay respuesta correcta (resultados mostrados)
+    // 3. La configuración permite mostrar rankings y el usuario ha votado
+    const showResultsCondition = Boolean(!currentQuestion ||
+                               (currentQuestion.votingClosed && currentQuestion.correct_option) ||
+                               (config.showRankings && hasVoted));
 
     const statsData = ['a', 'b', 'c'].map(option => {
       const count = votes[option] || 0;
@@ -263,14 +292,69 @@ export default function AudienceView() {
   
   if (isAudienceQAActive) {
     return (
-      <div className="min-h-screen bg-bg-primary">
-        <AudienceHeader
-          title={t('audienceQA')}
-          currentParticipant={currentParticipant}
-          onLogout={handleLogout}
-        />
-        <main className="max-w-4xl mx-auto py-8 px-6">
-          <AudienceQA isAdmin={false} />
+      <div className="min-h-screen bg-gradient-to-br from-bg-primary via-bg-secondary/20 to-bg-primary relative overflow-hidden">
+        {/* Elementos decorativos de fondo */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-accent/5 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-success/5 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/3 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* Controles flotantes */}
+        <div className="absolute top-6 right-6 z-10">
+          <div className="flex items-center space-x-3">
+            {/* Selector de tema */}
+            <button
+              onClick={toggleTheme}
+              className="p-3 bg-bg-secondary/80 hover:bg-bg-secondary backdrop-blur-md rounded-full border border-border-light/50 shadow-lg transition-all duration-normal micro-scale"
+              title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+            >
+              {theme === 'light' ? (
+                <Moon className="h-5 w-5 text-text-primary" />
+              ) : (
+                <Sun className="h-5 w-5 text-text-primary" />
+              )}
+            </button>
+
+            {/* Información del participante y logout */}
+            {currentParticipant && (
+              <>
+                <div className="flex items-center space-x-2 px-4 py-2 bg-bg-secondary/80 backdrop-blur-md rounded-full border border-border-light/50 shadow-lg">
+                  <div className="w-2 h-2 bg-accent rounded-full animate-pulse-subtle"></div>
+                  <span className="text-sm font-medium text-text-secondary">
+                    {currentParticipant.name}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 bg-error/10 hover:bg-error/20 text-error rounded-full transition-all duration-normal micro-scale backdrop-blur-md border border-error/20"
+                  title={t('logoutButton')}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <main className="relative z-10 max-w-4xl mx-auto py-12 px-6">
+          {/* Header mejorado */}
+          <div className="text-center mb-16 animate-fadeInUp">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-accent/10 rounded-full mb-6 animate-fadeInScale">
+              <MessageCircle className="h-10 w-10 text-accent" />
+            </div>
+            <h1 className="text-4xl font-bold text-text-primary mb-4 bg-gradient-to-r from-text-primary to-accent bg-clip-text">
+              {t('audienceQA')}
+            </h1>
+            <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+              Comparte tus preguntas y participa en la conversación
+            </p>
+          </div>
+
+          {/* Componente Q&A con diseño mejorado */}
+          <div className="bg-bg-secondary/40 backdrop-blur-md rounded-2xl p-8 border border-border-light/50 shadow-xl">
+            <AudienceQA isAdmin={false} />
+          </div>
         </main>
       </div>
     );
@@ -278,14 +362,139 @@ export default function AudienceView() {
   
   if (isDocumentsActive) {
     return (
-      <div className="min-h-screen bg-bg-primary">
-        <AudienceHeader
-          title={t('sharedDocuments')}
-          currentParticipant={currentParticipant}
-          onLogout={handleLogout}
-        />
-        <main className="max-w-4xl mx-auto py-8 px-6">
-          <DocumentDownloadList />
+      <div className="min-h-screen bg-gradient-to-br from-bg-primary via-bg-secondary/20 to-bg-primary relative overflow-hidden">
+        {/* Elementos decorativos de fondo */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-accent/5 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-success/5 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/3 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* Controles flotantes */}
+        <div className="absolute top-6 right-6 z-10">
+          <div className="flex items-center space-x-3">
+            {/* Selector de tema */}
+            <button
+              onClick={toggleTheme}
+              className="p-3 bg-bg-secondary/80 hover:bg-bg-secondary backdrop-blur-md rounded-full border border-border-light/50 shadow-lg transition-all duration-normal micro-scale"
+              title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+            >
+              {theme === 'light' ? (
+                <Moon className="h-5 w-5 text-text-primary" />
+              ) : (
+                <Sun className="h-5 w-5 text-text-primary" />
+              )}
+            </button>
+
+            {/* Información del participante y logout */}
+            {currentParticipant && (
+              <>
+                <div className="flex items-center space-x-2 px-4 py-2 bg-bg-secondary/80 backdrop-blur-md rounded-full border border-border-light/50 shadow-lg">
+                  <div className="w-2 h-2 bg-accent rounded-full animate-pulse-subtle"></div>
+                  <span className="text-sm font-medium text-text-secondary">
+                    {currentParticipant.name}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 bg-error/10 hover:bg-error/20 text-error rounded-full transition-all duration-normal micro-scale backdrop-blur-md border border-error/20"
+                  title={t('logoutButton')}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <main className="relative z-10 max-w-4xl mx-auto py-12 px-6">
+          {/* Header mejorado */}
+          <div className="text-center mb-16 animate-fadeInUp">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-accent/10 rounded-full mb-6 animate-fadeInScale">
+              <FileText className="h-10 w-10 text-accent" />
+            </div>
+            <h1 className="text-4xl font-bold text-text-primary mb-4 bg-gradient-to-r from-text-primary to-accent bg-clip-text">
+              {t('sharedDocuments')}
+            </h1>
+            <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+              Descarga y accede a los documentos compartidos
+            </p>
+          </div>
+
+          {/* Componente de documentos con diseño mejorado */}
+          <div className="bg-bg-secondary/40 backdrop-blur-md rounded-2xl p-8 border border-border-light/50 shadow-xl">
+            <DocumentDownloadList />
+          </div>
+        </main>
+      </div>
+    );
+  }
+  
+  if (isLinkSharingActive) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-bg-primary via-bg-secondary/20 to-bg-primary relative overflow-hidden">
+        {/* Elementos decorativos de fondo */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-accent/5 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-success/5 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/3 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* Controles flotantes */}
+        <div className="absolute top-6 right-6 z-10">
+          <div className="flex items-center space-x-3">
+            {/* Selector de tema */}
+            <button
+              onClick={toggleTheme}
+              className="p-3 bg-bg-secondary/80 hover:bg-bg-secondary backdrop-blur-md rounded-full border border-border-light/50 shadow-lg transition-all duration-normal micro-scale"
+              title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+            >
+              {theme === 'light' ? (
+                <Moon className="h-5 w-5 text-text-primary" />
+              ) : (
+                <Sun className="h-5 w-5 text-text-primary" />
+              )}
+            </button>
+
+            {/* Información del participante y logout */}
+            {currentParticipant && (
+              <>
+                <div className="flex items-center space-x-2 px-4 py-2 bg-bg-secondary/80 backdrop-blur-md rounded-full border border-border-light/50 shadow-lg">
+                  <div className="w-2 h-2 bg-accent rounded-full animate-pulse-subtle"></div>
+                  <span className="text-sm font-medium text-text-secondary">
+                    {currentParticipant.name}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 bg-error/10 hover:bg-error/20 text-error rounded-full transition-all duration-normal micro-scale backdrop-blur-md border border-error/20"
+                  title={t('logoutButton')}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <main className="relative z-10 max-w-4xl mx-auto py-12 px-6">
+          {/* Header mejorado */}
+          <div className="text-center mb-16 animate-fadeInUp">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-accent/10 rounded-full mb-6 animate-fadeInScale">
+              <Link className="h-10 w-10 text-accent" />
+            </div>
+            <h1 className="text-4xl font-bold text-text-primary mb-4 bg-gradient-to-r from-text-primary to-accent bg-clip-text">
+              {t('sharedLinks') || 'Enlaces Compartidos'}
+            </h1>
+            <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+              Accede a los enlaces compartidos por el presentador
+            </p>
+          </div>
+
+          {/* Componente de links con diseño mejorado */}
+          <div className="bg-bg-secondary/40 backdrop-blur-md rounded-2xl p-8 border border-border-light/50 shadow-xl">
+            <LinkSharingView />
+          </div>
         </main>
       </div>
     );
@@ -294,15 +503,70 @@ export default function AudienceView() {
   // Mostrar formulario de datos de audiencia si está activo
   if (isAudienceDataActive) {
     return (
-      <div className="min-h-screen bg-bg-primary">
-        <AudienceHeader
-          title={t('audienceDataForm.headerTitle') || t('audienceDataForm.title')}
-          currentParticipant={currentParticipant}
-          onLogout={handleLogout}
-        />
-        <main className="flex items-center justify-center py-8 px-6">
-          <div className="w-full max-w-lg">
-            <AudienceDataForm onSubmitSuccess={() => {}} />
+      <div className="min-h-screen bg-gradient-to-br from-bg-primary via-bg-secondary/20 to-bg-primary relative overflow-hidden">
+        {/* Elementos decorativos de fondo */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-accent/5 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-success/5 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/3 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* Controles flotantes */}
+        <div className="absolute top-6 right-6 z-10">
+          <div className="flex items-center space-x-3">
+            {/* Selector de tema */}
+            <button
+              onClick={toggleTheme}
+              className="p-3 bg-bg-secondary/80 hover:bg-bg-secondary backdrop-blur-md rounded-full border border-border-light/50 shadow-lg transition-all duration-normal micro-scale"
+              title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+            >
+              {theme === 'light' ? (
+                <Moon className="h-5 w-5 text-text-primary" />
+              ) : (
+                <Sun className="h-5 w-5 text-text-primary" />
+              )}
+            </button>
+
+            {/* Información del participante y logout */}
+            {currentParticipant && (
+              <>
+                <div className="flex items-center space-x-2 px-4 py-2 bg-bg-secondary/80 backdrop-blur-md rounded-full border border-border-light/50 shadow-lg">
+                  <div className="w-2 h-2 bg-accent rounded-full animate-pulse-subtle"></div>
+                  <span className="text-sm font-medium text-text-secondary">
+                    {currentParticipant.name}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 bg-error/10 hover:bg-error/20 text-error rounded-full transition-all duration-normal micro-scale backdrop-blur-md border border-error/20"
+                  title={t('logoutButton')}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <main className="relative z-10 flex items-center justify-center min-h-screen py-12 px-6">
+          <div className="w-full max-w-2xl">
+            {/* Header mejorado */}
+            <div className="text-center mb-12 animate-fadeInUp">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-accent/10 rounded-full mb-6 animate-fadeInScale">
+                <Users className="h-10 w-10 text-accent" />
+              </div>
+              <h1 className="text-4xl font-bold text-text-primary mb-4 bg-gradient-to-r from-text-primary to-accent bg-clip-text">
+                {t('audienceDataForm.headerTitle') || t('audienceDataForm.title')}
+              </h1>
+              <p className="text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+                Comparte tu información para una mejor experiencia
+              </p>
+            </div>
+
+            {/* Formulario con diseño mejorado */}
+            <div className="bg-bg-secondary/40 backdrop-blur-md rounded-2xl p-8 border border-border-light/50 shadow-xl animate-fadeInUp" style={{ animationDelay: '200ms' }}>
+              <AudienceDataForm onSubmitSuccess={() => {}} />
+            </div>
           </div>
         </main>
       </div>
@@ -320,14 +584,46 @@ export default function AudienceView() {
   // If there's an active question, show the voting interface
   return (
     <SocketManager>
-    <div className="min-h-screen bg-bg-primary">
-      <AudienceHeader
-        title={t('liveQuiz')}
-        currentParticipant={currentParticipant}
-        onLogout={handleLogout}
-      />
-      <main className="max-w-4xl mx-auto py-8 px-6">
-        <QuestionInterface 
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-900 relative">
+      {/* Controles flotantes */}
+      <div className="absolute top-6 right-6 z-10">
+        <div className="flex items-center space-x-3">
+          {/* Selector de tema */}
+          <button
+            onClick={toggleTheme}
+            className="p-3 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 backdrop-blur-md rounded-full border border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 hover:scale-105"
+            title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+          >
+            {theme === 'light' ? (
+              <Moon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            ) : (
+              <Sun className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            )}
+          </button>
+
+          {/* Información del participante y logout */}
+          {currentParticipant && (
+            <>
+              <div className="flex items-center space-x-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full border border-gray-200 dark:border-gray-700 shadow-lg">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {currentParticipant.name}
+                </span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full transition-all duration-300 hover:scale-105 backdrop-blur-md border border-red-200 dark:border-red-800"
+                title={t('logoutButton')}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <main className="max-w-4xl mx-auto py-8 px-6 relative z-0">
+        <QuestionInterface
           currentQuestion={currentQuestion}
           timeRemaining={timeRemaining}
           timerWarning={timerWarning}

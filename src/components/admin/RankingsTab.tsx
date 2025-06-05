@@ -1,16 +1,21 @@
 import React from 'react';
-import { RefreshCw, Trophy } from 'lucide-react';
+import { RefreshCw, Trophy, Award } from 'lucide-react';
 import ParticipantRanking from '../ParticipantRanking';
 import { useNavigate } from 'react-router-dom';
+import { useQuizConfigStore } from '../../store/quizConfigStore';
+import { useTranslation } from 'react-i18next';
 
 interface RankingsTabProps {
   onResetSession: () => void;
   showNotification: (message: string, type: 'success' | 'error' | 'info') => void;
   setActiveTab?: (tab: 'questions' | 'config' | 'rankings' | 'tournament') => void;
+  onToggleRanking?: () => void;
 }
 
-const RankingsTab: React.FC<RankingsTabProps> = ({ onResetSession, showNotification, setActiveTab }) => {
+const RankingsTab: React.FC<RankingsTabProps> = ({ onResetSession, showNotification, setActiveTab, onToggleRanking }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { config, isRankingVisible } = useQuizConfigStore();
   const handleResetSession = async () => {
     // Confirmar antes de reiniciar la sesión
     if (window.confirm('¿Estás seguro de que deseas reiniciar la sesión? Esto eliminará todos los participantes y sus datos. Esta acción no se puede deshacer.')) {
@@ -44,6 +49,19 @@ const RankingsTab: React.FC<RankingsTabProps> = ({ onResetSession, showNotificat
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-medium text-text-primary">Estadísticas de Participantes</h2>
         <div className="flex space-x-2">
+          {config.showRankings && onToggleRanking && (
+            <button
+              onClick={onToggleRanking}
+              className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white ${
+                isRankingVisible
+                  ? 'bg-yellow-600 hover:bg-yellow-700'
+                  : 'bg-purple-600 hover:bg-purple-700'
+              } focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent`}
+            >
+              <Award className="h-4 w-4 mr-2" />
+              {isRankingVisible ? t('hideRankingButton') : t('showRankingButton')}
+            </button>
+          )}
           <button
             onClick={() => setActiveTab ? setActiveTab('tournament') : null}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-bg-primary focus:ring-accent"

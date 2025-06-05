@@ -127,33 +127,44 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
   }
 
   return (
-    <div className={`p-4 rounded-lg shadow-md ${isAdmin ? 'bg-gray-800 text-white' : 'bg-bg-primary'}`}>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">
-          {isAdmin ? 'Gestionar Preguntas de la Audiencia' : 'Preguntas de la Audiencia'}
-        </h2>
-        {!isAdmin && isAudienceQAActive && (
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-sm text-text-secondary">En vivo</span>
+    <div className={`${isAdmin ? 'p-4 rounded-lg shadow-md bg-gray-800 text-white' : ''}`}>
+      {!isAdmin && (
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center space-x-3">
+            <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
+            <span className="text-lg font-semibold text-text-primary">En vivo</span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+      
+      {isAdmin && (
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">
+            Gestionar Preguntas de la Audiencia
+          </h2>
+        </div>
+      )}
 
       {/* Notificación de nueva pregunta para audiencia */}
       {!isAdmin && newQuestionNotification && (
-        <div className={`mb-4 p-3 border rounded-lg transition-all duration-300 ${
+        <div className={`mb-6 p-4 border-2 rounded-2xl transition-all duration-500 backdrop-blur-sm shadow-lg ${
           newQuestionNotification.includes('enviada')
-            ? 'bg-green-100 border-green-300 animate-bounce'
-            : 'bg-blue-100 border-blue-300 animate-pulse'
+            ? 'bg-green-50/80 border-green-300 animate-bounce'
+            : 'bg-blue-50/80 border-blue-300 animate-pulse'
         }`}>
           <div className="flex items-center">
-            <MessageCircle className={`h-5 w-5 mr-2 ${
+            <div className={`p-2 rounded-full mr-4 ${
               newQuestionNotification.includes('enviada')
-                ? 'text-green-600'
-                : 'text-blue-600'
-            }`} />
-            <span className={`font-medium ${
+                ? 'bg-green-200'
+                : 'bg-blue-200'
+            }`}>
+              <MessageCircle className={`h-6 w-6 ${
+                newQuestionNotification.includes('enviada')
+                  ? 'text-green-600'
+                  : 'text-blue-600'
+              }`} />
+            </div>
+            <span className={`font-bold text-lg ${
               newQuestionNotification.includes('enviada')
                 ? 'text-green-800'
                 : 'text-blue-800'
@@ -199,50 +210,56 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
       )}
 
       {!isAdmin && !isAudienceQAActive && (
-         <div className="text-center p-4 my-6 bg-accent/10 border border-accent/30 rounded-lg">
-          <p className="text-text-primary">
+         <div className="text-center p-8 my-8 bg-accent/10 backdrop-blur-sm border-2 border-accent/30 rounded-2xl">
+          <MessageCircle className="h-16 w-16 text-accent mx-auto mb-4 opacity-50" />
+          <p className="text-text-primary text-xl font-semibold">
             {t('qaNotActive')}
+          </p>
+          <p className="text-text-secondary mt-2">
+            El presentador activará las preguntas pronto
           </p>
         </div>
       )}
 
       {!isAdmin && isAudienceQAActive && (
-        <form onSubmit={handleSubmitQuestion} className="mb-6 space-y-3">
-          <div>
-            <label htmlFor="questionText" className="block text-sm font-medium text-text-primary mb-1">{t('yourQuestion')}</label>
-            <textarea
-              id="questionText"
-              value={newQuestionText}
-              onChange={(e) => setNewQuestionText(e.target.value)}
-              placeholder={t('writeYourQuestionHere')}
-              className="w-full p-3 border border-border-color rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent outline-none text-text-primary bg-bg-primary resize-none"
-              rows={3}
-              disabled={isLoading}
-            />
+        <form onSubmit={handleSubmitQuestion} className="mb-8 space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="questionText" className="block text-lg font-semibold text-text-primary mb-3">{t('yourQuestion')}</label>
+              <textarea
+                id="questionText"
+                value={newQuestionText}
+                onChange={(e) => setNewQuestionText(e.target.value)}
+                placeholder={t('writeYourQuestionHere')}
+                className="w-full p-4 border-2 border-border-light/50 rounded-xl focus:ring-4 focus:ring-accent/20 focus:border-accent outline-none text-text-primary bg-bg-primary/50 backdrop-blur-sm resize-none transition-all duration-300 text-lg"
+                rows={4}
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label htmlFor="authorName" className="block text-lg font-semibold text-text-primary mb-3">{t('yourNameOptional')}</label>
+              <input
+                type="text"
+                id="authorName"
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+                placeholder={t('leaveBlankForAnonymous')}
+                className="w-full p-4 border-2 border-border-light/50 rounded-xl focus:ring-4 focus:ring-accent/20 focus:border-accent outline-none text-text-primary bg-bg-primary/50 backdrop-blur-sm transition-all duration-300 text-lg"
+                disabled={isLoading}
+              />
+            </div>
           </div>
-          <div>
-            <label htmlFor="authorName" className="block text-sm font-medium text-text-primary mb-1">{t('yourNameOptional')}</label>
-            <input
-              type="text"
-              id="authorName"
-              value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-              placeholder={t('leaveBlankForAnonymous')}
-              className="w-full p-3 border border-border-color rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent outline-none text-text-primary bg-bg-primary"
-              disabled={isLoading}
-            />
-          </div>
-          <div className="flex justify-end">
+          <div className="flex justify-center">
             <button
               type="submit"
-              className="bg-accent hover:brightness-95 text-button-text font-semibold py-2 px-6 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 flex items-center"
+              className="bg-accent hover:bg-accent/90 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 flex items-center text-lg micro-scale"
               disabled={isLoading}
             >
-              <MessageCircle size={18} className="mr-2" />
+              <MessageCircle size={24} className="mr-3" />
               {isLoading ? t('sending') : t('sendQuestion')}
             </button>
           </div>
-          {submitError && <p className="text-red-500 text-sm mt-1">{submitError}</p>}
+          {submitError && <p className="text-red-500 text-center mt-4 p-3 bg-red-50 rounded-lg border border-red-200">{submitError}</p>}
         </form>
       )}
 
@@ -262,9 +279,15 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
 
       {/* For non-admins, only show "no questions" message if Q&A is active */}
       {!isAdmin && isAudienceQAActive && questions.length === 0 && !isLoading && (
-        <p className="text-center text-text-secondary">
-          {t('beFirstToAsk')}
-        </p>
+        <div className="text-center p-8 my-8 bg-bg-primary/40 backdrop-blur-sm border-2 border-border-light/50 rounded-2xl">
+          <MessageCircle className="h-16 w-16 text-accent mx-auto mb-4 opacity-50" />
+          <p className="text-text-primary text-xl font-semibold mb-2">
+            {t('beFirstToAsk')}
+          </p>
+          <p className="text-text-secondary">
+            Comparte tu pregunta y comienza la conversación
+          </p>
+        </div>
       )}
       
       {/* Only render questions list if Q&A is active OR if user is admin (to allow management) */}
@@ -276,50 +299,56 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
             return (
               <div
                 key={q._id}
-                className={`p-4 rounded-lg shadow transition-all duration-300 ease-in-out
+                className={`group p-6 rounded-2xl shadow-lg transition-all duration-500 ease-in-out hover:shadow-xl border-2
                   ${ q.isAnswered
-                    ? isAdmin ? 'bg-green-700 border-l-4 border-green-400' : 'bg-green-100 border-l-4 border-green-500 text-green-800'
-                    : isAdmin ? (isHighlighted ? 'bg-blue-600 border-l-4 border-blue-400' : 'bg-gray-700 border-l-4 border-gray-500')
-                              : 'bg-gray-50 border-l-4 border-gray-300'
+                    ? isAdmin ? 'bg-green-700 border-green-400' : 'bg-green-50/80 backdrop-blur-sm border-green-300 hover:bg-green-100/80'
+                    : isAdmin ? (isHighlighted ? 'bg-blue-600 border-blue-400' : 'bg-gray-700 border-gray-500')
+                              : 'bg-bg-primary/60 backdrop-blur-sm border-border-light/50 hover:bg-bg-primary/80 hover:border-accent/30'
                   }
                   ${isHighlighted && isAdmin ? 'ring-2 ring-blue-300' : ''}
+                  ${!isAdmin ? 'hover:scale-[1.02]' : ''}
                 `}
               >
-                <p className={`text-lg ${isAdmin ? 'text-gray-100' : 'text-text-primary'}`}>{q.text}</p>
-                <div className={`text-xs mt-1 flex items-center flex-wrap ${isAdmin ? 'text-gray-400' : 'text-text-secondary'}`}>
-                  <span>{t('by')}: {q.author || t('anonymous')}</span>
-                  <span className="mx-1">|</span>
+                <p className={`text-xl leading-relaxed mb-4 ${isAdmin ? 'text-gray-100' : q.isAnswered ? 'text-green-800' : 'text-text-primary'}`}>
+                  {q.text}
+                </p>
+                <div className={`text-sm flex items-center flex-wrap gap-2 mb-4 ${isAdmin ? 'text-gray-400' : q.isAnswered ? 'text-green-600' : 'text-text-secondary'}`}>
+                  <span className="font-medium">{t('by')}: {q.author || t('anonymous')}</span>
+                  <span>•</span>
                   <span>{new Date(q.createdAt).toLocaleString()}</span>
                   {q.isAnswered && (
                     <>
-                      <span className="mx-1">|</span>
-                      <span className={`font-semibold ${isAdmin ? 'text-green-300' : 'text-green-600'}`}>
+                      <span>•</span>
+                      <span className={`font-bold px-2 py-1 rounded-full text-xs ${isAdmin ? 'bg-green-500 text-white' : 'bg-green-200 text-green-800'}`}>
                         {t('answered')}
                       </span>
                     </>
                   )}
                 </div>
 
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <span className={`mr-2 text-sm font-semibold ${isAdmin ? 'text-yellow-400' : 'text-accent'}`}>
-                      {q.upvotes} {q.upvotes === 1 ? t('vote') : t('votes')}
-                    </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`flex items-center space-x-2 px-3 py-2 rounded-full ${isAdmin ? 'bg-yellow-500/20' : 'bg-accent/10'}`}>
+                      <ThumbsUp size={16} className={`${isAdmin ? 'text-yellow-400' : 'text-accent'}`} />
+                      <span className={`text-sm font-bold ${isAdmin ? 'text-yellow-400' : 'text-accent'}`}>
+                        {q.upvotes}
+                      </span>
+                    </div>
                     {!isAdmin && currentParticipant && (
                       <button
                         onClick={() => handleUpvote(q._id)}
                         disabled={hasVoted || isLoading}
-                        className={`p-1 rounded-full transition-colors duration-150 ease-in-out
+                        className={`p-3 rounded-full transition-all duration-300 ease-in-out
                           ${hasVoted
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-blue-500 hover:bg-blue-100 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300'
+                            ? 'text-gray-400 cursor-not-allowed bg-gray-100'
+                            : 'text-blue-500 hover:bg-blue-100 hover:text-blue-700 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300/50'
                           } disabled:opacity-70`}
                         aria-label={hasVoted ? t('alreadyVoted') : t('voteForQuestion')}
                       >
-                        <ThumbsUp size={18} className={hasVoted ? 'fill-current text-blue-500' : ''} />
+                        <ThumbsUp size={20} className={hasVoted ? 'fill-current text-blue-500' : ''} />
                       </button>
                     )}
-                    {upvoteError[q._id] && <p className="text-red-500 text-xs ml-2">{upvoteError[q._id]}</p>}
+                    {upvoteError[q._id] && <p className="text-red-500 text-sm bg-red-50 px-2 py-1 rounded">{upvoteError[q._id]}</p>}
                   </div>
 
                   {isAdmin && (

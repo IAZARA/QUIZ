@@ -1,5 +1,7 @@
 import React from 'react';
 import { Play, StopCircle, Trash2, Edit2, Eye, EyeOff, Clock } from 'lucide-react';
+import VotingDashboard from './VotingDashboard';
+import ClosedQuestionSummary from './ClosedQuestionSummary';
 
 interface QuestionItemProps {
   question: {
@@ -14,6 +16,7 @@ interface QuestionItemProps {
     explanation_image?: string;
     is_active: boolean;
     timer?: number;
+    votingClosed?: boolean;
   };
   isActive: boolean;
   showCheatSheet: boolean;
@@ -23,6 +26,7 @@ interface QuestionItemProps {
   onDelete: () => void;
   onStartVoting: () => void;
   onStopVoting: () => void;
+  onShowResults: (correctOption: string) => void;
   onToggleCheatSheet: () => void;
   onTimerChange: (seconds: number) => void;
   calculateStats: () => { option: string; count: number; percentage: number }[];
@@ -38,15 +42,23 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
   onDelete,
   onStartVoting,
   onStopVoting,
+  onShowResults,
   onToggleCheatSheet,
   onTimerChange,
   calculateStats
 }) => {
-  const stats = calculateStats();
+  const stats = calculateStats().map(stat => ({
+    ...stat,
+    showPercentage: true
+  }));
   const totalVotes = Object.values(votes).reduce((sum, count) => sum + count, 0);
 
   return (
-    <div className={`bg-white shadow overflow-hidden sm:rounded-lg mb-4 ${isActive ? 'border-2 border-blue-500' : ''}`}>
+    <div className={`bg-white shadow overflow-hidden sm:rounded-lg mb-4 transition-all duration-300 ${
+      isActive ? 'border-2 border-blue-500 shadow-lg' :
+      question.votingClosed && totalVotes > 0 ? 'border-2 border-gray-300 bg-gray-50' :
+      'border border-gray-200 hover:shadow-md'
+    }`}>
       <div className="px-4 py-5 sm:px-6 flex justify-between items-start">
         <div>
           <h3 className="text-lg leading-6 font-medium text-gray-900">{question.content}</h3>
@@ -122,13 +134,39 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
           <div className="flex items-center space-x-2">
             {!isActive ? (
-              <button
-                onClick={onStartVoting}
-                className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-              >
-                <Play className="h-4 w-4 mr-1" />
-                Iniciar Votación
-              </button>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={onStartVoting}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-all duration-200 transform hover:scale-105 shadow-md"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Iniciar Votación
+                </button>
+                
+                {/* Estado de la pregunta */}
+                {question.votingClosed && totalVotes > 0 ? (
+                  <div className="flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-md">
+                    <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Finalizada - {totalVotes} {totalVotes === 1 ? 'voto' : 'votos'}
+                    </span>
+                  </div>
+                ) : question.votingClosed ? (
+                  <div className="flex items-center space-x-2 bg-yellow-100 px-3 py-2 rounded-md">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-yellow-700">
+                      Sin votos recibidos
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 bg-blue-100 px-3 py-2 rounded-md">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-blue-700">
+                      Lista para usar
+                    </span>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex items-center space-x-2">
                 <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1.5 rounded-md">
@@ -156,71 +194,32 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
           </div>
 
           {isActive && (
-            <div className="w-full sm:w-auto">
-              <div className="bg-gray-50 p-3 rounded-md">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Resultados en tiempo real:</h4>
-                <div className="space-y-3">
-                  {stats.map((stat) => (
-                    <div key={stat.option} className="flex items-center">
-                      <span className={`w-8 text-sm font-medium ${stat.count > 0 ? 'text-blue-700 font-semibold' : 'text-gray-700'}`}>
-                        {stat.option.toUpperCase()}:
-                      </span>
-                      <div className="flex-1 ml-2 relative">
-                        {/* Barra de fondo */}
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          {/* Barra de progreso */}
-                          <div
-                            className={`h-3 rounded-full ${stat.count > 0 ? 'bg-blue-600' : 'bg-gray-300'}`}
-                            style={{ width: `${Math.max(stat.percentage, 2)}%` }}
-                          ></div>
-                          
-                          {/* Indicador visual para opciones con votos */}
-                          {stat.count > 0 && (
-                            <div className="absolute top-0 left-0 w-full h-full flex items-center justify-start pl-2">
-                              <span className="text-xs font-medium text-white drop-shadow-sm">
-                                {stat.count} {stat.count === 1 ? 'voto' : 'votos'}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <span className={`ml-2 text-sm ${stat.count > 0 ? 'text-blue-700 font-semibold' : 'text-gray-500'} min-w-[80px] text-right`}>
-                        {stat.count} {stat.count === 1 ? 'voto' : 'votos'} ({stat.percentage}%)
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 pt-2 border-t border-gray-200 text-sm text-gray-700 flex justify-between items-center">
-                  <div>
-                    {totalVotes === 0 ? (
-                      <span className="text-yellow-600">No hay votos todavía</span>
-                    ) : totalVotes === 1 ? (
-                      <span>Hay <strong>1</strong> voto en total</span>
-                    ) : (
-                      <span>Hay <strong>{totalVotes}</strong> votos en total</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {stats.some(s => s.count > 0) ? (
-                      <span>
-                        Opción más votada: <strong className="text-blue-700">
-                          {stats.reduce((max, stat) => max.count > stat.count ? max : stat, { option: '', count: 0, percentage: 0 }).option.toUpperCase()}
-                        </strong>
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
+            <div className="w-full mt-6">
+              <VotingDashboard
+                question={{
+                  ...question,
+                  votingClosed: question.votingClosed || false
+                }}
+                stats={stats}
+                timeRemaining={timeRemaining}
+                totalVotes={totalVotes}
+                onStopVoting={onStopVoting}
+                onShowResults={onShowResults}
+              />
+            </div>
+          )}
 
-              <div className="mt-3 flex justify-end">
-                <button
-                  onClick={onStopVoting}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
-                >
-                  <StopCircle className="h-4 w-4 mr-2" />
-                  Detener y Mostrar Respuesta Correcta
-                </button>
-              </div>
+          {/* Mostrar resumen cuando la pregunta está cerrada y tiene votos */}
+          {!isActive && question.votingClosed && totalVotes > 0 && (
+            <div className="w-full mt-6">
+              <ClosedQuestionSummary
+                question={{
+                  ...question,
+                  votingClosed: question.votingClosed || false
+                }}
+                stats={stats}
+                totalVotes={totalVotes}
+              />
             </div>
           )}
         </div>

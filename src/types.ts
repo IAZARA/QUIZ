@@ -110,6 +110,7 @@ export interface QuestionState {
   deleteQuestion: (id: string) => Promise<void>;
   startVoting: (id: string) => Promise<void>;
   stopVoting: (id: string, correctOption?: string) => Promise<void>;
+  showResults: (id: string, correctOption: string) => Promise<any>;
   submitVote: (questionId: string, option: string) => Promise<void>;
   setHasVoted: (value: boolean) => void;
   updateQuestionTimer: (id: string, seconds: number) => Promise<void>;
@@ -165,13 +166,46 @@ export interface TournamentState {
 
 // TIPOS PARA CONTACTOS
 
+// Tipos para métodos de contacto
+export type ContactMethodType =
+  | 'email'
+  | 'phone'
+  | 'whatsapp'
+  | 'linkedin'
+  | 'facebook'
+  | 'instagram'
+  | 'twitter'
+  | 'discord'
+  | 'reddit'
+  | 'youtube'
+  | 'tiktok'
+  | 'telegram';
+
+export interface ContactMethod {
+  _id?: string;
+  type: ContactMethodType;
+  value: string;
+  label?: string; // Para mostrar texto personalizado
+}
+
+export interface ContactTypeConfig {
+  type: ContactMethodType;
+  label: string;
+  icon: string; // Nombre del icono de Lucide React
+  placeholder: string;
+  validation: RegExp;
+  urlTemplate?: string; // Para generar enlaces (ej: "https://wa.me/{value}")
+}
+
 // Tipo para un contacto
 export interface Contact {
   _id?: string;
   name: string;
-  email: string;
-  whatsapp: string; // Número de teléfono con formato internacional
+  contactMethods: ContactMethod[];
   created_at?: Date;
+  // Campos legacy para compatibilidad durante migración
+  email?: string;
+  whatsapp?: string;
 }
 
 // Tipo para el estado de contactos
@@ -180,7 +214,7 @@ export interface ContactState {
   isContactsActive: boolean;
   error: string | null;
   
-  // Funciones
+  // Funciones principales
   addContact: (contact: Omit<Contact, '_id' | 'created_at'>) => Promise<void>;
   updateContact: (id: string, updates: Partial<Contact>) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
@@ -188,7 +222,12 @@ export interface ContactState {
   activateContacts: () => Promise<void>;
   deactivateContacts: () => Promise<void>;
   
-  // Nuevas funciones para WebSocket
+  // Funciones para métodos de contacto
+  addContactMethod: (contactId: string, method: Omit<ContactMethod, '_id'>) => Promise<void>;
+  updateContactMethod: (contactId: string, methodId: string, updates: Partial<ContactMethod>) => Promise<void>;
+  deleteContactMethod: (contactId: string, methodId: string) => Promise<void>;
+  
+  // Funciones para WebSocket
   initializeSocketListeners: () => void;
   init: () => Promise<Contact[]>;
 }
@@ -226,6 +265,7 @@ export interface DocumentSharingState {
   deactivateDocumentsView: () => Promise<void>;
   loadDocuments: () => Promise<void>;
   setDocuments: (documents: IDocument[]) => void;
+  initializeSocketListeners: () => void;
 }
 
 // Tipo para una reseña de evento

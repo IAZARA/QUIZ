@@ -12,6 +12,8 @@ import wordCloudRoutes from './wordcloud-routes.js';
 import contactRoutes, { setupContactSockets } from './contact-routes.js';
 import audienceDataRoutes from './audience-data-routes.js'; // Import new audience data routes
 import reviewRoutes from './review-routes.js'; // Import review routes
+import aiRoutes from './ai-routes.js'; // Import AI routes
+import setupLinkSharingRoutes, { setupLinkSharingSockets } from './link-sharing-routes.js'; // Import link sharing routes
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Cargar variables de entorno
@@ -154,6 +156,7 @@ app.use('/api/wordcloud', wordCloudRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/audience-data', audienceDataRoutes); // Use new audience data routes
 app.use('/api/reviews', reviewRoutes); // Use review routes
+app.use('/api/ai', aiRoutes); // Use AI routes
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(process.cwd(), 'dist');
@@ -282,6 +285,8 @@ async function connectToDatabase() {
     
     setupTournamentRoutes(app, io, db);
     setupContactSockets(io);
+    setupLinkSharingRoutes(app, io, db);
+    setupLinkSharingSockets(io);
   } catch (error) {
     console.error('Error conectando a MongoDB:', error);
     process.exit(1);
@@ -883,7 +888,7 @@ app.post('/api/questions/:id/start', async (req, res) => {
       setTimeout(async () => {
         const currentQuestion = await db.collection('questions').findOne({ _id: new ObjectId(id) });
         if (currentQuestion && currentQuestion.is_active && !currentQuestion.votingClosed) {
-          await closeVoting(id);
+          await closeVoting(id, 'timer_expired');
         }
       }, timeoutMs);
     }
@@ -905,6 +910,24 @@ app.post('/api/questions/:id/close', async (req, res) => {
 app.post('/api/questions/:id/stop', async (req, res) => {
   try {
     const { id } = req.params;
+    
+    const question = await db.collection('questions').findOne({ _id: new ObjectId(id) });
+    if (!question) {
+      return res.status(404).json({ error: 'Pregunta no encontrada' });
+    }
+    
+    // Solo cerrar la votación, NO mostrar resultados automáticamente
+    const result = await closeVoting(id, 'manual_stop');
+    res.json(result);
+  } catch (error) {
+    console.error('Error al detener la votación:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/questions/:id/show-results', async (req, res) => {
+  try {
+    const { id } = req.params;
     const { correctOption } = req.body;
     
     const question = await db.collection('questions').findOne({ _id: new ObjectId(id) });
@@ -912,47 +935,14 @@ app.post('/api/questions/:id/stop', async (req, res) => {
       return res.status(404).json({ error: 'Pregunta no encontrada' });
     }
     
-    await db.collection('questions').updateOne(
-      { _id: new ObjectId(id) },
-      { 
-        $set: { 
-          is_active: true, 
-          correct_option: correctOption, 
-          endTime: null, 
-          votingClosed: true 
-        } 
-      }
-    );
-    
-    const questionVotes = await db.collection('votes').find({ question_id: id }).toArray();
-    
-    for (const vote of questionVotes) {
-      if (vote.option.toUpperCase() === correctOption.toUpperCase()) {
-        await db.collection('participants').updateOne(
-          { _id: new ObjectId(vote.voter_id) },
-          { 
-            $inc: { 
-              points: 1,
-              correctAnswers: 1,
-              totalAnswers: 1
-            }
-          }
-        );
-      } else {
-        await db.collection('participants').updateOne(
-          { _id: new ObjectId(vote.voter_id) },
-          { $inc: { totalAnswers: 1 } }
-        );
-      }
+    if (!question.votingClosed) {
+      return res.status(400).json({ error: 'La votación debe estar cerrada antes de mostrar resultados' });
     }
     
-    const updatedQuestion = await db.collection('questions').findOne({ _id: new ObjectId(id) });
-    const votesData = await getVotesForQuestion(id);
-    
-    res.json({ question: updatedQuestion, votes: votesData });
-    io.emit('voting_stopped', { question: updatedQuestion, votes: votesData });
+    const result = await showResults(id, correctOption);
+    res.json(result);
   } catch (error) {
-    console.error('Error al detener la votación:', error);
+    console.error('Error al mostrar resultados:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -961,6 +951,9 @@ app.post('/api/questions/:id/vote', async (req, res) => {
   try {
     const { id } = req.params;
     const { option, voter_id } = req.body;
+    
+    // Normalizar la opción a minúscula para consistencia
+    const normalizedOption = option.toLowerCase();
     
     const question = await db.collection('questions').findOne({ _id: new ObjectId(id) });
     if (!question || !question.is_active || question.votingClosed) {
@@ -986,7 +979,7 @@ app.post('/api/questions/:id/vote', async (req, res) => {
     
     await db.collection('votes').insertOne({
       question_id: id,
-      option,
+      option: normalizedOption,
       voter_id,
       responseTime,
       created_at: new Date()
@@ -999,13 +992,18 @@ app.post('/api/questions/:id/vote', async (req, res) => {
     
     const votes = await getVotesForQuestion(id);
     res.json({ success: true, votes });
-    io.emit('vote_submitted', { question_id: id, votes });
+    
+    // Emitir estadísticas solo al presentador durante votación activa
+    io.emit('presenter_stats_update', { question_id: id, votes });
+    
+    // Emitir confirmación de voto a la audiencia (sin estadísticas)
+    io.emit('vote_submitted', { question_id: id });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-async function closeVoting(id) {
+async function closeVoting(id, reason = 'manual') {
   await db.collection('questions').updateOne(
     { _id: new ObjectId(id) },
     { $set: { votingClosed: true, endTime: null } }
@@ -1014,7 +1012,51 @@ async function closeVoting(id) {
   const updatedQuestion = await db.collection('questions').findOne({ _id: new ObjectId(id) });
   const votes = await getVotesForQuestion(id);
   
-  io.emit('voting_closed', { question: updatedQuestion, votes });
+  io.emit('voting_closed', {
+    question: updatedQuestion,
+    votes,
+    reason: reason // 'timer_expired' o 'manual_stop'
+  });
+  return { question: updatedQuestion, votes };
+}
+
+async function showResults(id, correctOption) {
+  await db.collection('questions').updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { correct_option: correctOption } }
+  );
+  
+  const updatedQuestion = await db.collection('questions').findOne({ _id: new ObjectId(id) });
+  const votes = await getVotesForQuestion(id);
+  
+  // Calcular puntos para participantes
+  const questionVotes = await db.collection('votes').find({ question_id: id }).toArray();
+  for (const vote of questionVotes) {
+    if (vote.option && correctOption && vote.option.toLowerCase() === correctOption.toLowerCase()) {
+      await db.collection('participants').updateOne(
+        { _id: new ObjectId(vote.voter_id) },
+        {
+          $inc: {
+            points: 1,
+            correctAnswers: 1,
+            totalAnswers: 1
+          }
+        }
+      );
+    } else {
+      await db.collection('participants').updateOne(
+        { _id: new ObjectId(vote.voter_id) },
+        { $inc: { totalAnswers: 1 } }
+      );
+    }
+  }
+  
+  io.emit('show_question_results', {
+    question: updatedQuestion,
+    votes,
+    showStatistics: true
+  });
+  
   return { question: updatedQuestion, votes };
 }
 

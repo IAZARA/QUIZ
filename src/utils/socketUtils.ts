@@ -24,7 +24,8 @@ export interface SocketStores {
   setContact: (state: { isContactsActive?: boolean }) => void;
   setAudienceQA: (state: { isAudienceQAActive?: boolean }) => void;
   setDocumentSharing: (state: { isDocumentsActive?: boolean; documents?: IDocument[] }) => void;
-  setAudienceData: (state: { isActive?: boolean }) => void;
+  setLinkSharing: (state: { isLinkSharingActive?: boolean; activeLink?: any }) => void;
+  setAudienceData: (state: { isAudienceDataActive?: boolean }) => void;
   setReviews: (state: { isReviewsActive?: boolean }) => void;
 }
 
@@ -110,10 +111,29 @@ export const setupSocketListeners = (stores: SocketStores, retryCount: number = 
     stores.setDocumentSharing({ documents: updatedDocuments });
   });
 
+  // Eventos para compartir links
+  socket.on('link:status', (data: { isActive: boolean }) => {
+    console.log('Received link:status event:', data);
+    stores.setLinkSharing({ isLinkSharingActive: data.isActive });
+  });
+
+  socket.on('link:shared', (data: { link: any }) => {
+    console.log('Received link:shared event:', data);
+    stores.setLinkSharing({
+      isLinkSharingActive: true,
+      activeLink: data.link
+    });
+  });
+
+  socket.on('link:stopped', () => {
+    console.log('Received link:stopped event');
+    stores.setLinkSharing({ activeLink: null });
+  });
+
   // Eventos para datos de audiencia
   socket.on('audienceData:status', (data: { isActive: boolean }) => {
     console.log('Recibido evento de estado de datos de audiencia:', data);
-    stores.setAudienceData({ isActive: data.isActive });
+    stores.setAudienceData({ isAudienceDataActive: data.isActive });
   });
 
   // Eventos para reviews
@@ -138,6 +158,9 @@ export const cleanupSocketListeners = () => {
   socket.off('audienceQA:status');
   socket.off('documents:status');
   socket.off('documents:list_update');
+  socket.off('link:status');
+  socket.off('link:shared');
+  socket.off('link:stopped');
   socket.off('audienceData:status');
   socket.off('reviews:status');
 };

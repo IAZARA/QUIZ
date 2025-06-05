@@ -72,6 +72,11 @@ export const useAudienceQAStore = create<AudienceQAState>((set, get) => ({
           ).sort((a, b) => b.upvotes - a.upvotes || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), // Keep sorted
         }));
       });
+
+      socket.on('audienceQA:status', (data: { isActive: boolean }) => {
+        console.log('Evento audienceQA:status recibido:', data);
+        set({ isAudienceQAActive: data.isActive });
+      });
     }
   },
 
