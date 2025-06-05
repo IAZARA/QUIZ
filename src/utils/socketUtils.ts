@@ -71,6 +71,26 @@ export const setupSocketListeners = (stores: SocketStores, retryCount: number = 
   socket.on('contacts:status', (data: { isActive: boolean }) => {
     console.log('Received contacts:status event:', data);
     stores.setContact({ isContactsActive: data.isActive });
+    
+    // Si se activan los contactos, cargarlos automáticamente
+    if (data.isActive) {
+      console.log('Contactos activados via socket, cargando lista...');
+      // Hacer una llamada a la API para cargar los contactos
+      fetch('/api/contacts')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Error al cargar contactos');
+          }
+          return response.json();
+        })
+        .then(contacts => {
+          console.log('Contactos cargados via socket:', contacts.length);
+          stores.setContact({ isContactsActive: true });
+        })
+        .catch(error => {
+          console.error('Error al cargar contactos via socket:', error);
+        });
+    }
   });
 
   // Eventos para preguntas y respuestas de la audiencia
