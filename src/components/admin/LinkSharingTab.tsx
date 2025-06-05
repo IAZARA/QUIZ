@@ -26,6 +26,7 @@ const LinkSharingTab: React.FC = () => {
   const {
     links,
     activeLink,
+    activeLinks,
     isLinkSharingActive,
     loadLinks,
     createLink,
@@ -144,6 +145,15 @@ const LinkSharingTab: React.FC = () => {
     }
   };
 
+  const handleShareAll = async () => {
+    try {
+      await shareAllLinks();
+      showNotification('Todos los links han sido compartidos con la audiencia', 'success');
+    } catch (error) {
+      showNotification('Error al compartir todos los links', 'error');
+    }
+  };
+
   const handleToggleFeature = async () => {
     try {
       if (isLinkSharingActive) {
@@ -209,14 +219,23 @@ const LinkSharingTab: React.FC = () => {
         </div>
 
         {/* Estado actual */}
-        {activeLink && (
+        {(activeLink || activeLinks.length > 0) && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Globe className="h-5 w-5 text-blue-600" />
                 <div>
-                  <p className="font-medium text-blue-800">Link actualmente compartido:</p>
-                  <p className="text-blue-600">{activeLink.title}</p>
+                  {activeLink ? (
+                    <>
+                      <p className="font-medium text-blue-800">Link actualmente compartido:</p>
+                      <p className="text-blue-600">{activeLink.title}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-blue-800">Compartiendo todos los links:</p>
+                      <p className="text-blue-600">{activeLinks.length} enlaces activos</p>
+                    </>
+                  )}
                 </div>
               </div>
               <button
@@ -247,7 +266,7 @@ const LinkSharingTab: React.FC = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black bg-white placeholder-gray-500"
                 placeholder="Ej: Sitio web oficial, Documentación, etc."
                 required
               />
@@ -261,7 +280,7 @@ const LinkSharingTab: React.FC = () => {
                 type="url"
                 value={formData.url}
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black bg-white placeholder-gray-500"
                 placeholder="https://ejemplo.com"
                 required
               />
@@ -274,7 +293,7 @@ const LinkSharingTab: React.FC = () => {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black bg-white placeholder-gray-500"
                 rows={3}
                 placeholder="Descripción opcional del enlace"
               />
@@ -302,7 +321,30 @@ const LinkSharingTab: React.FC = () => {
       {/* Lista de links */}
       <div className="bg-white rounded-lg shadow-md">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold">Links Guardados</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Links Guardados ({links.length})</h2>
+            {links.length > 0 && (
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleShareAll}
+                  disabled={activeLinks.length > 0}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors font-medium ${
+                    activeLinks.length > 0
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                >
+                  <Share className="h-4 w-4" />
+                  <span>
+                    {activeLinks.length > 0
+                      ? 'Todos Compartidos'
+                      : 'Compartir Todos'
+                    }
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {links.length === 0 ? (
@@ -321,7 +363,12 @@ const LinkSharingTab: React.FC = () => {
                       <h3 className="font-medium text-gray-900">{link.title}</h3>
                       {activeLink?._id === link._id && (
                         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                          Compartido
+                          Compartido Individual
+                        </span>
+                      )}
+                      {activeLinks.length > 0 && activeLinks.some(activeLink => activeLink._id === link._id) && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                          Compartido en Grupo
                         </span>
                       )}
                     </div>
@@ -339,15 +386,22 @@ const LinkSharingTab: React.FC = () => {
                   <div className="flex items-center space-x-2 ml-4">
                     <button
                       onClick={() => handleShare(link._id!)}
-                      disabled={activeLink?._id === link._id}
+                      disabled={activeLink?._id === link._id || activeLinks.length > 0}
                       className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm transition-colors ${
-                        activeLink?._id === link._id
+                        activeLink?._id === link._id || activeLinks.length > 0
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           : 'bg-green-100 text-green-700 hover:bg-green-200'
                       }`}
                     >
                       <Share className="h-4 w-4" />
-                      <span>Compartir</span>
+                      <span>
+                        {activeLink?._id === link._id
+                          ? 'Compartiendo'
+                          : activeLinks.length > 0
+                            ? 'En Grupo'
+                            : 'Compartir'
+                        }
+                      </span>
                     </button>
 
                     <button

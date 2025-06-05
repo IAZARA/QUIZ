@@ -45,6 +45,7 @@ export default function setupLinkSharingRoutes(app, io, database) {
       
       // Emitir evento de socket
       io.emit('link:created', newLink);
+      console.log('Link created and broadcasted:', newLink.title);
     } catch (error) {
       console.error('Error creating link:', error);
       res.status(500).json({ error: error.message });
@@ -140,26 +141,35 @@ export default function setupLinkSharingRoutes(app, io, database) {
   // Compartir todos los links
   app.post('/api/links/share-all', async (req, res) => {
     try {
-      // Obtener todos los links activos
-      const allLinks = await db.collection('shared_links').find({ isActive: true }).toArray();
+      // Obtener todos los links (no filtrar por isActive ya que ese campo no existe en el modelo)
+      const allLinks = await db.collection('shared_links').find({}).toArray();
       
       if (allLinks.length === 0) {
         return res.status(400).json({ error: 'No hay links disponibles para compartir' });
       }
 
+      // Primero, desactivar cualquier link que esté siendo compartido individualmente
+      await db.collection('shared_links').updateMany(
+        { isShared: true },
+        { $set: { isShared: false, updatedAt: new Date() } }
+      );
+
       // Marcar todos los links como compartidos
       await db.collection('shared_links').updateMany(
-        { isActive: true },
+        {},
         { $set: { isShared: true, updatedAt: new Date() } }
       );
 
-      res.json({ success: true, sharedCount: allLinks.length, links: allLinks });
+      // Obtener los links actualizados
+      const updatedLinks = await db.collection('shared_links').find({ isShared: true }).toArray();
+
+      res.json({ success: true, sharedCount: updatedLinks.length, links: updatedLinks });
       
       // Emitir eventos de socket
-      io.emit('links:shared-all', { links: allLinks });
+      io.emit('links:shared-all', { links: updatedLinks });
       io.emit('link:status', { isActive: true });
       
-      console.log(`Shared all links: ${allLinks.length} links`);
+      console.log(`Shared all links: ${updatedLinks.length} links`);
     } catch (error) {
       console.error('Error sharing all links:', error);
       res.status(500).json({ error: error.message });
@@ -234,16 +244,32 @@ export function setupLinkSharingSockets(io) {
     socket.on('request:link-status', async () => {
       try {
         if (db) {
+          // Verificar si hay un link individual compartido
           const activeLink = await db.collection('shared_links').findOne({ isShared: true });
+          
           if (activeLink) {
-            socket.emit('link:shared', { link: activeLink });
-            socket.emit('link:status', { isActive: true });
+            // Verificar si hay múltiples links compartidos
+            const allSharedLinks = await db.collection('shared_links').find({ isShared: true }).toArray();
+            
+            if (allSharedLinks.length > 1) {
+              // Múltiples links compartidos
+              socket.emit('links:shared-all', { links: allSharedLinks });
+              socket.emit('link:status', { isActive: true });
+              console.log(`Sent multiple shared links status to ${socket.id}: ${allSharedLinks.length} links`);
+            } else {
+              // Un solo link compartido
+              socket.emit('link:shared', { link: activeLink });
+              socket.emit('link:status', { isActive: true });
+              console.log(`Sent single shared link status to ${socket.id}: ${activeLink.title}`);
+            }
           } else {
             socket.emit('link:status', { isActive: false });
+            console.log(`Sent inactive status to ${socket.id}`);
           }
         }
       } catch (error) {
         console.error('Error sending link status:', error);
+        socket.emit('link:status', { isActive: false });
       }
     });
 

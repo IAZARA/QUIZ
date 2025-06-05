@@ -15,6 +15,7 @@ interface LinkSharingState {
   // Estado
   links: SharedLink[];
   activeLink: SharedLink | null;
+  activeLinks: SharedLink[]; // Para cuando se comparten múltiples links
   isLinkSharingActive: boolean;
   socket: Socket | null;
   
@@ -24,6 +25,7 @@ interface LinkSharingState {
   updateLink: (id: string, updates: Partial<SharedLink>) => void;
   deleteLink: (id: string) => void;
   setActiveLink: (link: SharedLink | null) => void;
+  setActiveLinks: (links: SharedLink[]) => void;
   setIsLinkSharingActive: (isActive: boolean) => void;
   
   // Funciones de API
@@ -48,6 +50,7 @@ export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
   // Estado inicial
   links: [],
   activeLink: null,
+  activeLinks: [],
   isLinkSharingActive: false,
   socket: null,
 
@@ -70,6 +73,7 @@ export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
     links: state.links.filter(link => link._id !== id)
   })),
   setActiveLink: (link) => set({ activeLink: link }),
+  setActiveLinks: (links) => set({ activeLinks: links }),
   setIsLinkSharingActive: (isActive) => set({ isLinkSharingActive: isActive }),
 
   // Funciones de API
@@ -101,8 +105,8 @@ export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
 
       if (response.ok) {
         const newLink = await response.json();
-        // No agregamos aquí porque el socket event lo hará
-        // get().addLink(newLink);
+        // Agregamos directamente aquí y evitamos el socket event para evitar duplicación
+        get().addLink(newLink);
       }
     } catch (error) {
       console.error('Error creating link:', error);
@@ -202,8 +206,11 @@ export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
 
       if (response.ok) {
         const result = await response.json();
-        set({ isLinkSharingActive: true });
-        // El activeLink se mantendrá como null para indicar que se están compartiendo todos
+        set({
+          isLinkSharingActive: true,
+          activeLinks: result.links,
+          activeLink: null // null indica que se están compartiendo múltiples links
+        });
       }
     } catch (error) {
       console.error('Error sharing all links:', error);
@@ -218,7 +225,7 @@ export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
       });
 
       if (response.ok) {
-        set({ activeLink: null });
+        set({ activeLink: null, activeLinks: [] });
       }
     } catch (error) {
       console.error('Error stopping link sharing:', error);
@@ -242,15 +249,24 @@ export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
     });
 
     socket.on('link:shared', (data: { link: SharedLink }) => {
-      set({ activeLink: data.link, isLinkSharingActive: true });
+      set({ activeLink: data.link, activeLinks: [], isLinkSharingActive: true });
+    });
+
+    socket.on('links:shared-all', (data: { links: SharedLink[] }) => {
+      set({ activeLinks: data.links, activeLink: null, isLinkSharingActive: true });
     });
 
     socket.on('link:stopped', () => {
-      set({ activeLink: null });
+      set({ activeLink: null, activeLinks: [] });
     });
 
     socket.on('link:created', (link: SharedLink) => {
-      get().addLink(link);
+      // Solo agregar si no existe ya (para evitar duplicación desde otros clientes)
+      const { links } = get();
+      const exists = links.some(existingLink => existingLink._id === link._id);
+      if (!exists) {
+        get().addLink(link);
+      }
     });
 
     socket.on('link:updated', (link: SharedLink) => {
