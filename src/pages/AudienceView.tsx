@@ -244,13 +244,13 @@ export default function AudienceView() {
   
   if (isWordCloudActive) {
     return (
-      <div className="min-h-screen bg-bg-secondary text-text-primary">
-        <AudienceHeader 
+      <div className="min-h-screen bg-bg-primary">
+        <AudienceHeader
           title={t('interactiveWordCloud')}
           currentParticipant={currentParticipant}
           onLogout={handleLogout}
         />
-        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <main className="max-w-4xl mx-auto py-8 px-6">
           <WordCloudParticipant />
         </main>
       </div>
@@ -263,13 +263,13 @@ export default function AudienceView() {
   
   if (isAudienceQAActive) {
     return (
-      <div className="min-h-screen bg-bg-secondary text-text-primary">
-        <AudienceHeader 
+      <div className="min-h-screen bg-bg-primary">
+        <AudienceHeader
           title={t('audienceQA')}
           currentParticipant={currentParticipant}
           onLogout={handleLogout}
         />
-        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <main className="max-w-4xl mx-auto py-8 px-6">
           <AudienceQA isAdmin={false} />
         </main>
       </div>
@@ -278,13 +278,13 @@ export default function AudienceView() {
   
   if (isDocumentsActive) {
     return (
-      <div className="min-h-screen bg-bg-secondary text-text-primary">
-        <AudienceHeader 
+      <div className="min-h-screen bg-bg-primary">
+        <AudienceHeader
           title={t('sharedDocuments')}
           currentParticipant={currentParticipant}
           onLogout={handleLogout}
         />
-        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <main className="max-w-4xl mx-auto py-8 px-6">
           <DocumentDownloadList />
         </main>
       </div>
@@ -294,14 +294,16 @@ export default function AudienceView() {
   // Mostrar formulario de datos de audiencia si está activo
   if (isAudienceDataActive) {
     return (
-      <div className="min-h-screen bg-bg-secondary text-text-primary flex flex-col items-center justify-center p-4">
-        <AudienceHeader 
-          title={t('audienceDataForm.headerTitle') || t('audienceDataForm.title')} 
+      <div className="min-h-screen bg-bg-primary">
+        <AudienceHeader
+          title={t('audienceDataForm.headerTitle') || t('audienceDataForm.title')}
           currentParticipant={currentParticipant}
           onLogout={handleLogout}
         />
-        <main className="w-full max-w-lg">
-          <AudienceDataForm onSubmitSuccess={() => {}} />
+        <main className="flex items-center justify-center py-8 px-6">
+          <div className="w-full max-w-lg">
+            <AudienceDataForm onSubmitSuccess={() => {}} />
+          </div>
         </main>
       </div>
     );
@@ -318,13 +320,13 @@ export default function AudienceView() {
   // If there's an active question, show the voting interface
   return (
     <SocketManager>
-    <div className="min-h-screen bg-bg-secondary text-text-primary">
-      <AudienceHeader 
+    <div className="min-h-screen bg-bg-primary">
+      <AudienceHeader
         title={t('liveQuiz')}
         currentParticipant={currentParticipant}
         onLogout={handleLogout}
       />
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-4xl mx-auto py-8 px-6">
         <QuestionInterface 
           currentQuestion={currentQuestion}
           timeRemaining={timeRemaining}

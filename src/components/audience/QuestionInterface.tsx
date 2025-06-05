@@ -41,21 +41,26 @@ const QuestionInterface: React.FC<QuestionInterfaceProps> = ({
 
   if (currentQuestion.votingClosed) {
     return (
-      <div className="bg-blue-800 shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:p-6 text-center">
-          <h2 className="text-lg font-medium text-white mb-4">
+      <div className="card animate-fadeInScale">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-text-primary mb-4">
             {t('waitingForNextQuestion')}
           </h2>
-          <p className="text-blue-100">
+          <p className="text-text-secondary">
             {t('presenterWillStartNextQuestion')}
           </p>
+          <div className="flex justify-center space-x-2 mt-6">
+            <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-accent/80 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-accent/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-blue-800 shadow overflow-hidden sm:rounded-lg">
+    <div className="card animate-fadeInUp">
       {/* Temporizador */}
       <QuestionTimer
         timeRemaining={timeRemaining}
@@ -63,23 +68,25 @@ const QuestionInterface: React.FC<QuestionInterfaceProps> = ({
         showTimer={showTimer}
       />
 
-      <div className="px-4 py-5 sm:p-6">
+      <div className="space-y-6">
         {/* Contenido de la pregunta */}
-        <h2 className="text-lg leading-6 font-medium text-white mb-4">
-          {currentQuestion.content}
-        </h2>
+        <div className="animate-fadeIn">
+          <h2 className="text-xl font-semibold text-text-primary mb-4 leading-relaxed">
+            {currentQuestion.content}
+          </h2>
 
-        {currentQuestion.case && (
-          <div className="bg-blue-700 rounded-md p-4 mb-6 text-sm text-blue-100 whitespace-pre-wrap">
-            {currentQuestion.case}
-          </div>
-        )}
+          {currentQuestion.case && (
+            <div className="bg-bg-tertiary border border-border-light rounded-lg p-4 mb-6 text-sm text-text-secondary whitespace-pre-wrap">
+              {currentQuestion.case}
+            </div>
+          )}
+        </div>
 
         {/* Mensaje cuando no se seleccionó ninguna opción y la votación está cerrada */}
         {!selectedOption && currentQuestion.votingClosed && (
-          <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-md">
-            <div className="flex items-center text-yellow-700 dark:text-yellow-400">
-              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mb-6 p-4 bg-warning-light border border-warning/30 rounded-lg animate-fadeIn">
+            <div className="flex items-center text-warning">
+              <svg className="h-5 w-5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <span className="font-medium">{t('noOptionSelected')}</span>
@@ -88,7 +95,7 @@ const QuestionInterface: React.FC<QuestionInterfaceProps> = ({
         )}
 
         {/* Opciones */}
-        <div className="space-y-4 mb-6">
+        <div className="space-y-3 mb-6">
           {['a', 'b', 'c'].map((option) => {
             const optionKey = `option_${option}` as keyof typeof currentQuestion;
             const optionContent = currentQuestion[optionKey] as string;
@@ -119,29 +126,31 @@ const QuestionInterface: React.FC<QuestionInterfaceProps> = ({
           <button
             onClick={() => selectedOption && handleVote(selectedOption)}
             disabled={!selectedOption || submitting}
-            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-blue-800 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary w-full py-3 text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
           >
             {submitting ? t('submittingAnswerButton') : t('submitAnswerButton')}
           </button>
         )}
 
         {error && (
-          <div className="mt-4 p-4 rounded-md shadow-md border-l-4 bg-red-50 border-red-500 text-sm">
-            <div className="flex">
+          <div className="mt-6 p-4 bg-error-light border border-error/30 rounded-lg animate-fadeIn">
+            <div className="flex items-start">
               <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-red-500" />
+                <AlertCircle className="h-5 w-5 text-error mt-0.5" />
               </div>
               <div className="ml-3">
-                <p className="text-red-800">{error}</p>
+                <p className="text-error font-medium">{error}</p>
               </div>
             </div>
           </div>
         )}
 
         {hasVoted && !currentQuestion.votingClosed && (
-          <div className="mt-4 p-4 bg-green-500/10 border border-green-500/30 rounded-md text-sm text-green-600 dark:text-green-400 flex items-center">
-            <Check className="h-4 w-4 mr-2" />
-            {t('answerRegistered')}
+          <div className="mt-6 p-4 bg-success-light border border-success/30 rounded-lg animate-fadeInScale">
+            <div className="flex items-center text-success">
+              <Check className="h-5 w-5 mr-3 flex-shrink-0" />
+              <span className="font-medium">{t('answerRegistered')}</span>
+            </div>
           </div>
         )}
 

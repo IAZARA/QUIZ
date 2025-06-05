@@ -18,14 +18,42 @@ const QuestionTimer: React.FC<QuestionTimerProps> = ({
 
   if (timeRemaining === null) return null;
 
+  const minutes = Math.floor(timeRemaining / 60);
+  const seconds = timeRemaining % 60;
+  const progressPercentage = timeRemaining <= 30 ? (timeRemaining / 30) * 100 : 100;
+
   return (
-    <div className={`p-4 ${timerWarning ? 'bg-red-100 dark:bg-red-500/20' : 'bg-blue-600/10 dark:bg-blue-600/20'} flex items-center justify-between border-b border-blue-700`}>
-      <div className="flex items-center">
-        <Clock className={`h-5 w-5 ${timerWarning ? 'text-red-600 dark:text-red-400' : 'text-blue-600'} mr-2`} />
-        <span className={`font-medium ${timerWarning ? 'text-red-600 dark:text-red-400' : 'text-blue-600'}`}>
-          {t('timeRemaining')}: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
-        </span>
+    <div className={`p-4 border-b border-border-light transition-all duration-normal ${
+      timerWarning ? 'bg-warning-light' : 'bg-bg-tertiary'
+    }`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-2">
+          <Clock className={`h-4 w-4 transition-colors duration-normal ${
+            timerWarning ? 'text-warning animate-pulse' : 'text-text-muted'
+          }`} />
+          <span className={`text-sm font-medium transition-colors duration-normal ${
+            timerWarning ? 'text-warning' : 'text-text-secondary'
+          }`}>
+            {t('timeRemaining')}
+          </span>
+        </div>
+        <div className={`text-lg font-bold tabular-nums transition-colors duration-normal ${
+          timerWarning ? 'text-warning' : 'text-text-primary'
+        }`}>
+          {minutes}:{seconds.toString().padStart(2, '0')}
+        </div>
       </div>
+      
+      {/* Barra de progreso minimalista */}
+      <div className="w-full bg-bg-secondary rounded-full h-1.5 overflow-hidden">
+        <div
+          className={`h-full transition-all duration-1000 ease-linear rounded-full ${
+            timerWarning ? 'bg-warning' : 'bg-accent'
+          }`}
+          style={{ width: `${progressPercentage}%` }}
+        />
+      </div>
+      
       {showTimer && <TimerSound warning={timerWarning} />}
     </div>
   );

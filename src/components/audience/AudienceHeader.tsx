@@ -25,30 +25,35 @@ const AudienceHeader: React.FC<AudienceHeaderProps> = ({
   const defaultLogoPlaceholder = "QuizApp"; // Or e.g., "/default-logo.png";
 
   return (
-    <header className="bg-blue-700 shadow">
+    <header className="bg-bg-secondary/95 backdrop-blur-md border-b border-border-light shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-        <div className="flex items-center"> {/* Container for logo and title */}
+        <div className="flex items-center space-x-4">
           {config.logoUrl ? (
-            <img 
-              src={config.logoUrl} 
-              alt="Quiz Logo" 
-              style={{ maxHeight: '40px', marginRight: '15px', borderRadius: '4px' }} 
+            <img
+              src={config.logoUrl}
+              alt="Quiz Logo"
+              className="h-8 w-auto rounded-md micro-hover"
             />
           ) : (
-            <span className="text-xl font-bold text-white mr-4">{defaultLogoPlaceholder}</span>
+            <span className="text-lg font-bold text-text-primary">{defaultLogoPlaceholder}</span>
           )}
-          <h1 className="text-xl font-bold text-white">{title}</h1>
+          <div className="h-6 w-px bg-border-light"></div>
+          <h1 className="text-lg font-semibold text-text-primary">{title}</h1>
         </div>
+        
         <div className="flex items-center space-x-4">
           <LanguageSwitcher />
           {currentParticipant && (
             <>
-              <span className="text-sm font-medium text-blue-100">
-                {t('participant')}: {currentParticipant.name}
-              </span>
+              <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-bg-tertiary rounded-lg border border-border-light">
+                <div className="w-2 h-2 bg-accent rounded-full animate-pulse-subtle"></div>
+                <span className="text-sm font-medium text-text-secondary">
+                  {currentParticipant.name}
+                </span>
+              </div>
               <button
                 onClick={onLogout}
-                className="text-sm text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400"
+                className="text-sm text-error hover:text-error/80 font-medium transition-colors duration-normal micro-scale px-2 py-1 rounded-md"
               >
                 {t('logoutButton')}
               </button>

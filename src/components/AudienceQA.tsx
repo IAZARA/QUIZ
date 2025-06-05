@@ -33,6 +33,7 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [upvoteError, setUpvoteError] = useState<Record<string, string | null>>({});
   const [highlightedQuestions, setHighlightedQuestions] = useState<Set<string>>(new Set());
+  const [newQuestionNotification, setNewQuestionNotification] = useState<string | null>(null);
 
   const prevQuestionsRef = useRef<AudienceQuestion[]>([]);
 
@@ -42,11 +43,13 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
   }, [fetchQuestions, initializeSocket]);
 
   useEffect(() => {
-    if (isAdmin) {
-      const newQuestions = questions.filter(
-        (q) => !prevQuestionsRef.current.some(pq => pq._id === q._id) && new Date(q.createdAt).getTime() > Date.now() - 5000 // Consider recent as new
-      );
-      if (newQuestions.length > 0) {
+    const newQuestions = questions.filter(
+      (q) => !prevQuestionsRef.current.some(pq => pq._id === q._id) && new Date(q.createdAt).getTime() > Date.now() - 10000 // Consider recent as new
+    );
+    
+    if (newQuestions.length > 0) {
+      if (isAdmin) {
+        // Para administradores: resaltar preguntas nuevas
         const newIds = new Set(highlightedQuestions);
         newQuestions.forEach(q => newIds.add(q._id));
         setHighlightedQuestions(newIds);
@@ -60,10 +63,21 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
             });
           }, 5000); // Highlight duration
         });
+      } else {
+        // Para audiencia: mostrar notificación de nueva pregunta
+        if (newQuestions.length === 1) {
+          setNewQuestionNotification(`Nueva pregunta de ${newQuestions[0].author || 'Anónimo'}`);
+        } else {
+          setNewQuestionNotification(`${newQuestions.length} nuevas preguntas`);
+        }
+        
+        setTimeout(() => {
+          setNewQuestionNotification(null);
+        }, 4000);
       }
     }
     prevQuestionsRef.current = questions;
-  }, [questions, isAdmin]);
+  }, [questions, isAdmin, highlightedQuestions]);
 
 
   const handleSubmitQuestion = async (e: React.FormEvent) => {
@@ -72,11 +86,20 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
       setSubmitError(t('questionCannotBeEmpty'));
       return;
     }
+    
+    setSubmitError(null);
+    
     try {
       await submitQuestion(newQuestionText, authorName.trim() || undefined);
       setNewQuestionText('');
       setAuthorName('');
-      setSubmitError(null);
+      
+      // Mostrar confirmación visual
+      setNewQuestionNotification('¡Pregunta enviada correctamente!');
+      setTimeout(() => {
+        setNewQuestionNotification(null);
+      }, 3000);
+      
     } catch (err: any) {
       setSubmitError(err.message || t('errorSendingQuestion'));
     }
@@ -104,10 +127,42 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
   }
 
   return (
-    <div className={`p-4 rounded-lg shadow-md ${isAdmin ? 'bg-gray-800 text-white' : 'bg-white'}`}>
-      <h2 className="text-2xl font-bold mb-6 text-center">
-        {isAdmin ? 'Gestionar Preguntas de la Audiencia' : 'Preguntas de la Audiencia'}
-      </h2>
+    <div className={`p-4 rounded-lg shadow-md ${isAdmin ? 'bg-gray-800 text-white' : 'bg-bg-primary'}`}>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">
+          {isAdmin ? 'Gestionar Preguntas de la Audiencia' : 'Preguntas de la Audiencia'}
+        </h2>
+        {!isAdmin && isAudienceQAActive && (
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm text-text-secondary">En vivo</span>
+          </div>
+        )}
+      </div>
+
+      {/* Notificación de nueva pregunta para audiencia */}
+      {!isAdmin && newQuestionNotification && (
+        <div className={`mb-4 p-3 border rounded-lg transition-all duration-300 ${
+          newQuestionNotification.includes('enviada')
+            ? 'bg-green-100 border-green-300 animate-bounce'
+            : 'bg-blue-100 border-blue-300 animate-pulse'
+        }`}>
+          <div className="flex items-center">
+            <MessageCircle className={`h-5 w-5 mr-2 ${
+              newQuestionNotification.includes('enviada')
+                ? 'text-green-600'
+                : 'text-blue-600'
+            }`} />
+            <span className={`font-medium ${
+              newQuestionNotification.includes('enviada')
+                ? 'text-green-800'
+                : 'text-blue-800'
+            }`}>
+              {newQuestionNotification}
+            </span>
+          </div>
+        </div>
+      )}
 
       {isAdmin && (
         <div className="mb-6 p-4 border border-gray-600 rounded-lg bg-gray-700">
@@ -125,17 +180,17 @@ const AudienceQA: React.FC<AudienceQAProps> = ({ isAdmin }) => {
                 console.error("Error toggling Audience Q&A activation", err);
               }
             }}
-            disabled={isLoading} 
+            disabled={isLoading}
             className={`w-full px-4 py-2 font-semibold rounded-md transition-colors duration-150 ease-in-out
-              ${isAudienceQAActive 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
+              ${isAudienceQAActive
+                ? 'bg-red-600 hover:bg-red-700 text-white'
                 : 'bg-green-600 hover:bg-green-700 text-white'}
-              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 
+              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800
               ${isAudienceQAActive ? 'focus:ring-red-500' : 'focus:ring-green-500'}
               ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {isLoading 
-              ? (isAudienceQAActive ? 'Desactivando...' : 'Activando...') 
+            {isLoading
+              ? (isAudienceQAActive ? 'Desactivando...' : 'Activando...')
               : (isAudienceQAActive ? 'Desactivar Q&A para Audiencia' : 'Activar Q&A para Audiencia')}
           </button>
           {/* Display error from store if any occurred during activation/deactivation */}

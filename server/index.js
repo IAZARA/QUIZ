@@ -1191,6 +1191,9 @@ app.post('/api/audience-questions', async (req, res) => {
   }
 });
 
+// Variable global para mantener el estado de audienceQA
+let audienceQAActive = false;
+
 // New routes for Audience Q&A status
 app.post('/api/audience-questions/status/activate', async (req, res) => {
   try {
@@ -1216,9 +1219,6 @@ app.post('/api/audience-questions/status/deactivate', async (req, res) => {
   }
 });
 // End of new Audience Q&A status routes
-
-// Variable global para mantener el estado de audienceQA
-let audienceQAActive = false;
 
 app.get('/api/audience-questions', async (req, res) => {
   try {

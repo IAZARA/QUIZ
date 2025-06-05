@@ -29,11 +29,15 @@ const TournamentAudienceView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-pulse text-gray-500 flex flex-col items-center">
-          <div className="w-12 h-12 mb-4 rounded-full bg-gray-200"></div>
-          <div className="h-4 bg-gray-200 rounded w-48 mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-32"></div>
+      <div className="flex items-center justify-center h-full p-6">
+        <div className="text-center">
+          <div className="card animate-fadeInScale max-w-sm">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 mb-4 rounded-full skeleton"></div>
+              <div className="h-4 skeleton rounded w-48 mb-2"></div>
+              <div className="h-3 skeleton rounded w-32"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -41,21 +45,26 @@ const TournamentAudienceView: React.FC = () => {
 
   if (!isActive || rounds.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-4">
-        <motion.div 
+      <div className="flex flex-col items-center justify-center h-full p-6">
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center"
+          className="text-center max-w-md"
         >
-          <div className="bg-blue-50 p-6 rounded-lg shadow-sm mb-4">
-            <h2 className="text-xl font-semibold text-blue-800 mb-2">¡Torneo en preparación!</h2>
-            <p className="text-blue-600">
+          <div className="card animate-fadeInScale">
+            <h2 className="text-xl font-semibold text-text-primary mb-3">¡Torneo en preparación!</h2>
+            <p className="text-text-secondary mb-6">
               El presentador está configurando el torneo. Pronto podrás ver el bracket y seguir la competencia.
             </p>
-          </div>
-          <div className="text-gray-500 text-sm">
-            Espera mientras se seleccionan los participantes y se configura el torneo.
+            <div className="flex justify-center space-x-2">
+              <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-accent/80 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-accent/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+            <p className="text-text-muted text-sm mt-4">
+              Espera mientras se seleccionan los participantes y se configura el torneo.
+            </p>
           </div>
         </motion.div>
       </div>
@@ -63,37 +72,42 @@ const TournamentAudienceView: React.FC = () => {
   }
 
   return (
-    <div className="p-4 h-full overflow-auto">
+    <div className="p-6 h-full overflow-auto bg-bg-primary">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="mb-4"
+        className="mb-8"
       >
-        <h1 className="text-xl font-bold text-center mb-4 flex items-center justify-center">
-          <Trophy className="h-6 w-6 mr-2 text-amber-500" />
-          Torneo de Eliminación Directa
-        </h1>
+        <div className="text-center mb-6 animate-fadeInUp">
+          <h1 className="text-2xl font-bold text-text-primary mb-2 flex items-center justify-center">
+            <Trophy className="h-6 w-6 mr-3 text-warning" />
+            Torneo de Eliminación Directa
+          </h1>
+          <div className="h-0.5 w-24 mx-auto bg-gradient-to-r from-warning to-warning/60 rounded-full"></div>
+        </div>
 
         {winner && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-yellow-50 to-amber-50 border-l-4 border-amber-500 p-4 mb-6 flex items-center mx-auto max-w-md"
+            className="card bg-gradient-to-r from-warning-light to-warning-light/80 border-warning/30 mx-auto max-w-md animate-glow"
           >
-            <div className="flex-shrink-0">
-              <Trophy className="h-8 w-8 text-amber-500" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-amber-800">¡Tenemos un ganador!</p>
-              <div className="flex items-center">
-                {winner.avatar && (
-                  <span className="text-2xl mr-2">{winner.avatar}</span>
-                )}
-                <p className="text-lg font-bold text-amber-900">
-                  {winner.tournamentName || winner.name}
-                </p>
+            <div className="flex items-center">
+              <div className="flex-shrink-0 w-12 h-12 bg-warning/20 rounded-full flex items-center justify-center mr-4">
+                <Trophy className="h-6 w-6 text-warning" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-warning mb-1">¡Tenemos un ganador!</p>
+                <div className="flex items-center">
+                  {winner.avatar && (
+                    <span className="text-xl mr-2">{winner.avatar}</span>
+                  )}
+                  <p className="text-lg font-bold text-text-primary">
+                    {winner.tournamentName || winner.name}
+                  </p>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -153,18 +167,22 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, roundIndex, totalRounds })
   const matchSpacing = Math.pow(2, roundIndex) * 160;
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, delay: roundIndex * 0.1 }}
-      className={`match-card border rounded-lg shadow-sm mb-${matchSpacing}px w-full max-w-[200px]`}
+      className={`card micro-hover w-full max-w-[220px]`}
       style={{ marginBottom: `${matchSpacing}px` }}
     >
-      <div className="p-2 text-xs text-center bg-gray-50 border-b rounded-t-lg">
+      <div className={`p-2 text-xs text-center border-b rounded-t-lg font-medium ${
+        isPending ? 'bg-bg-tertiary text-text-muted' :
+        isInProgress ? 'bg-accent/10 text-accent' :
+        'bg-success/10 text-success'
+      }`}>
         {isPending ? 'Pendiente' : isInProgress ? 'En Progreso' : 'Completado'}
       </div>
       
-      <div className="p-3">
+      <div className="p-4">
         <Participant 
           participantId={match.participant1Id}
           name={match.participant1Name}
@@ -219,22 +237,27 @@ const Participant: React.FC<ParticipantProps> = ({
   const avatar = hasAvatar ? getAnimalEmoji(parts[0]) : undefined;
   
   return (
-    <div 
-      className={`participant-card p-2 rounded ${
-        isPending ? 'bg-gray-100' : 
-        isWinner ? 'bg-amber-50 border border-amber-200' : 'bg-white'
+    <div
+      className={`p-3 rounded-lg transition-all duration-normal ${
+        isPending ? 'bg-bg-tertiary text-text-muted' :
+        isWinner ? 'bg-warning-light border border-warning/30 text-warning' : 'bg-bg-secondary'
       }`}
     >
       {isPending ? (
-        <div className="text-gray-400 text-center">Pendiente</div>
+        <div className="text-center text-sm font-medium">Pendiente</div>
       ) : (
-        <div className="flex items-center">
+        <div className="flex items-center space-x-2">
           {avatar && (
-            <span className="text-xl mr-2">{avatar}</span>
+            <span className="text-lg">{avatar}</span>
           )}
-          <div className={`flex-1 ${isWinner ? 'font-bold text-amber-800' : ''}`}>
+          <div className={`flex-1 text-sm transition-all duration-normal ${
+            isWinner ? 'font-bold text-warning' : 'font-medium text-text-primary'
+          }`}>
             {name || 'Desconocido'}
           </div>
+          {isWinner && (
+            <div className="w-2 h-2 bg-warning rounded-full animate-pulse-subtle"></div>
+          )}
         </div>
       )}
     </div>

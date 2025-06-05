@@ -140,10 +140,10 @@ export const useContactStore = create<ContactState>((set, get) => ({
   // Cargar contactos y configurar listeners al inicializar
   init: async (): Promise<Contact[]> => {
     console.log('Inicializando store de contactos...');
-    const { loadContacts } = get();
+    const { loadContacts, initializeSocketListeners } = get();
     
-    // Los listeners de WebSocket se configuran desde socketUtils.ts
-    // para evitar duplicación con setupSocketListeners
+    // Configurar listeners de WebSocket
+    const cleanup = initializeSocketListeners();
     
     // Cargar contactos iniciales
     try {
