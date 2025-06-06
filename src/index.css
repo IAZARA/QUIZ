@@ -432,46 +432,47 @@
 }
 
 :root {
-  /* Sistema de Diseño Moderno y Minimalista */
+  /* Sistema de Diseño Azul Oscuro Moderno */
   
-  /* Colores primarios suaves */
-  --color-primary-50: #f8fafc;
-  --color-primary-100: #f1f5f9;
-  --color-primary-200: #e2e8f0;
-  --color-primary-300: #cbd5e1;
-  --color-primary-400: #94a3b8;
+  /* Paleta Azul Oscuro Principal */
+  --color-primary-50: #0c1426;
+  --color-primary-100: #0f1729;
+  --color-primary-200: #1e293b;
+  --color-primary-300: #334155;
+  --color-primary-400: #475569;
   --color-primary-500: #64748b;
-  --color-primary-600: #475569;
-  --color-primary-700: #334155;
-  --color-primary-800: #1e293b;
-  --color-primary-900: #0f172a;
+  --color-primary-600: #94a3b8;
+  --color-primary-700: #cbd5e1;
+  --color-primary-800: #e2e8f0;
+  --color-primary-900: #f1f5f9;
   
-  /* Acentos sutiles */
-  --color-accent-blue: #3b82f6;
-  --color-accent-blue-light: #60a5fa;
-  --color-accent-green: #10b981;
-  --color-accent-purple: #8b5cf6;
-  --color-accent-indigo: #6366f1;
+  /* Acentos Azul Eléctrico */
+  --color-accent-blue: #00d4ff;
+  --color-accent-blue-light: #33ddff;
+  --color-accent-blue-dark: #0099cc;
+  --color-accent-cyan: #06b6d4;
+  --color-accent-electric: #0ea5e9;
+  --color-accent-navy: #1e40af;
   
-  /* Estados */
-  --color-success: #059669;
-  --color-success-light: #d1fae5;
-  --color-warning: #d97706;
-  --color-warning-light: #fef3c7;
-  --color-error: #dc2626;
-  --color-error-light: #fee2e2;
+  /* Estados con tonos azules */
+  --color-success: #10b981;
+  --color-success-light: #34d399;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fbbf24;
+  --color-error: #ef4444;
+  --color-error-light: #f87171;
   
-  /* Tema claro (por defecto) */
-  --color-bg-primary: var(--color-primary-50);
-  --color-bg-secondary: #ffffff;
-  --color-bg-tertiary: var(--color-primary-100);
+  /* Tema Azul Oscuro (por defecto) */
+  --color-bg-primary: var(--color-primary-100);
+  --color-bg-secondary: var(--color-primary-200);
+  --color-bg-tertiary: var(--color-primary-300);
   --color-text-primary: var(--color-primary-900);
-  --color-text-secondary: var(--color-primary-600);
-  --color-text-muted: var(--color-primary-500);
-  --color-border: var(--color-primary-200);
-  --color-border-light: var(--color-primary-100);
+  --color-text-secondary: var(--color-primary-700);
+  --color-text-muted: var(--color-primary-600);
+  --color-border: var(--color-primary-400);
+  --color-border-light: var(--color-primary-300);
   --color-accent: var(--color-accent-blue);
-  --color-button-text: #ffffff;
+  --color-button-text: var(--color-primary-100);
   
   /* Sombras sutiles */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -506,24 +507,45 @@
   --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-body[data-theme='dark'] {
-  /* Tema oscuro minimalista */
-  --color-bg-primary: var(--color-primary-900);
-  --color-bg-secondary: var(--color-primary-800);
-  --color-bg-tertiary: var(--color-primary-700);
-  --color-text-primary: var(--color-primary-100);
-  --color-text-secondary: var(--color-primary-300);
-  --color-text-muted: var(--color-primary-400);
-  --color-border: var(--color-primary-700);
-  --color-border-light: var(--color-primary-600);
-  --color-accent: var(--color-accent-blue-light);
-  --color-button-text: var(--color-primary-900);
+/* Tema Light (Blanco) */
+body[data-theme='light'] {
+  /* Tema claro con fondo blanco */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+  --color-accent: #3b82f6;
+  --color-button-text: #ffffff;
   
-  /* Sombras para tema oscuro */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  /* Sombras suaves para tema claro */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+body[data-theme='dark'] {
+  /* Tema azul oscuro intenso */
+  --color-bg-primary: var(--color-primary-50);
+  --color-bg-secondary: var(--color-primary-100);
+  --color-bg-tertiary: var(--color-primary-200);
+  --color-text-primary: var(--color-primary-900);
+  --color-text-secondary: var(--color-primary-800);
+  --color-text-muted: var(--color-primary-700);
+  --color-border: var(--color-primary-300);
+  --color-border-light: var(--color-primary-200);
+  --color-accent: var(--color-accent-blue-light);
+  --color-button-text: var(--color-primary-50);
+  
+  /* Sombras azules para tema oscuro */
+  --shadow-sm: 0 1px 2px 0 rgb(0 20 40 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(0 20 40 / 0.5), 0 2px 4px -2px rgb(0 20 40 / 0.5);
+  --shadow-lg: 0 10px 15px -3px rgb(0 20 40 / 0.5), 0 4px 6px -4px rgb(0 20 40 / 0.5);
+  --shadow-xl: 0 20px 25px -5px rgb(0 20 40 / 0.5), 0 8px 10px -6px rgb(0 20 40 / 0.5);
 }
 
 /* Apply a base background and text color */
@@ -627,6 +649,42 @@ body {
   }
 }
 
+/* Animaciones para tres puntos dinámicos con brillo */
+@keyframes dynamicPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+    box-shadow: 0 0 0 rgba(0, 212, 255, 0);
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.6), 0 0 40px rgba(0, 212, 255, 0.3);
+  }
+}
+
+@keyframes dynamicGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+    background-color: var(--color-accent);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.8), 0 0 50px rgba(0, 212, 255, 0.4);
+    background-color: var(--color-accent-blue-light);
+  }
+}
+
+@keyframes rippleEffect {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
 /* Clases de animación */
 .animate-fadeIn {
   animation: fadeIn var(--duration-normal) var(--ease-out) forwards;
@@ -662,6 +720,75 @@ body {
 
 .animate-glow {
   animation: glow 2s ease-in-out infinite;
+}
+
+/* Clases para los tres puntos dinámicos */
+.animate-dynamic-pulse {
+  animation: dynamicPulse 1.8s ease-in-out infinite;
+}
+
+.animate-dynamic-glow {
+  animation: dynamicGlow 2s ease-in-out infinite;
+}
+
+.animate-ripple {
+  animation: rippleEffect 1.5s ease-out infinite;
+}
+
+/* Contenedor para los tres puntos */
+.loading-dots-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.loading-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+  position: relative;
+  animation: dynamicPulse 1.8s ease-in-out infinite;
+}
+
+.loading-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+/* Efecto de ondas para cada punto */
+.loading-dot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+  animation: rippleEffect 1.8s ease-out infinite;
+  z-index: -1;
+}
+
+.loading-dot:nth-child(1)::before {
+  animation-delay: 0s;
+}
+
+.loading-dot:nth-child(2)::before {
+  animation-delay: 0.3s;
+}
+
+.loading-dot:nth-child(3)::before {
+  animation-delay: 0.6s;
 }
 
 /* Micro-interacciones */
@@ -796,4 +923,335 @@ html {
 
 .input-field::placeholder {
   color: var(--color-text-muted);
+}
+
+/* ===== MOBILE WORDCLOUD STYLES ===== */
+
+/* Contenedor principal mobile-first */
+.mobile-wordcloud-container {
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height para móviles */
+  display: flex;
+  flex-direction: column;
+  /* Safe area para dispositivos con notch */
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Zona de entrada optimizada para el pulgar */
+.mobile-input-zone {
+  /* Altura optimizada para zona de alcance del pulgar */
+  min-height: 120px;
+  position: relative;
+}
+
+/* Safe area bottom para dispositivos con indicador home */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Animaciones optimizadas para móvil */
+@keyframes mobileWordAppear {
+  from {
+    transform: scale(0.8) translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes mobilePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes mobileFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes mobileGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+  }
+}
+
+/* Clases de animación para móvil */
+.mobile-word-animation {
+  animation: mobileWordAppear 0.4s ease-out;
+}
+
+.animate-mobile-pulse {
+  animation: mobilePulse 2s ease-in-out infinite;
+}
+
+.animate-mobile-float {
+  animation: mobileFloat 3s ease-in-out infinite;
+}
+
+.animate-mobile-glow {
+  animation: mobileGlow 2s ease-in-out infinite;
+}
+
+/* Efectos táctiles para botones */
+.mobile-touch-feedback {
+  transition: all 0.15s ease;
+  transform-origin: center;
+}
+
+.mobile-touch-feedback:active {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+/* Optimizaciones para pantallas pequeñas */
+@media (max-width: 640px) {
+  .mobile-wordcloud-container {
+    font-size: 14px;
+  }
+  
+  .mobile-input-zone {
+    min-height: 100px;
+  }
+  
+  /* Ajustes para pantallas muy pequeñas */
+  @media (max-height: 600px) {
+    .mobile-input-zone {
+      min-height: 80px;
+    }
+  }
+}
+
+/* Optimizaciones para landscape en móvil */
+@media (max-height: 500px) and (orientation: landscape) {
+  .mobile-wordcloud-container {
+    height: 100vh;
+  }
+  
+  .mobile-input-zone {
+    min-height: 70px;
+  }
+}
+
+/* Efectos de gradiente para fondo */
+.mobile-gradient-bg {
+  background: linear-gradient(135deg, 
+    var(--bg-primary) 0%, 
+    var(--bg-secondary) 50%, 
+    var(--bg-primary) 100%);
+}
+
+/* Mejoras de accesibilidad táctil */
+.mobile-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Indicadores visuales para estado activo */
+.mobile-active-state {
+  position: relative;
+}
+
+.mobile-active-state::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, var(--accent), var(--accent-light));
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mobile-active-state.active::before {
+  opacity: 1;
+}
+
+/* Optimización para reducir repaints en móvil */
+.mobile-optimized {
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Estilos para notificaciones móviles */
+.mobile-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  max-width: 280px;
+  width: 90%;
+}
+
+/* Efectos de entrada suaves */
+.animate-fadeInUp {
+  animation: slideInUp 0.6s ease-out;
+}
+
+.animate-fadeInScale {
+  animation: fadeInScale 0.5s ease-out;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Pulse sutil para elementos en vivo */
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Float animation para elementos decorativos */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* ===== KEYBOARD OPTIMIZATION ===== */
+
+/* Ajustes cuando el teclado virtual está abierto */
+.keyboard-open {
+  overflow: hidden;
+}
+
+.keyboard-open .mobile-input-zone {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+/* Reducir altura de la nube cuando el teclado está abierto */
+.keyboard-open .flex-1 {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Optimización para teclados virtuales */
+@supports (height: 100dvh) {
+  .mobile-wordcloud-container {
+    height: 100dvh;
+  }
+}
+
+/* Viewport units fallback para navegadores más antiguos */
+@supports not (height: 100dvh) {
+  .mobile-wordcloud-container {
+    height: 100vh;
+  }
+}
+
+/* ===== GESTURE EFFECTS ===== */
+
+/* Efectos visuales para gestos táctiles */
+.gesture-swipe-up {
+  animation: gestureSwipeUp 0.5s ease-out;
+}
+
+.gesture-swipe-disabled {
+  animation: gestureShake 0.3s ease-in-out;
+}
+
+.gesture-double-tap {
+  animation: gestureRipple 0.3s ease-out;
+}
+
+@keyframes gestureSwipeUp {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes gestureShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes gestureRipple {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 20px rgba(59, 130, 246, 0);
+  }
+}
+
+/* Mejoras adicionales para feedback táctil */
+.mobile-touch-feedback:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+/* Indicadores de estado para gestos */
+.gesture-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  pointer-events: none;
 }

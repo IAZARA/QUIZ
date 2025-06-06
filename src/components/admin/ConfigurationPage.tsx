@@ -1,8 +1,9 @@
 import React from 'react';
-import { ArrowLeft, Globe, Palette, Settings, Bell, Shield, Database } from 'lucide-react';
+import { ArrowLeft, Globe, Palette, Settings, Bell, Shield, Database, Image } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../LanguageSwitcher';
 import ThemeSwitcher from './ThemeSwitcher';
+import IconSelector from './IconSelector';
 
 interface ConfigurationPageProps {
   onBack: () => void;
@@ -15,19 +16,19 @@ const ConfigurationSection: React.FC<{
   children: React.ReactNode;
 }> = ({ title, description, icon, children }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <div className="flex items-center mb-4">
-        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 mr-3">
-          <div className="text-blue-600">
+    <div className="bg-bg-secondary border border-border rounded-xl shadow-sm p-6 mb-6 micro-hover">
+      <div className="flex items-center mb-6">
+        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-accent/10 mr-4 micro-scale">
+          <div className="text-accent">
             {icon}
           </div>
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-          <p className="text-sm text-gray-600">{description}</p>
+          <h3 className="text-xl font-semibold text-text-primary">{title}</h3>
+          <p className="text-sm text-text-secondary mt-1">{description}</p>
         </div>
       </div>
-      <div className="ml-13">
+      <div className="ml-0">
         {children}
       </div>
     </div>
@@ -38,20 +39,22 @@ const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onBack }) => {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-4xl mx-auto p-6">
+    <div className="min-h-screen bg-gradient-to-br from-bg-primary via-bg-secondary to-bg-tertiary">
+      <div className="max-w-5xl mx-auto p-6">
         {/* Header */}
-        <div className="flex items-center mb-8">
-          <button
-            onClick={onBack}
-            className="flex items-center px-4 py-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition-colors duration-200 mr-4"
-          >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            {t('backToDashboard')}
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">{t('configurationPageTitle')}</h1>
-            <p className="text-gray-600">{t('configurationPageSubtitle')}</p>
+        <div className="bg-bg-secondary border border-border rounded-xl shadow-sm p-6 mb-8 micro-hover">
+          <div className="flex items-center">
+            <button
+              onClick={onBack}
+              className="flex items-center px-4 py-2 text-accent hover:text-accent-blue-light hover:bg-accent/10 rounded-lg transition-all duration-200 mr-6 micro-scale"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              {t('backToDashboard')}
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-text-primary mb-2">{t('configurationPageTitle')}</h1>
+              <p className="text-text-secondary">{t('configurationPageSubtitle')}</p>
+            </div>
           </div>
         </div>
 
@@ -63,12 +66,12 @@ const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onBack }) => {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-primary mb-3">
                 {t('interfaceLanguage')}
               </label>
               <div className="flex items-center space-x-4">
                 <LanguageSwitcher />
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-text-muted">
                   {t('changeLanguageDesc')}
                 </span>
               </div>
@@ -84,17 +87,26 @@ const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onBack }) => {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-primary mb-3">
                 {t('colorTheme')}
               </label>
               <div className="flex items-center space-x-4">
                 <ThemeSwitcher />
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-text-muted">
                   {t('toggleThemeDesc')}
                 </span>
               </div>
             </div>
           </div>
+        </ConfigurationSection>
+
+        {/* Configuración de Iconos */}
+        <ConfigurationSection
+          title="Personalización de Iconos"
+          description="Cambia el icono que aparece en la pantalla de espera"
+          icon={<Image className="h-5 w-5" />}
+        >
+          <IconSelector />
         </ConfigurationSection>
 
         {/* Configuración de Presentación */}
@@ -105,7 +117,7 @@ const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onBack }) => {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-primary mb-3">
                 Tiempo por defecto para preguntas (segundos)
               </label>
               <input
@@ -113,29 +125,29 @@ const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onBack }) => {
                 min="10"
                 max="300"
                 defaultValue="30"
-                className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-field w-32"
               />
             </div>
             <div>
-              <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-3 p-3 rounded-lg hover:bg-bg-tertiary/50 transition-colors duration-200 cursor-pointer">
                 <input
                   type="checkbox"
                   defaultChecked
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-border text-accent focus:ring-accent/20 focus:ring-2"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-text-primary">
                   Mostrar explicaciones automáticamente después de cada pregunta
                 </span>
               </label>
             </div>
             <div>
-              <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-3 p-3 rounded-lg hover:bg-bg-tertiary/50 transition-colors duration-200 cursor-pointer">
                 <input
                   type="checkbox"
                   defaultChecked
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-border text-accent focus:ring-accent/20 focus:ring-2"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-text-primary">
                   Reproducir sonidos de notificación
                 </span>
               </label>
@@ -151,36 +163,36 @@ const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onBack }) => {
         >
           <div className="space-y-4">
             <div>
-              <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-3 p-3 rounded-lg hover:bg-bg-tertiary/50 transition-colors duration-200 cursor-pointer">
                 <input
                   type="checkbox"
                   defaultChecked
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-border text-accent focus:ring-accent/20 focus:ring-2"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-text-primary">
                   Notificar cuando se reciban nuevas preguntas de la audiencia
                 </span>
               </label>
             </div>
             <div>
-              <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-3 p-3 rounded-lg hover:bg-bg-tertiary/50 transition-colors duration-200 cursor-pointer">
                 <input
                   type="checkbox"
                   defaultChecked
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-border text-accent focus:ring-accent/20 focus:ring-2"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-text-primary">
                   Notificar cuando se complete una votación
                 </span>
               </label>
             </div>
             <div>
-              <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-3 p-3 rounded-lg hover:bg-bg-tertiary/50 transition-colors duration-200 cursor-pointer">
                 <input
                   type="checkbox"
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-border text-accent focus:ring-accent/20 focus:ring-2"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-text-primary">
                   Notificar cuando nuevos participantes se unan
                 </span>
               </label>
@@ -196,30 +208,30 @@ const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onBack }) => {
         >
           <div className="space-y-4">
             <div>
-              <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-3 p-3 rounded-lg hover:bg-bg-tertiary/50 transition-colors duration-200 cursor-pointer">
                 <input
                   type="checkbox"
                   defaultChecked
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-border text-accent focus:ring-accent/20 focus:ring-2"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-text-primary">
                   Requerir confirmación antes de eliminar preguntas
                 </span>
               </label>
             </div>
             <div>
-              <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-3 p-3 rounded-lg hover:bg-bg-tertiary/50 transition-colors duration-200 cursor-pointer">
                 <input
                   type="checkbox"
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-border text-accent focus:ring-accent/20 focus:ring-2"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-text-primary">
                   Permitir participación anónima
                 </span>
               </label>
             </div>
-            <div>
-              <button className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
+            <div className="pt-2">
+              <button className="px-6 py-3 bg-error text-white rounded-lg hover:bg-error/80 transition-all duration-200 font-medium micro-scale">
                 Limpiar todos los datos de sesión
               </button>
             </div>
@@ -233,16 +245,16 @@ const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onBack }) => {
           icon={<Database className="h-5 w-5" />}
         >
           <div className="space-y-4">
-            <div className="flex space-x-4">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+            <div className="flex flex-wrap gap-3">
+              <button className="px-6 py-3 bg-accent text-white rounded-lg hover:bg-accent-blue-light transition-all duration-200 font-medium micro-scale">
                 Exportar Configuración
               </button>
-              <button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
+              <button className="px-6 py-3 bg-success text-white rounded-lg hover:bg-success-light hover:text-success transition-all duration-200 font-medium micro-scale">
                 Importar Configuración
               </button>
             </div>
             <div>
-              <button className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors duration-200">
+              <button className="px-6 py-3 bg-accent-purple text-white rounded-lg hover:bg-accent-purple/80 transition-all duration-200 font-medium micro-scale">
                 Exportar Datos de Sesión
               </button>
             </div>
@@ -251,7 +263,7 @@ const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onBack }) => {
 
         {/* Botón de Guardar */}
         <div className="flex justify-end mt-8">
-          <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium">
+          <button className="px-8 py-4 bg-accent text-white rounded-xl hover:bg-accent-blue-light transition-all duration-200 font-semibold text-lg micro-scale shadow-lg hover:shadow-xl">
             Guardar Configuración
           </button>
         </div>

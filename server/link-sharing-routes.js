@@ -31,16 +31,26 @@ export default function setupLinkSharingRoutes(app, io, database) {
   // Crear un nuevo link
   app.post('/api/links', async (req, res) => {
     try {
+      // Validar datos requeridos
+      if (!req.body.title || !req.body.url) {
+        return res.status(400).json({ error: 'Título y URL son requeridos' });
+      }
+
       const linkData = {
-        ...req.body,
+        title: req.body.title.trim(),
+        url: req.body.url.trim(),
+        description: req.body.description ? req.body.description.trim() : '',
+        isActive: req.body.isActive || true,
         isShared: false,
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
+      console.log('Intentando crear link:', linkData);
       const result = await db.collection('shared_links').insertOne(linkData);
       const newLink = { ...linkData, _id: result.insertedId };
       
+      console.log('Link creado exitosamente:', newLink._id);
       res.status(201).json(newLink);
       
       // Emitir evento de socket
@@ -102,10 +112,16 @@ export default function setupLinkSharingRoutes(app, io, database) {
     }
   });
 
-  // Compartir un link específico
+  // Compartir un link específico (activa automáticamente la función)
   app.post('/api/links/:id/share', async (req, res) => {
     try {
       const { id } = req.params;
+
+      // Verificar que el link existe
+      const linkToShare = await db.collection('shared_links').findOne({ _id: new ObjectId(id) });
+      if (!linkToShare) {
+        return res.status(404).json({ error: 'Link no encontrado' });
+      }
 
       // Primero, desactivar cualquier link que esté siendo compartido
       await db.collection('shared_links').updateMany(
@@ -121,28 +137,24 @@ export default function setupLinkSharingRoutes(app, io, database) {
 
       const sharedLink = await db.collection('shared_links').findOne({ _id: new ObjectId(id) });
       
-      if (!sharedLink) {
-        return res.status(404).json({ error: 'Link no encontrado' });
-      }
-      
       res.json(sharedLink);
       
-      // Emitir eventos de socket
+      // Emitir eventos de socket - FUNCIÓN SE ACTIVA AUTOMÁTICAMENTE
       io.emit('link:shared', { link: sharedLink });
       io.emit('link:status', { isActive: true });
       
-      console.log('Link shared:', sharedLink.title);
+      console.log('Link compartido individualmente (función activada):', sharedLink.title);
     } catch (error) {
       console.error('Error sharing link:', error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Compartir todos los links
+  // Compartir todos los links (activa automáticamente la función)
   app.post('/api/links/share-all', async (req, res) => {
     try {
-      // Obtener todos los links (no filtrar por isActive ya que ese campo no existe en el modelo)
-      const allLinks = await db.collection('shared_links').find({}).toArray();
+      // Obtener todos los links activos
+      const allLinks = await db.collection('shared_links').find({ isActive: { $ne: false } }).toArray();
       
       if (allLinks.length === 0) {
         return res.status(400).json({ error: 'No hay links disponibles para compartir' });
@@ -154,9 +166,9 @@ export default function setupLinkSharingRoutes(app, io, database) {
         { $set: { isShared: false, updatedAt: new Date() } }
       );
 
-      // Marcar todos los links como compartidos
+      // Marcar todos los links activos como compartidos
       await db.collection('shared_links').updateMany(
-        {},
+        { isActive: { $ne: false } },
         { $set: { isShared: true, updatedAt: new Date() } }
       );
 
@@ -165,18 +177,18 @@ export default function setupLinkSharingRoutes(app, io, database) {
 
       res.json({ success: true, sharedCount: updatedLinks.length, links: updatedLinks });
       
-      // Emitir eventos de socket
+      // Emitir eventos de socket - FUNCIÓN SE ACTIVA AUTOMÁTICAMENTE
       io.emit('links:shared-all', { links: updatedLinks });
       io.emit('link:status', { isActive: true });
       
-      console.log(`Shared all links: ${updatedLinks.length} links`);
+      console.log(`Compartidos todos los links (función activada): ${updatedLinks.length} links`);
     } catch (error) {
       console.error('Error sharing all links:', error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Detener el compartir link
+  // Detener el compartir link (desactiva automáticamente la función)
   app.post('/api/links/stop-sharing', async (req, res) => {
     try {
       // Desactivar todos los links compartidos
@@ -187,52 +199,20 @@ export default function setupLinkSharingRoutes(app, io, database) {
 
       res.json({ success: true });
       
-      // Emitir eventos de socket
+      // Emitir eventos de socket - FUNCIÓN SE DESACTIVA AUTOMÁTICAMENTE
       io.emit('link:stopped');
+      io.emit('link:status', { isActive: false });
       
-      console.log('Link sharing stopped');
+      console.log('Compartir links detenido (función desactivada automáticamente)');
     } catch (error) {
       console.error('Error stopping link sharing:', error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Activar la función de compartir links
-  app.post('/api/links/status/activate', async (req, res) => {
-    try {
-      // Emitir evento de socket para activar la vista
-      io.emit('link:status', { isActive: true });
-      
-      res.json({ success: true, message: 'Link sharing activated for audience' });
-      
-      console.log('Link sharing feature activated');
-    } catch (error) {
-      console.error('Error activating link sharing:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Desactivar la función de compartir links
-  app.post('/api/links/status/deactivate', async (req, res) => {
-    try {
-      // Primero detener cualquier link que esté siendo compartido
-      await db.collection('shared_links').updateMany(
-        { isShared: true },
-        { $set: { isShared: false, updatedAt: new Date() } }
-      );
-
-      // Emitir eventos de socket
-      io.emit('link:status', { isActive: false });
-      io.emit('link:stopped');
-      
-      res.json({ success: true, message: 'Link sharing deactivated for audience' });
-      
-      console.log('Link sharing feature deactivated');
-    } catch (error) {
-      console.error('Error deactivating link sharing:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // NOTA: Las rutas de activar/desactivar función se eliminaron
+  // porque ahora la función se activa/desactiva automáticamente
+  // al compartir/detener compartir links
 }
 
 // Función para configurar los listeners de socket específicos para links

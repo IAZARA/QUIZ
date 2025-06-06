@@ -9,11 +9,14 @@ import path from 'path';
 import fs from 'fs';
 import setupTournamentRoutes from './tournament-routes.js';
 import wordCloudRoutes from './wordcloud-routes.js';
+import rankingRoutes from './ranking-routes.js';
 import contactRoutes, { setupContactSockets } from './contact-routes.js';
 import audienceDataRoutes from './audience-data-routes.js'; // Import new audience data routes
 import reviewRoutes from './review-routes.js'; // Import review routes
 import aiRoutes from './ai-routes.js'; // Import AI routes
 import setupLinkSharingRoutes, { setupLinkSharingSockets } from './link-sharing-routes.js'; // Import link sharing routes
+import iconRoutes from './icon-routes.js'; // Import icon routes
+import formBuilderRoutes from './form-builder-routes.js'; // Import form builder routes
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Cargar variables de entorno
@@ -27,6 +30,9 @@ const io = new Server(server, {
     methods: ['GET', 'POST']
   }
 });
+
+// Hacer el objeto io disponible en las rutas
+app.set('io', io);
 
 // Endpoint para AI Question Generation
 app.post('/api/ai/generate-questions', async (req, res) => {
@@ -151,12 +157,16 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/uploads/documents', express.static(path.join(process.cwd(), 'uploads/documents')));
+app.use('/uploads/icons', express.static(path.join(process.cwd(), 'uploads/icons')));
 
 app.use('/api/wordcloud', wordCloudRoutes);
+app.use('/api/ranking', rankingRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/audience-data', audienceDataRoutes); // Use new audience data routes
 app.use('/api/reviews', reviewRoutes); // Use review routes
 app.use('/api/ai', aiRoutes); // Use AI routes
+app.use('/api/icons', iconRoutes); // Use icon routes
+app.use('/api/form-builder', formBuilderRoutes); // Use form builder routes
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(process.cwd(), 'dist');
@@ -1152,36 +1162,82 @@ app.post('/api/admin/clear-view', async (req, res) => {
 
 app.post('/api/admin/show-ranking', async (req, res) => {
   try {
-    io.emit('show_ranking', { 
-      message: 'Clasificación mostrada por el administrador' 
+    const connectedClients = io.engine.clientsCount;
+    console.log(`🎯 Emitiendo show_ranking a ${connectedClients} clientes conectados`);
+    console.log('📊 Sockets conectados:', Array.from(io.sockets.sockets.keys()));
+    
+    io.emit('show_ranking', {
+      message: 'Clasificación mostrada por el administrador',
+      timestamp: new Date().toISOString(),
+      adminAction: true
     });
+    
+    console.log('✅ Evento show_ranking emitido correctamente');
     res.json({
       success: true,
-      message: 'Clasificación mostrada correctamente'
+      message: 'Clasificación mostrada correctamente',
+      clientsNotified: connectedClients,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error al mostrar la clasificación:', error);
+    console.error('❌ Error al mostrar la clasificación:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al mostrar la clasificación'
+      message: 'Error al mostrar la clasificación',
+      error: error.message
     });
   }
 });
 
 app.post('/api/admin/hide-ranking', async (req, res) => {
   try {
-    io.emit('hide_ranking', { 
-      message: 'Clasificación ocultada por el administrador' 
+    const connectedClients = io.engine.clientsCount;
+    console.log(`🎯 Emitiendo hide_ranking a ${connectedClients} clientes conectados`);
+    console.log('📊 Sockets conectados:', Array.from(io.sockets.sockets.keys()));
+    
+    io.emit('hide_ranking', {
+      message: 'Clasificación ocultada por el administrador',
+      timestamp: new Date().toISOString(),
+      adminAction: true
     });
+// Nuevo endpoint para verificar estado del ranking y conectividad
+app.get('/api/admin/ranking-status', (req, res) => {
+  try {
+    const connectedClients = io.engine.clientsCount;
+    const socketIds = Array.from(io.sockets.sockets.keys());
+    
+    console.log(`📊 Estado del ranking solicitado - Clientes conectados: ${connectedClients}`);
+    
     res.json({
       success: true,
-      message: 'Clasificación ocultada correctamente'
+      connectedClients: connectedClients,
+      socketIds: socketIds,
+      timestamp: new Date().toISOString(),
+      serverStatus: 'active'
     });
   } catch (error) {
-    console.error('Error al ocultar la clasificación:', error);
+    console.error('❌ Error al obtener estado del ranking:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al ocultar la clasificación'
+      message: 'Error al obtener estado del ranking',
+      error: error.message
+    });
+  }
+});
+    
+    console.log('✅ Evento hide_ranking emitido correctamente');
+    res.json({
+      success: true,
+      message: 'Clasificación ocultada correctamente',
+      clientsNotified: connectedClients,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Error al ocultar la clasificación:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al ocultar la clasificación',
+      error: error.message
     });
   }
 });
@@ -1191,6 +1247,15 @@ io.on('connection', (socket) => {
   
   socket.on('disconnect', () => {
     console.log('Usuario desconectado:', socket.id);
+  });
+// Handler para eventos de prueba de ranking
+  socket.on('test_ranking_connection', (data) => {
+    console.log('🧪 Test de conexión de ranking recibido desde:', socket.id, data);
+    socket.emit('test_ranking_response', {
+      message: 'Conexión de ranking funcionando correctamente',
+      socketId: socket.id,
+      timestamp: new Date().toISOString()
+    });
   });
   
   socket.on('wordcloud:join', () => {

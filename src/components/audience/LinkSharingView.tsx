@@ -56,10 +56,10 @@ const LinkSharingView: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
             <Globe className="h-8 w-8 text-blue-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          <h2 className="text-2xl font-bold text-white mb-2">
             Enlaces Compartidos
           </h2>
-          <p className="text-gray-600">
+          <p className="text-white text-lg">
             El presentador ha compartido {activeLinks.length} enlaces contigo
           </p>
         </div>
@@ -127,7 +127,7 @@ const LinkSharingView: React.FC = () => {
 
         {/* Instrucciones adicionales */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-base text-white font-medium">
             💡 Mantén esta página abierta para recibir nuevos enlaces del presentador
           </p>
         </div>
@@ -143,10 +143,10 @@ const LinkSharingView: React.FC = () => {
         <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
           <Globe className="h-8 w-8 text-blue-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+        <h2 className="text-2xl font-bold text-white mb-2">
           Enlace Compartido
         </h2>
-        <p className="text-gray-600">
+        <p className="text-white text-lg">
           El presentador ha compartido el siguiente enlace contigo
         </p>
       </div>
@@ -219,7 +219,7 @@ const LinkSharingView: React.FC = () => {
 
       {/* Instrucciones adicionales */}
       <div className="mt-6 text-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-base text-white font-medium">
           💡 Mantén esta página abierta para recibir nuevos enlaces del presentador
         </p>
       </div>

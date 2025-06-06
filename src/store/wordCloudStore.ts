@@ -135,23 +135,9 @@ export const useWordCloudStore = create<WordCloudState>((set, get) => ({
         throw new Error('Error al añadir palabra');
       }
       
-      // La actualización de palabras debería venir por socket
-      // pero por si acaso actualizamos manualmente
-      const { words } = get();
-      const existingWordIndex = words.findIndex(w => w.text.toLowerCase() === word.toLowerCase());
-      
-      if (existingWordIndex >= 0) {
-        // Si la palabra ya existe, incrementar su contador
-        const updatedWords = [...words];
-        updatedWords[existingWordIndex] = {
-          ...updatedWords[existingWordIndex],
-          count: updatedWords[existingWordIndex].count + 1
-        };
-        set({ words: updatedWords });
-      } else {
-        // Si es una palabra nueva, añadirla
-        set({ words: [...words, { text: word, count: 1 }] });
-      }
+      // No actualizamos manualmente aquí - dejamos que el socket maneje la actualización
+      // Esto evita conflictos y asegura que todos los clientes reciban la misma actualización
+      console.log('Palabra enviada correctamente, esperando actualización por socket...');
     } catch (error) {
       console.error('Error al añadir palabra:', error);
       set({ error: 'No se pudo añadir la palabra' });
@@ -170,10 +156,18 @@ export const useWordCloudStore = create<WordCloudState>((set, get) => ({
 
       socket.on('connect', () => {
         console.log('WordCloud Socket connected');
+        // Solicitar estado actual al conectarse
+        get().fetchWords();
       });
 
       socket.on('disconnect', () => {
         console.log('WordCloud Socket disconnected');
+      });
+
+      socket.on('reconnect', () => {
+        console.log('WordCloud Socket reconnected');
+        // Refrescar datos al reconectarse
+        get().fetchWords();
       });
 
       socket.on('wordcloud:status', (data: { isActive: boolean }) => {
@@ -184,6 +178,15 @@ export const useWordCloudStore = create<WordCloudState>((set, get) => ({
       socket.on('wordcloud:update', (words: WordCloudWord[]) => {
         console.log('Recibida actualización de nube de palabras:', words);
         set({ words });
+      });
+
+      // También escuchar el evento alternativo para compatibilidad
+      socket.on('wordCloudUpdate', (data: { words: WordCloudWord[], isActive: boolean }) => {
+        console.log('Recibida actualización de nube de palabras (formato alternativo):', data);
+        set({
+          words: data.words || [],
+          isActive: data.isActive !== undefined ? data.isActive : get().isActive
+        });
       });
     }
   },

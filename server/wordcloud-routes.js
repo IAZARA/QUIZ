@@ -46,7 +46,9 @@ router.post('/stop', (req, res) => {
 router.post('/reset', async (req, res) => {
   try {
     await WordCloud.deleteMany({});
+    // Emitir actualización con ambos formatos para compatibilidad
     io.emit('wordcloud:update', []);
+    io.emit('wordCloudUpdate', { words: [], isActive: wordCloudActive });
     res.json({ success: true });
   } catch (error) {
     console.error('Error al reiniciar la nube de palabras:', error);
@@ -88,8 +90,9 @@ router.post('/word', async (req, res) => {
     // Obtener todas las palabras actualizadas
     const words = await WordCloud.find().sort({ count: -1 });
     
-    // Emitir actualización a todos los clientes
+    // Emitir actualización a todos los clientes con ambos formatos para compatibilidad
     io.emit('wordcloud:update', words);
+    io.emit('wordCloudUpdate', { words, isActive: wordCloudActive });
     
     res.json({ success: true, word: wordDoc });
   } catch (error) {

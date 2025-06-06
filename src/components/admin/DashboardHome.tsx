@@ -97,14 +97,6 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onToolSelect }) => {
       icon: <Bot />,
       color: 'bg-gradient-to-br from-purple-500 to-purple-600',
       category: 'content' as const
-    },
-    {
-      id: 'documents',
-      title: t('documentsTab') || 'Documentos',
-      description: t('documentsDesc'),
-      icon: <FileText />,
-      color: 'bg-gradient-to-br from-indigo-500 to-indigo-600',
-      category: 'content' as const
     }
   ];
 
@@ -131,6 +123,14 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onToolSelect }) => {
       description: t('linkSharingDesc') || 'Comparte enlaces útiles con tu audiencia en tiempo real',
       icon: <Link />,
       color: 'bg-gradient-to-br from-emerald-500 to-emerald-600',
+      category: 'audience' as const
+    },
+    {
+      id: 'documents',
+      title: 'Compartir Documentos',
+      description: 'Comparte documentos y archivos con tu audiencia en tiempo real',
+      icon: <FileText />,
+      color: 'bg-gradient-to-br from-indigo-500 to-indigo-600',
       category: 'audience' as const
     },
     {
@@ -171,7 +171,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onToolSelect }) => {
     {
       id: 'reviews',
       title: t('reviewsTabTitle') || 'Reseñas',
-      description: t('reviewsDesc'),
+      description: 'Exporta el feedback de los participantes',
       icon: <Star />,
       color: 'bg-gradient-to-br from-amber-500 to-amber-600',
       category: 'analytics' as const

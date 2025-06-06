@@ -19,7 +19,6 @@ export const getSocket = (): Socket | undefined => {
  * Interfaz para las funciones de actualización de estado de las tiendas
  */
 export interface SocketStores {
-  setQuizConfig: (state: { isRankingVisible?: boolean }) => void;
   setWordCloud: (state: { isActive?: boolean; words?: any }) => void;
   setContact: (state: { isContactsActive?: boolean }) => void;
   setAudienceQA: (state: { isAudienceQAActive?: boolean }) => void;
@@ -45,17 +44,6 @@ export const setupSocketListeners = (stores: SocketStores, retryCount: number = 
     }
     return;
   }
-
-  // Eventos para el ranking
-  socket.on('show_ranking', () => {
-    console.log('Recibido evento para mostrar ranking');
-    stores.setQuizConfig({ isRankingVisible: true });
-  });
-
-  socket.on('hide_ranking', () => {
-    console.log('Recibido evento para ocultar ranking');
-    stores.setQuizConfig({ isRankingVisible: false });
-  });
 
   // Eventos para la nube de palabras
   socket.on('wordcloud:status', (data: { isActive: boolean }) => {
@@ -150,8 +138,6 @@ export const cleanupSocketListeners = () => {
   const socket = getSocket();
   if (!socket) return;
 
-  socket.off('show_ranking');
-  socket.off('hide_ranking');
   socket.off('wordcloud:status');
   socket.off('wordcloud:update');
   socket.off('contacts:status');

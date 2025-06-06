@@ -4,6 +4,7 @@ import { useQuestionStore } from '../store/questionStore';
 import { useParticipantStore } from '../store/participantStore';
 import { useQuizConfigStore } from '../store/quizConfigStore';
 import { useWordCloudStore } from '../store/wordCloudStore';
+import { useRankingStore } from '../store/rankingStore';
 import { useTournamentStore } from '../store/tournamentStore';
 import { useContactStore } from '../store/contactStore';
 import { useAudienceQAStore } from '../store/audienceQAStore';
@@ -13,6 +14,7 @@ import { useAudienceDataStore } from '../store/audienceDataStore';
 import { useReviewStore } from '../store/reviewStore';
 import { useThemeStore } from '../store/themeStore';
 import WordCloudParticipant from '../components/wordcloud/WordCloudParticipant';
+import RankingAudienceView from '../components/ranking/RankingAudienceView';
 import TournamentAudienceView from '../components/tournament/TournamentAudienceView';
 import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
 import { playSound } from '../utils/soundManager';
@@ -32,6 +34,7 @@ import SocketManager from '../components/audience/SocketManager';
 import { setupSocketListeners, cleanupSocketListeners, SocketStores } from '../utils/socketUtils';
 import AudienceDataForm from '../components/audience/AudienceDataForm'; // Import the new form
 import FeedbackForm from '../components/audience/FeedbackForm'; // Import FeedbackForm
+import { debugRankingWebSocket } from '../utils/rankingDebug';
 
 export default function AudienceView() {
   const { t } = useTranslation();
@@ -44,9 +47,10 @@ export default function AudienceView() {
     timeRemaining
   } = useQuestionStore();
 
-  const { config, getConfig, isRankingVisible } = useQuizConfigStore();
+  const { config, getConfig, isRankingVisible, initializeSocket: initializeQuizConfigSocket } = useQuizConfigStore();
   const { currentParticipant, logout } = useParticipantStore();
   const { isActive: isWordCloudActive } = useWordCloudStore();
+  const { isActive: isRankingActive, initializeSocket: initializeRankingSocket } = useRankingStore();
   const { isActive: isTournamentActive } = useTournamentStore();
   const { isContactsActive, loadContacts, initializeSocketListeners: initializeContactSocket } = useContactStore();
   const { isAudienceQAActive, initializeSocket: initializeAudienceQASocket } = useAudienceQAStore();
@@ -77,19 +81,27 @@ export default function AudienceView() {
 
   // Inicializar sockets
   useEffect(() => {
+    console.log('🚀 Inicializando todos los sockets en AudienceView...');
     initializeAudienceDataSocket();
     initializeWordCloudSocket();
+    initializeRankingSocket();
     initializeAudienceQASocket();
     initializeContactSocket();
     initializeDocumentSocket();
     initializeLinkSharingSocket();
-  }, [initializeAudienceDataSocket, initializeWordCloudSocket, initializeAudienceQASocket, initializeContactSocket, initializeDocumentSocket, initializeLinkSharingSocket]);
+    initializeQuizConfigSocket();
+    
+    // Ejecutar debugging después de un breve delay para permitir inicialización
+    setTimeout(() => {
+      console.log('🔍 Ejecutando debug de ranking WebSocket...');
+      debugRankingWebSocket();
+    }, 2000);
+  }, [initializeAudienceDataSocket, initializeWordCloudSocket, initializeRankingSocket, initializeAudienceQASocket, initializeContactSocket, initializeDocumentSocket, initializeLinkSharingSocket, initializeQuizConfigSocket]);
 
-  // Configurar los listeners de Socket.IO
+  // Configurar los listeners de Socket.IO (sin ranking, ya que se maneja en su propio store)
   useEffect(() => {
     // Crear un objeto con las funciones setState de las tiendas
     const stores: SocketStores = {
-      setQuizConfig: useQuizConfigStore.setState,
       setWordCloud: useWordCloudStore.setState,
       setContact: useContactStore.setState,
       setAudienceQA: useAudienceQAStore.setState,
@@ -162,11 +174,19 @@ export default function AudienceView() {
 
   // Sound for ranking modal
   useEffect(() => {
+    console.log('🔄 Cambio en isRankingVisible detectado:', {
+      isRankingVisible,
+      prevValue: prevIsRankingVisibleRef.current,
+      configShowRankings: config.showRankings,
+      shouldShowModal: config.showRankings && isRankingVisible
+    });
+    
     if (isRankingVisible && !prevIsRankingVisibleRef.current) {
+      console.log('🎵 Reproduciendo sonido para ranking modal');
       playSound('ui_click.mp3');
     }
     prevIsRankingVisibleRef.current = isRankingVisible;
-  }, [isRankingVisible]);
+  }, [isRankingVisible, config.showRankings]);
 
   // Activar/desactivar el sonido del temporizador cuando queden pocos segundos
   useEffect(() => {
@@ -271,15 +291,38 @@ export default function AudienceView() {
     return <TournamentAudienceView />;
   }
   
+  if (isRankingActive) {
+    return <RankingAudienceView />;
+  }
+  
   if (isWordCloudActive) {
     return (
-      <div className="min-h-screen bg-bg-primary">
-        <AudienceHeader
-          title={t('interactiveWordCloud')}
-          currentParticipant={currentParticipant}
-          onLogout={handleLogout}
-        />
-        <main className="max-w-4xl mx-auto py-8 px-6">
+      <div className="h-screen bg-bg-primary overflow-hidden relative">
+        {/* Controles discretos para móvil */}
+        <div className="absolute top-4 right-4 z-50 flex items-center space-x-2">
+          {currentParticipant && (
+            <>
+              <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-bg-secondary/80 backdrop-blur-md rounded-lg border border-border-light">
+                <div className="w-2 h-2 bg-accent rounded-full animate-pulse-subtle"></div>
+                <span className="text-sm font-medium text-text-secondary">
+                  {currentParticipant.name}
+                </span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 bg-bg-secondary/80 backdrop-blur-md rounded-lg border border-border-light text-error hover:text-error/80 transition-colors duration-normal micro-scale"
+                aria-label={t('logoutButton')}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Contenido principal sin restricciones de ancho */}
+        <main className="h-full w-full">
           <WordCloudParticipant />
         </main>
       </div>
@@ -648,9 +691,19 @@ export default function AudienceView() {
         )}
       </main>
 
-      {config.showRankings && isRankingVisible && (
-        <RankingModal isVisible={isRankingVisible} />
-      )}
+      {(() => {
+        const shouldShowModal = config.showRankings && isRankingVisible;
+        console.log('🎯 Evaluando renderizado de RankingModal:', {
+          configShowRankings: config.showRankings,
+          isRankingVisible,
+          shouldShowModal,
+          timestamp: new Date().toISOString()
+        });
+        
+        return shouldShowModal ? (
+          <RankingModal isVisible={isRankingVisible} />
+        ) : null;
+      })()}
     </div>
     </SocketManager>
   );

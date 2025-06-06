@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Loader2, AlertTriangle, Table, Play, Square } from 'lucide-react';
+import { Download, Loader2, AlertTriangle, Table, Play, Square, Plus, Settings, Eye } from 'lucide-react';
 import { useAudienceDataStore } from '../../store/audienceDataStore';
+import { useFormBuilderStore } from '../../store/formBuilderStore';
+import FormBuilder from './FormBuilder';
 
 interface AudienceData {
   _id: string;
@@ -16,12 +18,25 @@ const AudienceDataTable: React.FC = () => {
   const [data, setData] = useState<AudienceData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const { 
-    isAudienceDataActive, 
-    isLoading: storeLoading, 
-    activateAudienceData, 
-    deactivateAudienceData 
+  const [showFormBuilder, setShowFormBuilder] = useState<boolean>(false);
+  const [currentEventId] = useState<string>('default-event'); // TODO: obtener del contexto
+  
+  const {
+    isAudienceDataActive,
+    isLoading: storeLoading,
+    activateAudienceData,
+    deactivateAudienceData
   } = useAudienceDataStore();
+
+  const {
+    forms,
+    activeForm,
+    fetchForms,
+    fetchActiveForm,
+    activateForm,
+    deactivateForm,
+    initializeSocket
+  } = useFormBuilderStore();
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -44,7 +59,10 @@ const AudienceDataTable: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    fetchForms(currentEventId, true);
+    fetchActiveForm(currentEventId);
+    initializeSocket();
+  }, [currentEventId, fetchForms, fetchActiveForm, initializeSocket]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
@@ -64,6 +82,34 @@ const AudienceDataTable: React.FC = () => {
     } catch (error) {
       console.error('Error deactivating audience data form:', error);
     }
+  };
+
+  // Funciones para formularios dinámicos
+  const handleActivateDynamicForm = async (formId: string) => {
+    try {
+      await activateForm(formId);
+    } catch (error) {
+      console.error('Error activating dynamic form:', error);
+    }
+  };
+
+  const handleDeactivateDynamicForm = async (formId: string) => {
+    try {
+      await deactivateForm(formId);
+    } catch (error) {
+      console.error('Error deactivating dynamic form:', error);
+    }
+  };
+
+  const handleOpenFormBuilder = () => {
+    setShowFormBuilder(true);
+  };
+
+  const handleCloseFormBuilder = () => {
+    setShowFormBuilder(false);
+    // Refrescar formularios después de cerrar el constructor
+    fetchForms(currentEventId, true);
+    fetchActiveForm(currentEventId);
   };
 
   const convertToCSV = (dataToConvert: AudienceData[]) => {
@@ -128,6 +174,18 @@ const AudienceDataTable: React.FC = () => {
     );
   }
 
+  // Si está abierto el constructor de formularios, mostrarlo
+  if (showFormBuilder) {
+    return (
+      <div className="fixed inset-0 bg-bg-primary z-50">
+        <FormBuilder
+          eventId={currentEventId}
+          onClose={handleCloseFormBuilder}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 bg-bg-primary shadow-lg rounded-xl border border-border-color">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
@@ -148,6 +206,30 @@ const AudienceDataTable: React.FC = () => {
           </div>
           {/* Control buttons for activating/deactivating the form */}
           <div className="flex gap-2">
+            {/* Botón para crear formulario dinámico */}
+            <button
+              onClick={handleOpenFormBuilder}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-bg-primary transition-all flex items-center"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Crear Formulario
+            </button>
+            
+            {/* Mostrar formulario activo si existe */}
+            {activeForm && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-text-secondary">
+                  Activo: {activeForm.title}
+                </span>
+                <button
+                  onClick={() => handleDeactivateDynamicForm(activeForm._id!)}
+                  className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  <Square className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+            
             <button
               onClick={handleActivateForm}
               disabled={isAudienceDataActive || storeLoading}
@@ -214,7 +296,84 @@ const AudienceDataTable: React.FC = () => {
           </table>
         </div>
       )}
-    </div>
+
+     {/* Sección de Formularios Dinámicos */}
+     {forms.length > 0 && (
+       <div className="mt-8 border-t border-border-color pt-6">
+         <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center">
+           <Settings className="h-5 w-5 mr-2 text-accent" />
+           Formularios Dinámicos Creados
+         </h3>
+         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+           {forms.map((form) => (
+             <div
+               key={form._id}
+               className={`p-4 border rounded-lg transition-colors ${
+                 form.isActive
+                   ? 'border-green-500 bg-green-500/5'
+                   : 'border-border-color hover:border-accent/50'
+               }`}
+             >
+               <div className="flex items-start justify-between mb-2">
+                 <h4 className="font-medium text-text-primary truncate">
+                   {form.title}
+                 </h4>
+                 <div className="flex items-center gap-1 ml-2">
+                   {form.isActive && (
+                     <span className="px-2 py-1 text-xs bg-green-500 text-white rounded">
+                       Activo
+                     </span>
+                   )}
+                 </div>
+               </div>
+               
+               {form.description && (
+                 <p className="text-sm text-text-secondary mb-3 line-clamp-2">
+                   {form.description}
+                 </p>
+               )}
+               
+               <div className="text-xs text-text-secondary mb-3">
+                 {form.fields?.length || 0} campos •
+                 Creado: {new Date(form.createdAt).toLocaleDateString()}
+               </div>
+               
+               <div className="flex items-center gap-2">
+                 {!form.isActive ? (
+                   <button
+                     onClick={() => handleActivateDynamicForm(form._id!)}
+                     className="flex items-center gap-1 px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                   >
+                     <Play className="h-3 w-3" />
+                     Activar
+                   </button>
+                 ) : (
+                   <button
+                     onClick={() => handleDeactivateDynamicForm(form._id!)}
+                     className="flex items-center gap-1 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                   >
+                     <Square className="h-3 w-3" />
+                     Desactivar
+                   </button>
+                 )}
+                 
+                 <button
+                   onClick={() => {
+                     // TODO: Implementar vista de respuestas
+                     console.log('Ver respuestas de', form._id);
+                   }}
+                   className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                 >
+                   <Eye className="h-3 w-3" />
+                   Ver Datos
+                 </button>
+               </div>
+             </div>
+           ))}
+         </div>
+       </div>
+     )}
+   </div>
   );
 };
 

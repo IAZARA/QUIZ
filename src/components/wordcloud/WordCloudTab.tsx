@@ -31,7 +31,8 @@ const WordCloudTab: React.FC<WordCloudTabProps> = ({ socket }) => {
     setIsLoading,
     startWordCloud,
     stopWordCloud,
-    resetWordCloud
+    resetWordCloud,
+    initializeSocket
   } = useWordCloudStore();
   const wordCloudData: { text: string; value: number }[] = words.map(w => ({ text: w.text, value: w.count }));
 
@@ -48,6 +49,9 @@ const WordCloudTab: React.FC<WordCloudTabProps> = ({ socket }) => {
     };
 
     fetchInitialData();
+    
+    // Inicializar socket desde el store para asegurar sincronización
+    initializeSocket();
 
     if (socket) {
       socket.on('wordCloudUpdate', (data: WordCloudData) => {
@@ -59,7 +63,7 @@ const WordCloudTab: React.FC<WordCloudTabProps> = ({ socket }) => {
         socket.off('wordCloudUpdate');
       };
     }
-  }, [socket, setWordCloudData, setIsActive]);
+  }, [socket, setWordCloudData, setIsActive, initializeSocket]);
 
   const handleStart = async () => {
     setIsLoading(true);

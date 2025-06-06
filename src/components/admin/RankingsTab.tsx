@@ -45,7 +45,7 @@ const RankingsTab: React.FC<RankingsTabProps> = ({ onResetSession, showNotificat
   };
 
   return (
-    <div className="px-4 py-5 sm:p-6 bg-bg-primary text-text-primary">
+    <div className="px-4 py-5 sm:p-6 bg-white text-gray-900">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-medium text-text-primary">Estadísticas de Participantes</h2>
         <div className="flex space-x-2">

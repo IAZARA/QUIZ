@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, User, Mail, MessageSquare } from 'lucide-react';
+import DynamicFormRenderer from './DynamicFormRenderer';
+import { useFormBuilderStore } from '../../store/formBuilderStore';
 
 interface AudienceDataFormProps {
   onSubmitSuccess: () => void; // Callback for successful submission
@@ -15,6 +17,7 @@ interface FormData {
 interface FormErrors {
   name?: string;
   email?: string;
+  api?: string;
 }
 
 const AudienceDataForm: React.FC<AudienceDataFormProps> = ({ onSubmitSuccess }) => {
@@ -27,6 +30,25 @@ const AudienceDataForm: React.FC<AudienceDataFormProps> = ({ onSubmitSuccess }) 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [currentEventId] = useState<string>('default-event'); // TODO: obtener del contexto
+  
+  const { activeForm, fetchActiveForm, initializeSocket } = useFormBuilderStore();
+
+  // Verificar si hay formulario dinámico activo
+  useEffect(() => {
+    fetchActiveForm(currentEventId);
+    initializeSocket();
+  }, [currentEventId, fetchActiveForm, initializeSocket]);
+
+  // Si hay un formulario dinámico activo, mostrarlo en lugar del formulario estático
+  if (activeForm) {
+    return (
+      <DynamicFormRenderer
+        eventId={currentEventId}
+        onSubmitSuccess={onSubmitSuccess}
+      />
+    );
+  }
 
   const validate = (): FormErrors => {
     const newErrors: FormErrors = {};

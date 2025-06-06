@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { QuizConfigState, QuizConfig } from '../types';
+import io from 'socket.io-client';
 
 // Configuración por defecto
 const DEFAULT_CONFIG: QuizConfig = {
@@ -16,6 +17,9 @@ const MIN_TIMER = 10;
 const MAX_TIMER = 120;
 const MIN_VOLUME = 0.0;
 const MAX_VOLUME = 1.0;
+
+// Variable para almacenar la instancia del socket (siguiendo el patrón de wordCloudStore)
+let rankingSocket: any = null;
 
 // Función para validar URLs
 const isValidUrl = (url: string): boolean => {
@@ -72,33 +76,127 @@ export const useQuizConfigStore = create<QuizConfigState>((set, get) => ({
   isLoading: false,
   isRankingVisible: false, // Nuevo estado para controlar la visibilidad
 
-  // Nuevas acciones para mostrar/ocultar el ranking
-  showRanking: () => {
-    // Emitir evento al servidor para que todos los clientes vean el ranking
-    fetch('/api/admin/show-ranking', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }).catch(error => {
-      console.error('Error al mostrar el ranking:', error);
-    });
+  // Nuevas acciones para mostrar/ocultar el ranking (delegando al rankingStore)
+  showRanking: async () => {
+    console.log('🎯 Delegando showRanking al rankingStore...');
     
-    set({ isRankingVisible: true });
+    try {
+      // Usar las nuevas rutas de ranking
+      const response = await fetch('/api/ranking/show', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Respuesta del servidor para ranking/show:', data);
+        console.log(`📊 Clientes notificados: ${data.clientsNotified}`);
+        console.log(`🎯 Estado del ranking: ${data.isVisible}`);
+      } else {
+        console.error('❌ Error en respuesta del servidor:', response.status);
+      }
+      
+      // Mantener compatibilidad con el estado local para el modal
+      set({ isRankingVisible: true });
+      console.log('🔄 Estado local actualizado: isRankingVisible = true');
+      
+    } catch (error) {
+      console.error('❌ Error al mostrar el ranking:', error);
+    }
   },
   
-  hideRanking: () => {
-    // Emitir evento al servidor para que todos los clientes oculten el ranking
-    fetch('/api/admin/hide-ranking', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }).catch(error => {
-      console.error('Error al ocultar el ranking:', error);
-    });
+  hideRanking: async () => {
+    console.log('🎯 Delegando hideRanking al rankingStore...');
     
-    set({ isRankingVisible: false });
+    try {
+      // Usar las nuevas rutas de ranking
+      const response = await fetch('/api/ranking/hide', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Respuesta del servidor para ranking/hide:', data);
+        console.log(`📊 Clientes notificados: ${data.clientsNotified}`);
+        console.log(`🎯 Estado del ranking: ${data.isVisible}`);
+      } else {
+        console.error('❌ Error en respuesta del servidor:', response.status);
+      }
+      
+      // Mantener compatibilidad con el estado local para el modal
+      set({ isRankingVisible: false });
+      console.log('🔄 Estado local actualizado: isRankingVisible = false');
+      
+    } catch (error) {
+      console.error('❌ Error al ocultar el ranking:', error);
+    }
+  },
+
+  // Inicializar listeners de WebSocket usando socket propio (siguiendo patrón de wordCloudStore)
+  initializeSocket: () => {
+    console.log('🔧 Inicializando socket propio para QuizConfig...');
+    
+    if (!rankingSocket) {
+      rankingSocket = io({
+        path: '/socket.io',
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+
+      rankingSocket.on('connect', () => {
+        console.log('✅ Ranking Socket conectado:', rankingSocket.id);
+        // Solicitar estado actual al conectarse
+        get().getRankingStatus();
+      });
+
+      rankingSocket.on('disconnect', () => {
+        console.log('⚠️ Ranking Socket desconectado');
+      });
+
+      rankingSocket.on('reconnect', () => {
+        console.log('🔄 Ranking Socket reconectado');
+        // Refrescar estado al reconectarse
+        get().getRankingStatus();
+      });
+
+      rankingSocket.on('ranking:status', (data: { isVisible: boolean }) => {
+        console.log('🎯 Evento ranking:status recibido:', data);
+        set({ isRankingVisible: data.isVisible });
+      });
+
+      // Mantener compatibilidad con eventos existentes
+      rankingSocket.on('show_ranking', (data: any) => {
+        console.log('🎯 Evento show_ranking recibido:', data);
+        set({ isRankingVisible: true });
+      });
+
+      rankingSocket.on('hide_ranking', (data: any) => {
+        console.log('🎯 Evento hide_ranking recibido:', data);
+        set({ isRankingVisible: false });
+      });
+    }
+  },
+
+  // Nueva función para obtener estado del ranking
+  getRankingStatus: async () => {
+    try {
+      const response = await fetch('/api/ranking/status');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📊 Estado del ranking obtenido:', data);
+        // Actualizar estado local basado en la respuesta del servidor
+        set({ isRankingVisible: data.isVisible });
+      }
+    } catch (error) {
+      console.error('❌ Error al obtener estado del ranking:', error);
+    }
   },
 
   getConfig: async () => {

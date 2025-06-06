@@ -33,8 +33,6 @@ interface LinkSharingState {
   createLink: (linkData: Omit<SharedLink, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateLinkById: (id: string, updates: Partial<SharedLink>) => Promise<void>;
   deleteLinkById: (id: string) => Promise<void>;
-  activateLinkSharing: () => Promise<void>;
-  deactivateLinkSharing: () => Promise<void>;
   shareLink: (linkId: string) => Promise<void>;
   shareAllLinks: () => Promise<void>;
   stopSharingLink: () => Promise<void>;
@@ -44,7 +42,7 @@ interface LinkSharingState {
   initializeSocketListeners: () => void;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
   // Estado inicial
@@ -152,35 +150,6 @@ export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
     }
   },
 
-  activateLinkSharing: async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/links/status/activate`, {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        set({ isLinkSharingActive: true });
-      }
-    } catch (error) {
-      console.error('Error activating link sharing:', error);
-      throw error;
-    }
-  },
-
-  deactivateLinkSharing: async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/links/status/deactivate`, {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        set({ isLinkSharingActive: false, activeLink: null });
-      }
-    } catch (error) {
-      console.error('Error deactivating link sharing:', error);
-      throw error;
-    }
-  },
 
   shareLink: async (linkId) => {
     try {
@@ -190,7 +159,12 @@ export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
 
       if (response.ok) {
         const sharedLink = await response.json();
-        set({ activeLink: sharedLink, isLinkSharingActive: true });
+        // La función se activa automáticamente al compartir
+        set({
+          activeLink: sharedLink,
+          activeLinks: [], // Limpiar compartir todos
+          isLinkSharingActive: true
+        });
       }
     } catch (error) {
       console.error('Error sharing link:', error);
@@ -206,6 +180,7 @@ export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
 
       if (response.ok) {
         const result = await response.json();
+        // La función se activa automáticamente al compartir todos
         set({
           isLinkSharingActive: true,
           activeLinks: result.links,
@@ -225,7 +200,12 @@ export const useLinkSharingStore = create<LinkSharingState>((set, get) => ({
       });
 
       if (response.ok) {
-        set({ activeLink: null, activeLinks: [] });
+        // La función se desactiva automáticamente al detener
+        set({
+          activeLink: null,
+          activeLinks: [],
+          isLinkSharingActive: false
+        });
       }
     } catch (error) {
       console.error('Error stopping link sharing:', error);

@@ -37,6 +37,7 @@ export default {
         'glow': 'glow 2s ease-in-out infinite',
         'spin-slow': 'spin 3s linear infinite',
         'shine': 'shine 2s linear infinite',
+        'dynamic-pulse': 'dynamicPulse 1.8s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -78,6 +79,16 @@ export default {
         shine: {
           '0%': { backgroundPosition: '200% 0' },
           '100%': { backgroundPosition: '-200% 0' },
+        },
+        dynamicPulse: {
+          '0%, 100%': {
+            transform: 'scale(1)',
+            opacity: '0.7'
+          },
+          '50%': {
+            transform: 'scale(1.4)',
+            opacity: '1'
+          },
         },
       },
       transitionDuration: {

@@ -5,9 +5,9 @@ const reviewSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  // Campos tradicionales (opcionales para compatibilidad)
   rating: {
     type: Number,
-    required: true,
     min: 1,
     max: 10,
   },
@@ -16,8 +16,21 @@ const reviewSchema = new mongoose.Schema({
     trim: true,
     maxlength: 5000,
   },
+  // Campos para formularios dinámicos
+  formId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'DynamicForm'
+  },
+  formTitle: {
+    type: String,
+    trim: true
+  },
+  structuredData: {
+    type: mongoose.Schema.Types.Mixed, // Datos del formulario dinámico
+  },
+  // Información del autor
   authorId: {
-    type: String, // Assuming String for now, can be changed to ObjectId if a User model exists
+    type: String,
     required: true,
   },
   isAnonymous: {
