@@ -13,6 +13,7 @@ interface ReviewState {
 // Define the actions interface
 interface ReviewActions {
   fetchReviews: (eventId: string) => Promise<void>;
+  fetchReviewsStatus: () => Promise<void>;
   activateReviews: () => Promise<void>;
   deactivateReviews: () => Promise<void>;
 }
@@ -47,6 +48,16 @@ export const useReviewStore = create<ReviewState & ReviewActions>((set) => ({
       }
       console.error('Error fetching reviews:', err);
       set({ error: errorMessage, isLoading: false, reviews: [] }); // Clear reviews on error
+    }
+  },
+
+  fetchReviewsStatus: async () => {
+    try {
+      const response = await apiClient.get('/api/reviews/status');
+      set({ isReviewsActive: response.data.isActive });
+    } catch (err: any) {
+      console.error('Error fetching reviews status:', err);
+      set({ error: 'Error fetching reviews status' });
     }
   },
 

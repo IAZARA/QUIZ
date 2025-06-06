@@ -162,8 +162,8 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onToolSelect }) => {
     },
     {
       id: 'audienceData',
-      title: t('audienceDataTabTitle') || 'Datos de Audiencia',
-      description: t('audienceDataDesc'),
+      title: 'Solicitar datos a la audiencia',
+      description: 'Gestiona y recopila información de tu audiencia mediante formularios personalizados',
       icon: <Database />,
       color: 'bg-gradient-to-br from-pink-500 to-pink-600',
       category: 'analytics' as const
