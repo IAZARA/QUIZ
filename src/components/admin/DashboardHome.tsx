@@ -13,7 +13,8 @@ import {
   Palette,
   HelpCircle,
   Bot,
-  Link
+  Link,
+  Brain
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -96,6 +97,14 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onToolSelect }) => {
       description: 'Genera preguntas automáticamente usando inteligencia artificial desde texto o documentos',
       icon: <Bot />,
       color: 'bg-gradient-to-br from-purple-500 to-purple-600',
+      category: 'content' as const
+    },
+    {
+      id: 'mlCriminalSimulator',
+      title: 'Canvas Interactivos',
+      description: 'Demostraciones interactivas de Machine Learning donde cada participante puede experimentar individualmente',
+      icon: <Palette />,
+      color: 'bg-gradient-to-br from-orange-500 to-red-500',
       category: 'content' as const
     }
   ];

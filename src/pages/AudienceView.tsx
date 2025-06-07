@@ -13,10 +13,12 @@ import { useLinkSharingStore } from '../store/linkSharingStore';
 import { useAudienceDataStore } from '../store/audienceDataStore';
 import { useReviewStore } from '../store/reviewStore';
 import { useThemeStore } from '../store/themeStore';
+import { useCanvasInteractivosStore } from '../store/canvasInteractivosStore';
 import WordCloudParticipant from '../components/wordcloud/WordCloudParticipant';
 import RankingAudienceView from '../components/ranking/RankingAudienceView';
 import TournamentAudienceView from '../components/tournament/TournamentAudienceView';
 import ContactsAudienceView from '../components/contacts/ContactsAudienceView';
+import CanvasInteractivosAudienceView from '../components/audience/CanvasInteractivosAudienceView';
 import { playSound } from '../utils/soundManager';
 import { X, MessageCircle, Sun, Moon, FileText, Users, Link } from 'lucide-react';
 
@@ -59,6 +61,11 @@ export default function AudienceView() {
   const { isAudienceDataActive, initializeSocket: initializeAudienceDataSocket } = useAudienceDataStore();
   const { initializeSocket: initializeWordCloudSocket } = useWordCloudStore();
   const { isReviewsActive } = useReviewStore();
+  const {
+    isRunning: isCanvasInteractivosActive,
+    initializeSocket: initializeCanvasInteractivosSocket,
+    disconnectSocket: disconnectCanvasInteractivosSocket
+  } = useCanvasInteractivosStore();
   const { theme, toggleTheme } = useThemeStore();
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -86,6 +93,7 @@ export default function AudienceView() {
     initializeWordCloudSocket();
     initializeRankingSocket();
     initializeAudienceQASocket();
+    initializeCanvasInteractivosSocket();
     initializeContactSocket();
     initializeDocumentSocket();
     initializeLinkSharingSocket();
@@ -96,7 +104,7 @@ export default function AudienceView() {
       console.log('🔍 Ejecutando debug de ranking WebSocket...');
       debugRankingWebSocket();
     }, 2000);
-  }, [initializeAudienceDataSocket, initializeWordCloudSocket, initializeRankingSocket, initializeAudienceQASocket, initializeContactSocket, initializeDocumentSocket, initializeLinkSharingSocket, initializeQuizConfigSocket]);
+  }, [initializeAudienceDataSocket, initializeWordCloudSocket, initializeRankingSocket, initializeAudienceQASocket, initializeContactSocket, initializeDocumentSocket, initializeLinkSharingSocket, initializeQuizConfigSocket, initializeCanvasInteractivosSocket]);
 
   // Configurar los listeners de Socket.IO (sin ranking, ya que se maneja en su propio store)
   useEffect(() => {
@@ -293,6 +301,10 @@ export default function AudienceView() {
   
   if (isRankingActive) {
     return <RankingAudienceView />;
+  }
+  
+  if (isCanvasInteractivosActive) {
+    return <CanvasInteractivosAudienceView />;
   }
   
   if (isWordCloudActive) {

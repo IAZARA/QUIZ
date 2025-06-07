@@ -1,0 +1,56 @@
+<svg width="200" height="150" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="150" fill="#f8fafc"/>
+  
+  <!-- Main magnifying glass -->
+  <circle cx="80" cy="60" r="25" stroke="#3b82f6" stroke-width="4" fill="none"/>
+  <line x1="99" y1="79" x2="115" y2="95" stroke="#3b82f6" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Document being analyzed -->
+  <rect x="30" y="40" width="40" height="50" fill="white" stroke="#e5e7eb" stroke-width="2" rx="2"/>
+  <line x1="35" y1="48" x2="65" y2="48" stroke="#6b7280" stroke-width="1"/>
+  <line x1="35" y1="53" x2="60" y2="53" stroke="#6b7280" stroke-width="1"/>
+  <line x1="35" y1="58" x2="65" y2="58" stroke="#6b7280" stroke-width="1"/>
+  <line x1="35" y1="63" x2="55" y2="63" stroke="#6b7280" stroke-width="1"/>
+  
+  <!-- AI detection indicators -->
+  <circle cx="45" cy="75" r="3" fill="#ef4444"/>
+  <circle cx="55" cy="75" r="3" fill="#10b981"/>
+  <circle cx="65" cy="75" r="3" fill="#f59e0b"/>
+  
+  <!-- Digital verification symbols -->
+  <g transform="translate(120, 30)">
+    <!-- Shield icon -->
+    <path d="M15 5 L25 10 L25 25 C25 30 20 35 15 40 C10 35 5 30 5 25 L5 10 Z" fill="#10b981" stroke="#059669" stroke-width="1"/>
+    <path d="M12 20 L14 22 L18 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  
+  <!-- Warning symbol for manipulated content -->
+  <g transform="translate(140, 60)">
+    <polygon points="15,5 25,20 5,20" fill="#ef4444" stroke="#dc2626" stroke-width="1"/>
+    <line x1="15" y1="10" x2="15" y2="15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="15" cy="17" r="1" fill="white"/>
+  </g>
+  
+  <!-- Binary code pattern (representing AI analysis) -->
+  <g transform="translate(30, 100)" fill="#6b7280" font-family="monospace" font-size="8">
+    <text x="0" y="0">1010110</text>
+    <text x="0" y="10">0110101</text>
+    <text x="0" y="20">1101010</text>
+  </g>
+  
+  <!-- Checkmark for genuine content -->
+  <g transform="translate(100, 100)">
+    <circle cx="15" cy="15" r="12" fill="#10b981" stroke="#059669" stroke-width="1"/>
+    <path d="M10 15 L13 18 L20 11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  
+  <!-- X mark for manipulated content -->
+  <g transform="translate(130, 100)">
+    <circle cx="15" cy="15" r="12" fill="#ef4444" stroke="#dc2626" stroke-width="1"/>
+    <path d="M10 10 L20 20 M20 10 L10 20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="100" y="140" text-anchor="middle" fill="#1f2937" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Verificador de Evidencia</text>
+</svg>

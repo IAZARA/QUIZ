@@ -17,6 +17,8 @@ import aiRoutes from './ai-routes.js'; // Import AI routes
 import setupLinkSharingRoutes, { setupLinkSharingSockets } from './link-sharing-routes.js'; // Import link sharing routes
 import iconRoutes from './icon-routes.js'; // Import icon routes
 import formBuilderRoutes from './form-builder-routes.js'; // Import form builder routes
+import interactiveScriptsRoutes, { setupInteractiveScriptsSockets } from './interactive-scripts-routes.js'; // Import Interactive Scripts routes
+import canvasInteractivosRoutes, { setupCanvasInteractivosSockets, setupCanvasInteractivosSocketEvents } from './canvas-interactivos-routes.js'; // Import Canvas Interactivos routes
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Cargar variables de entorno
@@ -167,6 +169,8 @@ app.use('/api/reviews', reviewRoutes); // Use review routes
 app.use('/api/ai', aiRoutes); // Use AI routes
 app.use('/api/icons', iconRoutes); // Use icon routes
 app.use('/api/form-builder', formBuilderRoutes); // Use form builder routes
+app.use('/api/interactive-scripts', interactiveScriptsRoutes); // Use Interactive Scripts routes
+app.use('/api/canvas-interactivos', canvasInteractivosRoutes); // Use Canvas Interactivos routes
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(process.cwd(), 'dist');
@@ -297,6 +301,9 @@ async function connectToDatabase() {
     setupContactSockets(io);
     setupLinkSharingRoutes(app, io, db);
     setupLinkSharingSockets(io);
+    setupInteractiveScriptsSockets(io);
+    setupCanvasInteractivosSockets(io);
+    setupCanvasInteractivosSocketEvents(io);
   } catch (error) {
     console.error('Error conectando a MongoDB:', error);
     process.exit(1);

@@ -24,6 +24,7 @@ import LinkSharingTab from '../components/admin/LinkSharingTab';
 import AudienceDataTable from '../components/admin/AudienceDataTable';
 import ReviewView from '../components/admin/ReviewView';
 import AIQuestionModule from '../components/admin/AIQuestionModule';
+import CanvasInteractivosTab from '../components/admin/CanvasInteractivosTab';
 
 // Definición de la interfaz QuestionWithId
 interface QuestionWithId {
@@ -59,7 +60,7 @@ export default function AdminDashboard() {
   });
   
   // Estado para la interfaz de usuario - NUEVO DISEÑO
-  const [activeView, setActiveView] = useState<'dashboard' | 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData' | 'reviews' | 'aiQuestions' | 'linkSharing'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'questions' | 'config' | 'rankings' | 'tournament' | 'wordcloud' | 'contacts' | 'audienceQA' | 'documents' | 'audienceData' | 'reviews' | 'aiQuestions' | 'linkSharing' | 'mlCriminalSimulator'>('dashboard');
   const [showCheatSheet, setShowCheatSheet] = useState<Record<string, boolean>>({});
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   
@@ -448,6 +449,8 @@ export default function AdminDashboard() {
           <AIQuestionModule />
         ) : activeView === 'linkSharing' ? (
           <LinkSharingTab />
+        ) : activeView === 'mlCriminalSimulator' ? (
+          <CanvasInteractivosTab />
         ) : (
           <DashboardHome onToolSelect={handleToolSelect} />
         )}
