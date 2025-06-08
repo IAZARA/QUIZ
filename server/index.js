@@ -1,7 +1,25 @@
+// Cargar variables de entorno PRIMERO antes que cualquier otra cosa
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Validar variables críticas al inicio
+const requiredEnvVars = ['ANTHROPIC_API_KEY', 'MONGODB_URI'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('❌ Variables de entorno faltantes:', missingVars);
+  console.error('💡 Verifica que el archivo .env esté presente y contenga las variables requeridas');
+  process.exit(1);
+}
+
+console.log('✅ Variables de entorno validadas correctamente');
+console.log(`🔑 ANTHROPIC_API_KEY configurada: ${process.env.ANTHROPIC_API_KEY ? 'Sí' : 'No'}`);
+console.log(`🗄️ MONGODB_URI configurada: ${process.env.MONGODB_URI ? 'Sí' : 'No'}`);
+
+// Ahora importar el resto de módulos
 import express from 'express';
 import cors from 'cors';
 import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
-import dotenv from 'dotenv';
 import http from 'http';
 import { Server } from 'socket.io';
 import multer from 'multer';
@@ -20,9 +38,6 @@ import formBuilderRoutes from './form-builder-routes.js'; // Import form builder
 import interactiveScriptsRoutes, { setupInteractiveScriptsSockets } from './interactive-scripts-routes.js'; // Import Interactive Scripts routes
 import canvasInteractivosRoutes, { setupCanvasInteractivosSockets, setupCanvasInteractivosSocketEvents } from './canvas-interactivos-routes.js'; // Import Canvas Interactivos routes
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Cargar variables de entorno
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
@@ -1445,4 +1460,23 @@ connectToDatabase().then(() => {
   server.listen(PORT, () => {
     console.log(`Servidor ejecutándose en el puerto ${PORT} en modo ${process.env.NODE_ENV || 'desarrollo'}`);
   });
+  
+  // Manejo de errores del servidor
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`❌ Error: El puerto ${PORT} ya está en uso.`);
+      console.error('💡 Soluciones posibles:');
+      console.error('   1. Ejecuta: node scripts/cleanup-ports.js');
+      console.error('   2. Cambia el puerto en el archivo .env');
+      console.error('   3. Detén otros procesos que usen el puerto 3000');
+      console.error('');
+      process.exit(1);
+    } else {
+      console.error('❌ Error del servidor:', error);
+      process.exit(1);
+    }
+  });
+}).catch((error) => {
+  console.error('❌ Error conectando a la base de datos:', error);
+  process.exit(1);
 });

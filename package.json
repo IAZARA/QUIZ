@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
+    "cleanup-ports": "node scripts/cleanup-ports.js",
+    "start:clean": "npm run cleanup-ports && npm run dev:all",
     "list": "node scripts/dev.js list",
     "generate": "node scripts/dev.js generate",
     "parse-prd": "node scripts/dev.js parse-prd"

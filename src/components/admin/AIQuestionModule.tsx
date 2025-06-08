@@ -292,7 +292,7 @@ const AIQuestionModule: React.FC = () => {
         {activeTab === 'text' ? (
           <div className="space-y-6">
             <div>
-              <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="topic" className="block text-sm font-medium text-gray-900 mb-2">
                 Tema/Contexto para las Preguntas
               </label>
               <textarea
@@ -300,13 +300,13 @@ const AIQuestionModule: React.FC = () => {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-gray-900"
                 placeholder="Describe el tema, nivel de dificultad y cualquier enfoque específico para las preguntas..."
               />
             </div>
             
             <div>
-              <label htmlFor="numQuestions" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="numQuestions" className="block text-sm font-medium text-gray-900 mb-2">
                 Número de Preguntas a Generar
               </label>
               <input
@@ -316,7 +316,7 @@ const AIQuestionModule: React.FC = () => {
                 onChange={(e) => setNumQuestions(parseInt(e.target.value, 10))}
                 min="1"
                 max="20"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-gray-900"
               />
             </div>
 
@@ -392,7 +392,7 @@ const AIQuestionModule: React.FC = () => {
             )}
 
             <div>
-              <label htmlFor="numQuestionsDoc" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="numQuestionsDoc" className="block text-sm font-medium text-gray-900 mb-2">
                 Número de Preguntas a Generar
               </label>
               <input

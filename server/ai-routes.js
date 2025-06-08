@@ -3,9 +3,17 @@ import multer from 'multer';
 import fs from 'fs/promises';
 import path from 'path';
 import { MongoClient, ObjectId } from 'mongodb';
-import dotenv from 'dotenv';
+import AIService from './services/aiService.js';
 
-dotenv.config();
+// Inicializar el servicio de IA unificado
+let aiService;
+try {
+  aiService = new AIService();
+  console.log('✅ AIService inicializado correctamente');
+} catch (error) {
+  console.error('❌ Error inicializando AIService:', error.message);
+  console.error('💡 Verifica que las variables de entorno estén configuradas correctamente');
+}
 
 const router = express.Router();
 
@@ -50,45 +58,22 @@ const upload = multer({
   }
 });
 
-// Función para llamar a la API de Anthropic
-async function callAnthropicAPI(prompt) {
-  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+// Función para registrar el uso de IA para métricas
+function logAIUsage(provider, success, responseTime, questionsGenerated, fallbackUsed = false, originalError = null) {
+  const logEntry = {
+    provider,
+    success,
+    responseTime,
+    questionsGenerated,
+    fallbackUsed,
+    originalError,
+    timestamp: new Date().toISOString()
+  };
   
-  if (!ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY no está configurada en las variables de entorno');
-  }
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4000,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Error de Anthropic API: ${errorData.error?.message || response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.content[0].text;
-  } catch (error) {
-    console.error('Error llamando a Anthropic API:', error);
-    throw error;
-  }
+  console.log('📊 Registro de uso de IA:', JSON.stringify(logEntry, null, 2));
+  
+  // Aquí podrías guardar las métricas en base de datos si lo deseas
+  // await db.collection('ai_usage_logs').insertOne(logEntry);
 }
 
 // Función para procesar diferentes tipos de documentos
@@ -132,46 +117,10 @@ async function processDocument(filePath, mimetype) {
   }
 }
 
-// Función para crear el prompt para Anthropic
-function createQuestionPrompt(source, numQuestions) {
-  const basePrompt = `
-Eres un experto en educación y creación de contenido académico. Tu tarea es generar preguntas de opción múltiple de alta calidad basadas en el contenido proporcionado.
-
-INSTRUCCIONES ESPECÍFICAS:
-1. Genera exactamente ${numQuestions} preguntas
-2. Cada pregunta debe tener exactamente 3 opciones (A, B, C)
-3. Solo una opción debe ser correcta
-4. Incluye una explicación clara de por qué la respuesta correcta es la adecuada
-5. Las preguntas deben ser claras, precisas y educativas
-6. Evita preguntas ambiguas o con múltiples interpretaciones
-7. Varía el nivel de dificultad (básico, intermedio, avanzado)
-
-FORMATO DE RESPUESTA REQUERIDO (JSON):
-{
-  "questions": [
-    {
-      "content": "Texto de la pregunta aquí",
-      "option_a": "Primera opción",
-      "option_b": "Segunda opción", 
-      "option_c": "Tercera opción",
-      "correct_option": "A", // Solo A, B o C
-      "explanation": "Explicación detallada de por qué esta respuesta es correcta"
-    }
-  ]
-}
-
-CONTENIDO BASE PARA LAS PREGUNTAS:
-${source.type === 'document' ? `Documento: ${source.documentName || 'Documento cargado'}` : 'Tema proporcionado'}
-
-${source.content}
-
-Genera las preguntas en formato JSON válido, asegurándote de que cada pregunta sea educativa y bien fundamentada en el contenido proporcionado.`;
-
-  return basePrompt;
-}
-
-// Ruta para generar preguntas con Anthropic
+// Ruta para generar preguntas con sistema de fallback automático
 router.post('/generate-questions-anthropic', async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     // Conectar a la base de datos
     await connectToDatabase();
@@ -180,76 +129,91 @@ router.post('/generate-questions-anthropic', async (req, res) => {
 
     // Validaciones
     if (!source || !source.content) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Fuente de contenido requerida',
         details: 'Debe proporcionar contenido para generar preguntas'
       });
     }
 
     if (!numQuestions || numQuestions < 1 || numQuestions > 20) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Número de preguntas inválido',
         details: 'Debe ser entre 1 y 20 preguntas'
       });
     }
 
-    // Crear el prompt
-    const prompt = createQuestionPrompt(source, numQuestions);
-
-    // Llamar a Anthropic API
-    const response = await callAnthropicAPI(prompt);
-
-    // Parsear la respuesta JSON
-    let parsedResponse;
-    try {
-      // Limpiar la respuesta si tiene texto adicional
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      const jsonString = jsonMatch ? jsonMatch[0] : response;
-      parsedResponse = JSON.parse(jsonString);
-    } catch (parseError) {
-      console.error('Error parseando respuesta de IA:', parseError);
-      console.log('Respuesta original:', response);
-      
-      return res.status(500).json({ 
-        error: 'Error procesando respuesta de IA',
-        details: 'La IA no devolvió un formato JSON válido'
+    // Verificar que el servicio de IA esté disponible
+    if (!aiService) {
+      return res.status(500).json({
+        error: 'Servicio de IA no disponible',
+        details: 'El servicio de IA no se pudo inicializar. Verifica la configuración de las API keys.'
       });
     }
 
-    // Validar estructura de respuesta
-    if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
-      return res.status(500).json({ 
-        error: 'Formato de respuesta inválido',
-        details: 'La IA no devolvió preguntas en el formato esperado'
-      });
-    }
+    // Usar el servicio de IA unificado con fallback automático
+    const result = await aiService.generateQuestions(source, numQuestions);
+    
+    // Registrar métricas de uso
+    logAIUsage(
+      result.provider,
+      true,
+      result.responseTime,
+      result.count,
+      result.fallbackUsed,
+      result.originalError
+    );
 
-    // Validar cada pregunta
-    const validQuestions = parsedResponse.questions.filter(q => {
-      return q.content && q.option_a && q.option_b && q.option_c && 
-             q.correct_option && ['A', 'B', 'C'].includes(q.correct_option) &&
-             q.explanation;
-    });
-
-    if (validQuestions.length === 0) {
-      return res.status(500).json({ 
-        error: 'No se generaron preguntas válidas',
-        details: 'Las preguntas generadas no cumplen con el formato requerido'
-      });
-    }
-
-    res.json({
+    // Preparar respuesta con información adicional
+    const response = {
       success: true,
-      questions: validQuestions,
-      count: validQuestions.length,
-      source: source.type
-    });
+      questions: result.questions,
+      count: result.count,
+      source: source.type,
+      provider: result.provider,
+      fallbackUsed: result.fallbackUsed,
+      responseTime: result.responseTime
+    };
+
+    // Agregar información sobre el fallback si se usó
+    if (result.fallbackUsed) {
+      response.message = `Preguntas generadas exitosamente usando ${result.provider} como respaldo`;
+      if (result.originalError) {
+        response.originalError = result.originalError;
+      }
+    } else {
+      response.message = `Preguntas generadas exitosamente usando ${result.provider}`;
+    }
+
+    res.json(response);
 
   } catch (error) {
+    const responseTime = Date.now() - startTime;
+    
     console.error('Error en generate-questions-anthropic:', error);
-    res.status(500).json({ 
-      error: 'Error interno del servidor',
-      details: error.message 
+    
+    // Registrar el fallo en las métricas
+    logAIUsage('unknown', false, responseTime, 0, false, error.message);
+    
+    // Determinar el tipo de error para dar una respuesta más específica
+    let statusCode = 500;
+    let errorMessage = 'Error interno del servidor';
+    
+    if (error.message.includes('API key') || error.message.includes('401')) {
+      statusCode = 401;
+      errorMessage = 'Error de autenticación con los proveedores de IA';
+    } else if (error.message.includes('rate') || error.message.includes('429')) {
+      statusCode = 429;
+      errorMessage = 'Límite de requests excedido en los proveedores de IA';
+    } else if (error.message.includes('timeout') || error.message.includes('network')) {
+      statusCode = 503;
+      errorMessage = 'Error de conectividad con los proveedores de IA';
+    }
+    
+    res.status(statusCode).json({
+      error: errorMessage,
+      details: error.message,
+      timestamp: new Date().toISOString(),
+      responseTime
     });
   }
 });
@@ -320,13 +284,149 @@ router.post('/process-document', upload.single('document'), async (req, res) => 
   }
 });
 
-// Ruta de prueba para verificar configuración
-router.get('/test', (req, res) => {
-  res.json({ 
-    message: 'Rutas de IA funcionando correctamente',
-    anthropicConfigured: !!process.env.ANTHROPIC_API_KEY,
-    timestamp: new Date().toISOString()
-  });
+// Ruta de prueba para verificar configuración del sistema de IA
+router.get('/test', async (req, res) => {
+  try {
+    const testResult = {
+      message: 'Sistema de IA con fallback funcionando correctamente',
+      timestamp: new Date().toISOString(),
+      aiService: {
+        initialized: !!aiService,
+        anthropic: {
+          configured: !!process.env.ANTHROPIC_API_KEY,
+          keyFormat: process.env.ANTHROPIC_API_KEY ?
+            `${process.env.ANTHROPIC_API_KEY.substring(0, 15)}...` : 'No configurada'
+        },
+        deepseek: {
+          configured: !!process.env.DEEPSEEK_API_KEY,
+          model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+          keyFormat: process.env.DEEPSEEK_API_KEY ?
+            `${process.env.DEEPSEEK_API_KEY.substring(0, 15)}...` : 'No configurada'
+        }
+      },
+      database: {
+        connected: !!db
+      }
+    };
+    
+    res.json(testResult);
+  } catch (error) {
+    console.error('Error en ruta de prueba:', error);
+    res.status(500).json({
+      error: 'Error verificando configuración',
+      details: error.message
+    });
+  }
+});
+
+// Ruta de diagnóstico completa para debugging
+router.get('/debug', async (req, res) => {
+  try {
+    const diagnostics = {
+      timestamp: new Date().toISOString(),
+      environment: {
+        NODE_ENV: process.env.NODE_ENV,
+        workingDirectory: process.cwd(),
+        processId: process.pid
+      },
+      aiService: {
+        initialized: !!aiService,
+        status: aiService ? 'Operativo' : 'No inicializado'
+      },
+      anthropic: {
+        apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY,
+        apiKeyLength: process.env.ANTHROPIC_API_KEY ? process.env.ANTHROPIC_API_KEY.length : 0,
+        apiKeyFormat: process.env.ANTHROPIC_API_KEY ?
+          `${process.env.ANTHROPIC_API_KEY.substring(0, 15)}...` : 'No configurada'
+      },
+      deepseek: {
+        apiKeyConfigured: !!process.env.DEEPSEEK_API_KEY,
+        apiKeyLength: process.env.DEEPSEEK_API_KEY ? process.env.DEEPSEEK_API_KEY.length : 0,
+        apiKeyFormat: process.env.DEEPSEEK_API_KEY ?
+          `${process.env.DEEPSEEK_API_KEY.substring(0, 15)}...` : 'No configurada',
+        model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+        baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1',
+        maxTokens: process.env.DEEPSEEK_MAX_TOKENS || 4000,
+        temperature: process.env.DEEPSEEK_TEMPERATURE || 0.7
+      },
+      database: {
+        connected: !!db,
+        mongoUri: process.env.MONGODB_URI ? 'Configurada' : 'No configurada'
+      },
+      server: {
+        port: process.env.PORT || 3000,
+        uptime: process.uptime()
+      }
+    };
+    
+    console.log('🔍 Diagnóstico completo solicitado:', diagnostics);
+    res.json(diagnostics);
+  } catch (error) {
+    console.error('❌ Error en diagnóstico:', error);
+    res.status(500).json({
+      error: 'Error en diagnóstico',
+      details: error.message
+    });
+  }
+});
+
+// Ruta para probar conectividad con proveedores de IA
+router.post('/test-providers', async (req, res) => {
+  try {
+    console.log('🧪 Probando conectividad con proveedores de IA...');
+    
+    if (!aiService) {
+      return res.status(500).json({
+        success: false,
+        error: 'AIService no inicializado',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const results = {};
+    
+    // Probar Anthropic si está configurado
+    if (process.env.ANTHROPIC_API_KEY) {
+      try {
+        const anthropicResult = await aiService.testProvider('anthropic');
+        results.anthropic = anthropicResult;
+      } catch (error) {
+        results.anthropic = { success: false, error: error.message };
+      }
+    } else {
+      results.anthropic = { success: false, error: 'No configurado' };
+    }
+    
+    // Probar DeepSeek si está configurado
+    if (process.env.DEEPSEEK_API_KEY) {
+      try {
+        const deepseekResult = await aiService.testProvider('deepseek');
+        results.deepseek = deepseekResult;
+      } catch (error) {
+        results.deepseek = { success: false, error: error.message };
+      }
+    } else {
+      results.deepseek = { success: false, error: 'No configurado' };
+    }
+    
+    const overallSuccess = Object.values(results).some(result => result.success);
+    
+    res.json({
+      success: overallSuccess,
+      message: overallSuccess ? 'Al menos un proveedor está funcionando' : 'Ningún proveedor está funcionando',
+      results,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error probando proveedores de IA:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error probando proveedores de IA',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 export default router;

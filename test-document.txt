@@ -1,0 +1,11 @@
+La inteligencia artificial (IA) es una rama de la informática que se ocupa de la creación de sistemas capaces de realizar tareas que normalmente requieren inteligencia humana. Estas tareas incluyen el reconocimiento de patrones, el aprendizaje, la resolución de problemas y la toma de decisiones.
+
+Los algoritmos de machine learning son fundamentales en la IA moderna. Permiten a las máquinas aprender de los datos sin ser programadas explícitamente para cada tarea específica. Existen tres tipos principales de aprendizaje automático:
+
+1. Aprendizaje supervisado: utiliza datos etiquetados para entrenar modelos
+2. Aprendizaje no supervisado: encuentra patrones en datos sin etiquetas
+3. Aprendizaje por refuerzo: aprende a través de la interacción con el entorno
+
+Las redes neuronales artificiales son otro componente clave de la IA. Están inspiradas en el funcionamiento del cerebro humano y consisten en capas de nodos interconectados que procesan información de manera similar a las neuronas.
+
+Las aplicaciones de la IA son vastas e incluyen reconocimiento de voz, visión por computadora, procesamiento de lenguaje natural, sistemas de recomendación, vehículos autónomos y diagnóstico médico.

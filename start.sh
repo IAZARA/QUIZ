@@ -36,6 +36,15 @@ if [ ! -d "node_modules" ]; then
     fi
 fi
 
+# Limpiar puertos ocupados antes de iniciar
+echo -e "${AZUL}Verificando y limpiando puertos ocupados...${SIN_COLOR}"
+node scripts/cleanup-ports.js
+
+if [ $? -ne 0 ]; then
+    echo -e "${AMARILLO}Advertencia: Algunos puertos pueden seguir ocupados${SIN_COLOR}"
+    echo -e "${AMARILLO}Si tienes problemas, intenta cerrar otras instancias de la aplicación${SIN_COLOR}"
+fi
+
 # Iniciar la aplicación con concurrently
 echo -e "${AZUL}Iniciando servidor backend y frontend...${SIN_COLOR}"
 echo -e "${VERDE}=======================================${SIN_COLOR}"
@@ -46,4 +55,4 @@ echo -e "${AMARILLO}Presiona Ctrl+C para detener la aplicación${SIN_COLOR}"
 echo ""
 
 # Usar el script dev:all que ya está definido en package.json
-npm run dev:all 
+npm run dev:all
