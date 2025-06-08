@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, FileText, CheckCircle, Trash2, Bot, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -22,6 +22,24 @@ interface DocumentInfo {
 
 const AIQuestionModule: React.FC = () => {
   const { t } = useTranslation();
+  
+  // Forzar tema claro para el módulo de IA
+  useEffect(() => {
+    // Guardar el tema actual
+    const currentTheme = document.body.getAttribute('data-theme');
+
+    // Aplicar tema light al montar el componente
+    document.body.setAttribute('data-theme', 'light');
+
+    // Restaurar el tema original al desmontar
+    return () => {
+      if (currentTheme) {
+        document.body.setAttribute('data-theme', currentTheme);
+      } else {
+        document.body.removeAttribute('data-theme');
+      }
+    };
+  }, []);
   
   // Estados principales
   const [activeTab, setActiveTab] = useState<'text' | 'document'>('text');

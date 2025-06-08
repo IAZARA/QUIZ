@@ -42,6 +42,24 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   
   // Estado para manejar opciones dinámicas
   const [options, setOptions] = useState<Option[]>([]);
+
+  // Forzar tema claro para el formulario de preguntas
+  useEffect(() => {
+    // Guardar el tema actual
+    const currentTheme = document.body.getAttribute('data-theme');
+
+    // Aplicar tema light al montar el componente
+    document.body.setAttribute('data-theme', 'light');
+
+    // Restaurar el tema original al desmontar
+    return () => {
+      if (currentTheme) {
+        document.body.setAttribute('data-theme', currentTheme);
+      } else {
+        document.body.removeAttribute('data-theme');
+      }
+    };
+  }, []);
   
   // Inicializar opciones al cargar el componente
   useEffect(() => {

@@ -10,10 +10,11 @@ INSTRUCCIONES ESPECÍFICAS:
 1. Genera exactamente ${numQuestions} preguntas
 2. Cada pregunta debe tener exactamente 3 opciones (A, B, C)
 3. Solo una opción debe ser correcta
-4. Incluye una explicación clara de por qué la respuesta correcta es la adecuada
-5. Las preguntas deben ser claras, precisas y educativas
-6. Evita preguntas ambiguas o con múltiples interpretaciones
-7. Varía el nivel de dificultad (básico, intermedio, avanzado)
+4. IMPORTANTE: Distribuye aleatoriamente las respuestas correctas entre las opciones A, B y C
+5. Incluye una explicación clara de por qué la respuesta correcta es la adecuada
+6. Las preguntas deben ser claras, precisas y educativas
+7. Evita preguntas ambiguas o con múltiples interpretaciones
+8. Varía el nivel de dificultad (básico, intermedio, avanzado)
 
 FORMATO DE RESPUESTA REQUERIDO (JSON):
 {
@@ -21,9 +22,9 @@ FORMATO DE RESPUESTA REQUERIDO (JSON):
     {
       "content": "Texto de la pregunta aquí",
       "option_a": "Primera opción",
-      "option_b": "Segunda opción", 
+      "option_b": "Segunda opción",
       "option_c": "Tercera opción",
-      "correct_option": "A",
+      "correct_option": "A, B o C (selecciona aleatoriamente)",
       "explanation": "Explicación detallada de por qué esta respuesta es correcta"
     }
   ]

@@ -56,8 +56,8 @@ const QuestionOption: React.FC<QuestionOptionProps> = ({
       } else {
         return {
           button: `bg-bg-secondary border-border cursor-default ${isCorrect ? 'border-success/30' : ''}`,
-          letter: 'bg-bg-tertiary text-text-muted',
-          text: `text-text-primary ${isCorrect ? 'text-success' : ''}`,
+          letter: 'bg-bg-tertiary text-gray-600',
+          text: `text-gray-900 ${isCorrect ? 'text-success' : ''}`,
           indicator: 'text-success'
         };
       }
@@ -72,8 +72,8 @@ const QuestionOption: React.FC<QuestionOptionProps> = ({
       } else {
         return {
           button: 'bg-bg-secondary border-border cursor-pointer micro-hover hover:border-accent/30 hover:bg-accent/5',
-          letter: 'bg-bg-tertiary text-text-muted group-hover:bg-accent/20 group-hover:text-accent',
-          text: 'text-text-primary group-hover:text-accent',
+          letter: 'bg-bg-tertiary text-gray-600 group-hover:bg-accent/20 group-hover:text-accent',
+          text: 'text-gray-900 group-hover:text-accent',
           indicator: ''
         };
       }
@@ -113,15 +113,15 @@ const QuestionOption: React.FC<QuestionOptionProps> = ({
         {statForOption?.showPercentage && votingClosed && (
           <div className="mt-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <span className="text-sm font-medium text-gray-700">
                 {statForOption.count} {statForOption.count === 1 ? 'voto' : 'votos'}
               </span>
-              <span className="text-lg font-bold text-gray-800 dark:text-gray-200">
+              <span className="text-lg font-bold text-gray-900">
                 {statForOption.percentage}%
               </span>
             </div>
             
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner">
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
               <div
                 className={`h-full rounded-full transition-all duration-1000 ease-out shadow-sm ${
                   isCorrect && votingClosed ? 'bg-gradient-to-r from-green-400 to-green-500' :
