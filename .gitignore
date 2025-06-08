@@ -25,6 +25,12 @@ dist-ssr
 # Archivos de despliegue
 quiz-app.tar.gz
 quiz-app-update.tar.gz
+deploy-files/
+*.backup
+
+# Scripts con claves API (sensibles)
+deploy-automated.sh
+prepare-deploy.sh
 
 # Archivos de MongoDB
 data
