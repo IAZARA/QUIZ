@@ -43,7 +43,7 @@ interface QuestionWithId {
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
-  const { theme, setTheme } = useThemeStore();
+  const { theme } = useThemeStore();
   
   // Estado para el formulario de preguntas
   const [showForm, setShowForm] = useState(false);
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
     clearView
   } = useQuestionStore();
   
-  const { config, isRankingVisible, showRanking, hideRanking, getConfig } = useQuizConfigStore();
+  const { isRankingVisible, showRanking, hideRanking, getConfig } = useQuizConfigStore();
   
   // Stores adicionales para resetear en clearView
   const { resetTournament } = useTournamentStore();
@@ -231,10 +231,10 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleShowResults = async (correctOption: string) => {
+  const handleShowResults = async () => {
     try {
       if (currentQuestion) {
-        await showResults(currentQuestion._id, correctOption);
+        await showResults(currentQuestion._id, '');
         showNotification('Resultados mostrados correctamente', 'success');
       }
     } catch (error) {
@@ -250,9 +250,6 @@ export default function AdminDashboard() {
     }));
   };
 
-  const handleTimerChange = (questionId: string, seconds: number) => {
-    updateQuestionTimer(questionId, seconds);
-  };
 
   // FUNCIÓN MEJORADA DE LIMPIAR VISTA
   const handleClearView = async () => {
@@ -391,8 +388,6 @@ export default function AdminDashboard() {
             showCheatSheet={showCheatSheet}
             votes={votes}
             timeRemaining={timeRemaining}
-            onClearView={handleClearView}
-            onToggleRanking={handleToggleRanking}
             onNewQuestion={() => setShowForm(true)}
             onEditQuestion={handleEdit}
             onDeleteQuestion={handleDelete}

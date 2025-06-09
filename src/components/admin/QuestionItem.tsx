@@ -26,7 +26,7 @@ interface QuestionItemProps {
   onDelete: () => void;
   onStartVoting: () => void;
   onStopVoting: () => void;
-  onShowResults: (correctOption: string) => void;
+  onShowResults: () => void;
   onToggleCheatSheet: () => void;
   onTimerChange: (seconds: number) => void;
   calculateStats: () => { option: string; count: number; percentage: number }[];

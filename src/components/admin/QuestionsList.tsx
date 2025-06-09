@@ -27,10 +27,11 @@ interface QuestionsListProps {
   onDeleteQuestion: (id: string) => void;
   onStartVoting: (id: string) => void;
   onStopVoting: () => void;
-  onShowResults: (correctOption: string) => void;
+  onShowResults: () => void;
   onToggleCheatSheet: (id: string) => void;
   onTimerChange: (id: string, seconds: number) => void;
-  calculateStats: () => { option: string; count: number; percentage: number }[];
+  calculateStats: () => { option: string; count: number; percentage: number; showPercentage: boolean }[];
+  newQuestionButtonText: string;
 }
 
 const QuestionsList: React.FC<QuestionsListProps> = ({
@@ -47,7 +48,8 @@ const QuestionsList: React.FC<QuestionsListProps> = ({
   onShowResults,
   onToggleCheatSheet,
   onTimerChange,
-  calculateStats
+  calculateStats,
+  newQuestionButtonText
 }) => {
   return (
     <div className="text-text-primary"> {/* Apply base text color */}
@@ -58,7 +60,7 @@ const QuestionsList: React.FC<QuestionsListProps> = ({
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-button-text bg-accent hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent"
         >
           <PlusCircle className="h-4 w-4 mr-2" />
-          Nueva Pregunta
+          {newQuestionButtonText}
         </button>
       </div>
 
@@ -76,7 +78,7 @@ const QuestionsList: React.FC<QuestionsListProps> = ({
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-button-text bg-accent hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent"
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
-                Nueva Pregunta
+                {newQuestionButtonText}
               </button>
             </div>
           </div>

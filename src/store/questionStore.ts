@@ -317,14 +317,13 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
     }
   },
     
-  stopVoting: async (id, correctOption) => {
+  stopVoting: async (id) => {
     try {
       const response = await fetch(`/api/questions/${id}/stop`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ correctOption }),
       });
       
       if (!response.ok) throw new Error('Error stopping voting');
@@ -353,14 +352,13 @@ export const useQuestionStore = create<QuestionState>((set, get) => ({
     }
   },
 
-  showResults: async (id: string, correctOption: string) => {
+  showResults: async (id: string) => {
     try {
       const response = await fetch(`/api/questions/${id}/show-results`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ correctOption }),
       });
       
       if (!response.ok) throw new Error('Error al mostrar resultados');

@@ -25,36 +25,35 @@ interface QuestionFormData {
   option_a: string;
   option_b: string;
   option_c: string;
-  correct_answer: string; // Assuming this is the key for correct_option in the form
+  correct_answer: string;
   explanation: string;
   explanation_image: string;
+  [key: string]: string; // Para opciones adicionales
 }
 
 interface QuestionsTabContentProps {
   showForm: boolean;
   editingQuestion: string | null;
-  questionFormData: QuestionFormData; 
+  questionFormData: QuestionFormData;
   currentQuestion: QuestionWithId | null;
   questions: QuestionWithId[];
   showCheatSheet: Record<string, boolean>;
   votes: Record<string, number>;
   timeRemaining: number | null;
   
-  onClearView: () => void;
-  onToggleRanking: () => void;
   onNewQuestion: () => void;
   onEditQuestion: (question: QuestionWithId) => void;
   onDeleteQuestion: (id: string) => void;
   onStartVoting: (questionId: string) => void;
   onStopVoting: () => void;
-  onShowResults: (correctOption: string) => void;
+  onShowResults: () => void;
   onToggleCheatSheet: (questionId: string) => void;
   onTimerChange: (questionId: string, seconds: number) => void;
-  onQuestionFormSubmit: (e: React.FormEvent) => void;
+  onQuestionFormSubmit: (e: React.FormEvent) => Promise<void>;
   onQuestionFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onQuestionFormCancel: () => void;
   calculateStats: () => Array<{ option: string; count: number; percentage: number; showPercentage: boolean }>;
-  newQuestionButtonText: string; // Added for QuestionsList
+  newQuestionButtonText: string;
 }
 
 const QuestionsTabContent: React.FC<QuestionsTabContentProps> = ({
@@ -66,8 +65,6 @@ const QuestionsTabContent: React.FC<QuestionsTabContentProps> = ({
   showCheatSheet,
   votes,
   timeRemaining,
-  onClearView,
-  onToggleRanking,
   onNewQuestion,
   onEditQuestion,
   onDeleteQuestion,
@@ -82,7 +79,6 @@ const QuestionsTabContent: React.FC<QuestionsTabContentProps> = ({
   calculateStats,
   newQuestionButtonText,
 }) => {
-  const { t } = useTranslation();
 
   return (
     <div>

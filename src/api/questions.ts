@@ -89,13 +89,12 @@ export async function startVoting(id: string) {
   
   await collection.updateOne(
     { _id: new ObjectId(id) },
-    { 
-      $set: { 
-        is_active: true, 
-        correct_option: null, 
-        endTime, 
-        votingClosed: false 
-      } 
+    {
+      $set: {
+        is_active: true,
+        endTime,
+        votingClosed: false
+      }
     }
   );
   
@@ -116,18 +115,17 @@ export async function closeVoting(id: string) {
   return getQuestionById(id);
 }
 
-// Detener votación y establecer respuesta correcta
-export async function stopVoting(id: string, correctOption: string) {
+// Detener votación
+export async function stopVoting(id: string) {
   const collection = await getCollection('questions');
   await collection.updateOne(
     { _id: new ObjectId(id) },
-    { 
-      $set: { 
-        is_active: false, 
-        correct_option: correctOption, 
-        endTime: null, 
-        votingClosed: true 
-      } 
+    {
+      $set: {
+        is_active: false,
+        endTime: null,
+        votingClosed: true
+      }
     }
   );
   return getQuestionById(id);

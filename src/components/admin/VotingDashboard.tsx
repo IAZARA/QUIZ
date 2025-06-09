@@ -28,7 +28,7 @@ interface VotingDashboardProps {
   timeRemaining: number | null;
   totalVotes: number;
   onStopVoting: () => void;
-  onShowResults: (correctOption: string) => void;
+  onShowResults: () => void;
 }
 
 const VotingDashboard: React.FC<VotingDashboardProps> = ({
@@ -89,10 +89,12 @@ const VotingDashboard: React.FC<VotingDashboardProps> = ({
 
   // Función para manejar mostrar resultados
   const handleShowResults = () => {
-    // Buscar la respuesta correcta en las opciones de la pregunta
-    // Si no hay correct_option definido, usar la primera opción como fallback
-    const correctOption = question.correct_option || 'a';
-    onShowResults(correctOption);
+    // Verificar que la pregunta tenga una respuesta correcta definida
+    if (!question.correct_option) {
+      console.error('No se ha definido una respuesta correcta para esta pregunta');
+      return;
+    }
+    onShowResults();
   };
 
   // Renderizar botones de acción según el estado

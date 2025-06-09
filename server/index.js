@@ -961,7 +961,6 @@ app.post('/api/questions/:id/stop', async (req, res) => {
 app.post('/api/questions/:id/show-results', async (req, res) => {
   try {
     const { id } = req.params;
-    const { correctOption } = req.body;
     
     const question = await db.collection('questions').findOne({ _id: new ObjectId(id) });
     if (!question) {
@@ -972,7 +971,11 @@ app.post('/api/questions/:id/show-results', async (req, res) => {
       return res.status(400).json({ error: 'La votación debe estar cerrada antes de mostrar resultados' });
     }
     
-    const result = await showResults(id, correctOption);
+    if (!question.correct_option) {
+      return res.status(400).json({ error: 'No se ha definido una respuesta correcta para esta pregunta' });
+    }
+    
+    const result = await showResults(id);
     res.json(result);
   } catch (error) {
     console.error('Error al mostrar resultados:', error);
@@ -1053,14 +1056,14 @@ async function closeVoting(id, reason = 'manual') {
   return { question: updatedQuestion, votes };
 }
 
-async function showResults(id, correctOption) {
-  await db.collection('questions').updateOne(
-    { _id: new ObjectId(id) },
-    { $set: { correct_option: correctOption } }
-  );
+async function showResults(id) {
+  const question = await db.collection('questions').findOne({ _id: new ObjectId(id) });
+  if (!question || !question.correct_option) {
+    throw new Error('Pregunta no encontrada o sin respuesta correcta definida');
+  }
   
-  const updatedQuestion = await db.collection('questions').findOne({ _id: new ObjectId(id) });
   const votes = await getVotesForQuestion(id);
+  const correctOption = question.correct_option;
   
   // Calcular puntos para participantes
   const questionVotes = await db.collection('votes').find({ question_id: id }).toArray();
@@ -1085,12 +1088,12 @@ async function showResults(id, correctOption) {
   }
   
   io.emit('show_question_results', {
-    question: updatedQuestion,
+    question: question,
     votes,
     showStatistics: true
   });
   
-  return { question: updatedQuestion, votes };
+  return { question: question, votes };
 }
 
 async function getVotesForQuestion(questionId) {
