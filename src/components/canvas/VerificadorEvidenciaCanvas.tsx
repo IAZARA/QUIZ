@@ -267,55 +267,62 @@ const VerificadorEvidenciaCanvas: React.FC<VerificadorEvidenciaCanvasProps> = ({
     };
   }, []);
 
+  // Auto-iniciar juego cuando se activa para la audiencia
+  useEffect(() => {
+    if (isInteractive && initialState.gameRunning && !gameRunning) {
+      startGame();
+    }
+  }, [isInteractive, initialState.gameRunning, gameRunning, startGame]);
+
   return (
-    <motion.div 
-      className="bg-white rounded-2xl shadow-xl p-6 max-w-4xl mx-auto"
+    <motion.div
+      className="bg-white rounded-2xl shadow-xl p-3 sm:p-6 max-w-4xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
       {/* Header */}
-      <div className="text-center mb-6">
-        <div className="text-5xl text-blue-600 mb-4">🔍</div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="text-center mb-4 sm:mb-6">
+        <div className="text-4xl sm:text-5xl text-blue-600 mb-3 sm:mb-4">🔍</div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
           Verificador de Evidencia Digital
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-base sm:text-lg text-gray-600">
           Identifica si la evidencia es genuina o ha sido manipulada por IA.
         </p>
       </div>
 
       {/* Área del juego */}
-      <div className="bg-gray-50 rounded-xl p-6 mb-6 min-h-[300px]">
+      <div className="bg-gray-50 rounded-xl p-3 sm:p-6 mb-4 sm:mb-6 min-h-[250px] sm:min-h-[300px]">
         {/* Evidencia */}
-        <div className="bg-white rounded-lg p-6 mb-6 border border-gray-200 shadow-sm min-h-[120px] flex items-center justify-center">
-          <p className="text-lg text-gray-800 text-center leading-relaxed">
+        <div className="bg-white rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 border border-gray-200 shadow-sm min-h-[100px] sm:min-h-[120px] flex items-center justify-center">
+          <p className="text-base sm:text-lg text-gray-800 text-center leading-relaxed">
             {currentEvidence ? currentEvidence.text : gameMessage}
           </p>
         </div>
 
         {/* Botones de decisión */}
         {gameRunning && currentEvidence && !showFeedback && (
-          <div className="flex justify-center gap-6 mb-6">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 mb-4 sm:mb-6">
             <motion.button
               onClick={() => handleDecision(true)}
               disabled={!isInteractive}
-              className={`px-8 py-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 flex items-center gap-3 ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-6 sm:px-8 py-3 sm:py-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 flex items-center justify-center gap-3 text-sm sm:text-base ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
               whileHover={isInteractive ? { scale: 1.05 } : {}}
               whileTap={isInteractive ? { scale: 0.95 } : {}}
             >
-              <span className="text-xl">✓</span>
+              <span className="text-lg sm:text-xl">✓</span>
               Evidencia Genuina
             </motion.button>
 
             <motion.button
               onClick={() => handleDecision(false)}
               disabled={!isInteractive}
-              className={`px-8 py-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-300 flex items-center gap-3 ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-6 sm:px-8 py-3 sm:py-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-300 flex items-center justify-center gap-3 text-sm sm:text-base ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
               whileHover={isInteractive ? { scale: 1.05 } : {}}
               whileTap={isInteractive ? { scale: 0.95 } : {}}
             >
-              <span className="text-xl">✗</span>
+              <span className="text-lg sm:text-xl">✗</span>
               Evidencia Manipulada
             </motion.button>
           </div>
@@ -345,34 +352,34 @@ const VerificadorEvidenciaCanvas: React.FC<VerificadorEvidenciaCanvasProps> = ({
       </div>
 
       {/* Panel de información */}
-      <div className="bg-gray-50 rounded-xl p-6 mb-6 border border-gray-200">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+      <div className="bg-gray-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-gray-200">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-center">
           <div>
-            <p className="text-sm text-gray-600">Puntuación</p>
-            <p className="text-2xl font-bold text-gray-900">{score}</p>
+            <p className="text-xs sm:text-sm text-gray-600">Puntuación</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900">{score}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Nivel</p>
-            <p className="text-2xl font-bold text-blue-600">{currentLevel + 1}</p>
+            <p className="text-xs sm:text-sm text-gray-600">Nivel</p>
+            <p className="text-xl sm:text-2xl font-bold text-blue-600">{currentLevel + 1}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Ronda</p>
-            <p className="text-2xl font-bold text-purple-600">{currentRound + 1}</p>
+            <p className="text-xs sm:text-sm text-gray-600">Ronda</p>
+            <p className="text-xl sm:text-2xl font-bold text-purple-600">{currentRound + 1}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Tiempo</p>
-            <p className="text-2xl font-bold text-orange-600">{timeLeft}s</p>
+            <p className="text-xs sm:text-sm text-gray-600">Tiempo</p>
+            <p className="text-xl sm:text-2xl font-bold text-orange-600">{timeLeft}s</p>
           </div>
         </div>
       </div>
 
       {/* Botones de control */}
-      <div className="flex justify-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
         {!gameRunning && !showReset && (
           <motion.button
             onClick={startGame}
             disabled={!isInteractive}
-            className={`px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-300 text-sm sm:text-base ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
             whileHover={isInteractive ? { scale: 1.05 } : {}}
             whileTap={isInteractive ? { scale: 0.95 } : {}}
           >
@@ -384,7 +391,7 @@ const VerificadorEvidenciaCanvas: React.FC<VerificadorEvidenciaCanvasProps> = ({
           <motion.button
             onClick={handleNextRound}
             disabled={!isInteractive}
-            className={`px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 text-sm sm:text-base ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
             whileHover={isInteractive ? { scale: 1.05 } : {}}
             whileTap={isInteractive ? { scale: 0.95 } : {}}
           >
@@ -396,7 +403,7 @@ const VerificadorEvidenciaCanvas: React.FC<VerificadorEvidenciaCanvasProps> = ({
           <motion.button
             onClick={handleResetGame}
             disabled={!isInteractive}
-            className={`px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-300 ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 sm:px-6 py-2 sm:py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-300 text-sm sm:text-base ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
             whileHover={isInteractive ? { scale: 1.05 } : {}}
             whileTap={isInteractive ? { scale: 0.95 } : {}}
           >

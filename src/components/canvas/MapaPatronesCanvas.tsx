@@ -21,7 +21,7 @@ const MapaPatronesCanvas: React.FC<MapaPatronesCanvasProps> = ({
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
   const [slope, setSlope] = useState<number>(0);
   const [intercept, setIntercept] = useState<number>(0);
-  const [clusterCount, setClusterCount] = useState(initialState.clusterCount || 3);
+  const [clusterCount] = useState(initialState.clusterCount || 3);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [trainingStatus, setTrainingStatus] = useState<string>('');
   const [predictionResult, setPredictionResult] = useState<string>('');
@@ -248,41 +248,41 @@ const MapaPatronesCanvas: React.FC<MapaPatronesCanvasProps> = ({
   }, [currentStep]);
 
   return (
-    <motion.div 
-      className="bg-white rounded-2xl shadow-xl p-6 max-w-6xl mx-auto"
+    <motion.div
+      className="bg-white rounded-2xl shadow-xl p-3 sm:p-6 max-w-6xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="text-center mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
           ML: Mapa de Patrones de Robos por Hora
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-base sm:text-lg text-gray-600">
           Demostración interactiva de Machine Learning para entender patrones de robos por hora
         </p>
       </div>
 
       {/* Panel de explicación */}
-      <div className="bg-blue-50 rounded-lg p-4 mb-6 border border-blue-200">
-        <div className="flex justify-between items-start mb-4">
+      <div className="bg-blue-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 border border-blue-200">
+        <div className="flex justify-between items-start mb-3 sm:mb-4">
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">
               {steps[currentStep]?.title}
             </h2>
-            <p 
-              className="text-gray-700"
+            <p
+              className="text-gray-700 text-sm sm:text-base"
               dangerouslySetInnerHTML={{ __html: steps[currentStep]?.description || '' }}
             />
           </div>
         </div>
         
         {isInteractive && (
-          <div className="flex justify-between">
+          <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0">
             <button
               onClick={prevStep}
               disabled={currentStep === 0}
-              className={`px-4 py-2 rounded-lg font-medium ${
+              className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base ${
                 currentStep === 0
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-500 text-white hover:bg-blue-600'
@@ -293,7 +293,7 @@ const MapaPatronesCanvas: React.FC<MapaPatronesCanvasProps> = ({
             <button
               onClick={nextStep}
               disabled={currentStep === steps.length - 1}
-              className={`px-4 py-2 rounded-lg font-medium ${
+              className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base ${
                 currentStep === steps.length - 1
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-500 text-white hover:bg-blue-600'
@@ -305,36 +305,38 @@ const MapaPatronesCanvas: React.FC<MapaPatronesCanvasProps> = ({
         )}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Controles */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Agregar puntos */}
           {isInteractive && steps[currentStep]?.uiVisibility.add && (
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <h3 className="text-lg font-bold text-blue-800 mb-3">Agregar Datos de Incidentes</h3>
-              <div className="space-y-3">
+            <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-200">
+              <h3 className="text-base sm:text-lg font-bold text-blue-800 mb-2 sm:mb-3">Agregar Datos de Incidentes</h3>
+              <div className="space-y-2 sm:space-y-3">
                 <input
                   type="number"
                   placeholder="Hora (0-23)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base"
                   step="0.5"
                   min="0"
                   max="23.9"
+                  style={{ touchAction: 'manipulation' }}
                 />
                 <input
                   type="number"
                   placeholder="Nº de Incidentes"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base"
                   step="1"
                   min="0"
                   max="100"
+                  style={{ touchAction: 'manipulation' }}
                 />
-                <button className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">
+                <button className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 text-sm sm:text-base">
                   Agregar Dato
                 </button>
-                <button 
+                <button
                   onClick={clearPoints}
-                  className="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600"
+                  className="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 text-sm sm:text-base"
                 >
                   Limpiar Datos
                 </button>
@@ -344,16 +346,16 @@ const MapaPatronesCanvas: React.FC<MapaPatronesCanvasProps> = ({
 
           {/* Entrenamiento */}
           {isInteractive && steps[currentStep]?.uiVisibility.train && (
-            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-              <h3 className="text-lg font-bold text-green-800 mb-3">Entrenar el Modelo</h3>
-              <button 
+            <div className="bg-green-50 rounded-lg p-3 sm:p-4 border border-green-200">
+              <h3 className="text-base sm:text-lg font-bold text-green-800 mb-2 sm:mb-3">Entrenar el Modelo</h3>
+              <button
                 onClick={trainModel}
-                className="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600"
+                className="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 text-sm sm:text-base"
               >
                 Entrenar Modelo
               </button>
               {trainingStatus && (
-                <div className="mt-3 text-sm text-gray-700 text-center">
+                <div className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-700 text-center">
                   {trainingStatus}
                 </div>
               )}
@@ -362,27 +364,28 @@ const MapaPatronesCanvas: React.FC<MapaPatronesCanvasProps> = ({
 
           {/* Predicción */}
           {isInteractive && steps[currentStep]?.uiVisibility.predict && (
-            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-              <h3 className="text-lg font-bold text-purple-800 mb-3">Predecir Incidente por Hora</h3>
-              <div className="space-y-3">
+            <div className="bg-purple-50 rounded-lg p-3 sm:p-4 border border-purple-200">
+              <h3 className="text-base sm:text-lg font-bold text-purple-800 mb-2 sm:mb-3">Predecir Incidente por Hora</h3>
+              <div className="space-y-2 sm:space-y-3">
                 <input
                   type="number"
                   placeholder="Hora para predecir (0-23)"
                   value={predictX}
                   onChange={(e) => setPredictX(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base"
                   step="0.5"
                   min="0"
                   max="23.9"
+                  style={{ touchAction: 'manipulation' }}
                 />
-                <button 
+                <button
                   onClick={predict}
-                  className="w-full bg-purple-500 text-white py-2 rounded-lg hover:bg-purple-600"
+                  className="w-full bg-purple-500 text-white py-2 rounded-lg hover:bg-purple-600 text-sm sm:text-base"
                 >
                   Predecir Cantidad
                 </button>
                 {predictionResult && (
-                  <div className="text-lg font-bold text-gray-800 text-center">
+                  <div className="text-base sm:text-lg font-bold text-gray-800 text-center">
                     {predictionResult}
                   </div>
                 )}
@@ -393,14 +396,18 @@ const MapaPatronesCanvas: React.FC<MapaPatronesCanvasProps> = ({
 
         {/* Gráfico */}
         <div className="lg:col-span-2">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <svg
-              ref={svgRef}
-              width={canvasSize.width}
-              height={canvasSize.height}
-              className="border border-gray-200 rounded bg-white cursor-crosshair"
-              onClick={handleSvgClick}
-            >
+          <div className="bg-gray-50 rounded-lg p-2 sm:p-4 w-full overflow-hidden">
+            <div className="w-full" style={{ minHeight: '250px' }}>
+              <svg
+                ref={svgRef}
+                width={canvasSize.width}
+                height={canvasSize.height}
+                className="border border-gray-200 rounded bg-white cursor-crosshair w-full h-auto max-w-full"
+                onClick={handleSvgClick}
+                style={{ display: 'block', touchAction: 'manipulation' }}
+                viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`}
+                preserveAspectRatio="xMidYMid meet"
+              >
               {/* Grid de fondo */}
               <defs>
                 <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -460,11 +467,12 @@ const MapaPatronesCanvas: React.FC<MapaPatronesCanvasProps> = ({
             </svg>
             
             {steps[currentStep]?.uiVisibility.graphClick && (
-              <div className="mt-4 text-sm text-gray-600 flex items-center">
+              <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-600 flex items-center">
                 <span className="mr-2">💡</span>
                 Haz clic en el gráfico para agregar datos de incidentes
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>

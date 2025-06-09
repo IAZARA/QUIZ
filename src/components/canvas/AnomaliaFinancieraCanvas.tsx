@@ -31,12 +31,12 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
   isInteractive = true
 }) => {
   // Estados del juego
-  const [currentLevel, setCurrentLevel] = useState(0);
-  const [score, setScore] = useState(0);
-  const [correctFlags, setCorrectFlags] = useState(0);
-  const [falseFlags, setFalseFlags] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [gameRunning, setGameRunning] = useState(false);
+  const [currentLevel, setCurrentLevel] = useState(initialState.currentLevel || 0);
+  const [score, setScore] = useState(initialState.score || 0);
+  const [correctFlags, setCorrectFlags] = useState(initialState.correctFlags || 0);
+  const [falseFlags, setFalseFlags] = useState(initialState.falseFlags || 0);
+  const [timeLeft, setTimeLeft] = useState(initialState.timeLeft || 0);
+  const [gameRunning, setGameRunning] = useState(initialState.gameRunning || false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [gameMessage, setGameMessage] = useState('Haz clic en "Iniciar Juego" para comenzar.');
   const [showNextLevel, setShowNextLevel] = useState(false);
@@ -130,12 +130,12 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
         const flaggedTransaction = { ...t, flagged: true };
         
         if (transaction.isSuspicious) {
-          setCorrectFlags(prev => prev + 1);
-          setScore(prev => prev + 100);
+          setCorrectFlags((prev: number) => prev + 1);
+          setScore((prev: number) => prev + 100);
           setGameMessage("¡Correcto! Anomalía detectada.");
         } else {
-          setFalseFlags(prev => prev + 1);
-          setScore(prev => prev - 50);
+          setFalseFlags((prev: number) => prev + 1);
+          setScore((prev: number) => prev - 50);
           setGameMessage("¡Error! Esta transacción es normal.");
         }
         
@@ -201,7 +201,7 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
 
     // Iniciar temporizador
     gameTimerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev: number) => {
         if (prev <= 1) {
           return 0;
         }
@@ -231,7 +231,7 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
   // Siguiente nivel
   const handleNextLevel = useCallback(() => {
     if (!isInteractive) return;
-    setCurrentLevel(prev => prev + 1);
+    setCurrentLevel((prev: number) => prev + 1);
     setTransactions([]);
     setGameMessage('Haz clic en "Iniciar Juego" para el siguiente nivel.');
     setShowNextLevel(false);
@@ -275,30 +275,30 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
   }, []);
 
   return (
-    <motion.div 
-      className="bg-white rounded-2xl shadow-xl p-6 max-w-6xl mx-auto"
+    <motion.div
+      className="bg-white rounded-2xl shadow-xl p-3 sm:p-6 max-w-6xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
       {/* Header */}
-      <div className="text-center mb-6">
-        <div className="text-5xl text-green-600 mb-4">💰</div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="text-center mb-4 sm:mb-6">
+        <div className="text-4xl sm:text-5xl text-green-600 mb-3 sm:mb-4">💰</div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
           Cazador de Anomalías Financieras
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-base sm:text-lg text-gray-600">
           Detecta transacciones sospechosas antes de que se complete el tiempo.
         </p>
       </div>
 
       {/* Área del juego */}
-      <div className="bg-gray-50 rounded-xl p-6 mb-6 min-h-[400px]">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+      <div className="bg-gray-50 rounded-xl p-3 sm:p-6 mb-4 sm:mb-6 min-h-[300px] sm:min-h-[400px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
           {transactions.map((transaction) => (
             <motion.div
               key={transaction.id}
-              className={`bg-white rounded-lg p-4 shadow-md cursor-pointer transition-all duration-200 border-2 ${
+              className={`bg-white rounded-lg p-3 sm:p-4 shadow-md cursor-pointer transition-all duration-200 border-2 ${
                 transaction.flagged
                   ? transaction.isSuspicious
                     ? 'border-green-500 bg-green-50'
@@ -311,29 +311,30 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
+              style={{ touchAction: 'manipulation' }}
             >
-              <div className="space-y-2">
-                <p className="text-sm font-mono">
+              <div className="space-y-1 sm:space-y-2">
+                <p className="text-xs sm:text-sm font-mono">
                   <span className="font-semibold">ID:</span> {transaction.id}
                 </p>
-                <p className="text-lg font-bold text-orange-600">
+                <p className="text-base sm:text-lg font-bold text-orange-600">
                   ${transaction.amount.toLocaleString()}
                 </p>
-                <p className="text-sm">
+                <p className="text-xs sm:text-sm">
                   <span className="font-semibold">De:</span> {transaction.origin}
                 </p>
-                <p className="text-sm">
+                <p className="text-xs sm:text-sm">
                   <span className="font-semibold">A:</span> {transaction.destination}
                 </p>
-                <p className="text-sm">
+                <p className="text-xs sm:text-sm">
                   <span className="font-semibold">Ref:</span> {transaction.refId}
                 </p>
                 {transaction.flagged && (
                   <div className="flex justify-end">
                     {transaction.isSuspicious ? (
-                      <span className="text-green-500 text-xl">✓</span>
+                      <span className="text-green-500 text-lg sm:text-xl">✓</span>
                     ) : (
-                      <span className="text-red-500 text-xl">✗</span>
+                      <span className="text-red-500 text-lg sm:text-xl">✗</span>
                     )}
                   </div>
                 )}
@@ -344,8 +345,8 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
 
         {/* Mensaje del juego */}
         {gameMessage && (
-          <motion.div 
-            className="text-center text-lg font-bold text-orange-600 mb-4 p-4 bg-orange-50 rounded-lg border border-orange-200"
+          <motion.div
+            className="text-center text-base sm:text-lg font-bold text-orange-600 mb-4 p-3 sm:p-4 bg-orange-50 rounded-lg border border-orange-200"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
@@ -356,13 +357,13 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
       </div>
 
       {/* Panel de reglas */}
-      <div className="bg-blue-50 rounded-xl p-6 mb-6 border border-blue-200">
-        <h3 className="text-xl font-bold text-blue-900 mb-4">
+      <div className="bg-blue-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-blue-200">
+        <h3 className="text-lg sm:text-xl font-bold text-blue-900 mb-3 sm:mb-4">
           Reglas de Detección (Nivel {currentLevel + 1}):
         </h3>
         <ul className="space-y-2">
           {levels[currentLevel]?.rules.map((rule, index) => (
-            <li key={index} className="text-blue-800 flex items-start">
+            <li key={index} className="text-blue-800 flex items-start text-sm sm:text-base">
               <span className="text-blue-400 mr-2">•</span>
               <span>{rule}</span>
             </li>
@@ -371,38 +372,38 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
       </div>
 
       {/* Panel de puntuación */}
-      <div className="bg-gray-50 rounded-xl p-6 mb-6 border border-gray-200">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+      <div className="bg-gray-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-gray-200">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 text-center">
           <div>
-            <p className="text-sm text-gray-600">Puntuación</p>
-            <p className="text-2xl font-bold text-gray-900">{score}</p>
+            <p className="text-xs sm:text-sm text-gray-600">Puntuación</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900">{score}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Correctas</p>
-            <p className="text-2xl font-bold text-green-600">{correctFlags}</p>
+            <p className="text-xs sm:text-sm text-gray-600">Correctas</p>
+            <p className="text-xl sm:text-2xl font-bold text-green-600">{correctFlags}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Errores</p>
-            <p className="text-2xl font-bold text-red-600">{falseFlags}</p>
+            <p className="text-xs sm:text-sm text-gray-600">Errores</p>
+            <p className="text-xl sm:text-2xl font-bold text-red-600">{falseFlags}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Nivel</p>
-            <p className="text-2xl font-bold text-purple-600">{currentLevel + 1}</p>
+            <p className="text-xs sm:text-sm text-gray-600">Nivel</p>
+            <p className="text-xl sm:text-2xl font-bold text-purple-600">{currentLevel + 1}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Tiempo</p>
-            <p className="text-2xl font-bold text-blue-600">{timeLeft}s</p>
+            <p className="text-xs sm:text-sm text-gray-600">Tiempo</p>
+            <p className="text-xl sm:text-2xl font-bold text-blue-600">{timeLeft}s</p>
           </div>
         </div>
       </div>
 
       {/* Botones de control */}
-      <div className="flex justify-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
         {!gameRunning && !showNextLevel && !showReset && (
           <motion.button
             onClick={startGame}
             disabled={!isInteractive}
-            className={`px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 text-sm sm:text-base ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
             whileHover={isInteractive ? { scale: 1.05 } : {}}
             whileTap={isInteractive ? { scale: 0.95 } : {}}
           >
@@ -414,7 +415,7 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
           <motion.button
             onClick={handleNextLevel}
             disabled={!isInteractive}
-            className={`px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-300 text-sm sm:text-base ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
             whileHover={isInteractive ? { scale: 1.05 } : {}}
             whileTap={isInteractive ? { scale: 0.95 } : {}}
           >
@@ -426,7 +427,7 @@ const AnomaliaFinancieraCanvas: React.FC<AnomaliaFinancieraCanvasProps> = ({
           <motion.button
             onClick={handleResetGame}
             disabled={!isInteractive}
-            className={`px-6 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-300 ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 sm:px-6 py-2 sm:py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-300 text-sm sm:text-base ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
             whileHover={isInteractive ? { scale: 1.05 } : {}}
             whileTap={isInteractive ? { scale: 0.95 } : {}}
           >

@@ -193,26 +193,26 @@ const ClasificadorCanvas: React.FC<ClasificadorCanvasProps> = ({
   }, [initialState]);
 
   return (
-    <motion.div 
-      className="bg-white rounded-2xl shadow-xl p-6 max-w-4xl mx-auto"
+    <motion.div
+      className="bg-white rounded-2xl shadow-xl p-3 sm:p-6 max-w-4xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="text-center mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
           Clasificador Visual de Actividad
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-base sm:text-lg text-gray-600">
           ¡Explora el Machine Learning de forma visual! Ajusta los sliders para ver cómo se clasifica una actividad.
         </p>
       </div>
 
       {isInteractive && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Frecuencia de Eventos (0-100): 
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700">
+              Frecuencia de Eventos (0-100):
               <span className="font-normal text-indigo-700 ml-2">{frecuencia}</span>
             </label>
             <input
@@ -222,11 +222,12 @@ const ClasificadorCanvas: React.FC<ClasificadorCanvasProps> = ({
               value={frecuencia}
               onChange={(e) => handleFrecuenciaChange(parseInt(e.target.value))}
               className="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer slider"
+              style={{ touchAction: 'manipulation' }}
             />
           </div>
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Intensidad de Eventos (0-100): 
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700">
+              Intensidad de Eventos (0-100):
               <span className="font-normal text-indigo-700 ml-2">{intensidad}</span>
             </label>
             <input
@@ -236,21 +237,25 @@ const ClasificadorCanvas: React.FC<ClasificadorCanvasProps> = ({
               value={intensidad}
               onChange={(e) => handleIntensidadChange(parseInt(e.target.value))}
               className="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer slider"
+              style={{ touchAction: 'manipulation' }}
             />
           </div>
         </div>
       )}
 
-      <div className="flex justify-center mb-6">
-        <canvas
-          ref={canvasRef}
-          width={600}
-          height={400}
-          className="border border-gray-300 rounded-lg bg-gray-50 shadow-inner"
-        />
+      <div className="flex justify-center mb-4 sm:mb-6 w-full overflow-hidden">
+        <div className="w-full max-w-full" style={{ minHeight: '250px' }}>
+          <canvas
+            ref={canvasRef}
+            width={600}
+            height={400}
+            className="border border-gray-300 rounded-lg bg-gray-50 shadow-inner w-full h-auto max-w-full"
+            style={{ display: 'block', touchAction: 'manipulation' }}
+          />
+        </div>
       </div>
 
-      <div className={`text-center p-4 rounded-lg font-semibold text-lg ${
+      <div className={`text-center p-3 sm:p-4 rounded-lg font-semibold text-base sm:text-lg ${
         resultadoClass === 'result-normal' ? 'bg-green-100 text-green-800' :
         resultadoClass === 'result-sospechoso' ? 'bg-orange-100 text-orange-800' :
         resultadoClass === 'result-muy-sospechoso' ? 'bg-red-100 text-red-800 animate-pulse' :
@@ -259,20 +264,20 @@ const ClasificadorCanvas: React.FC<ClasificadorCanvasProps> = ({
         {resultado}
       </div>
 
-      <div className="mt-8 text-left text-gray-700 bg-blue-50 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">¿Cómo funciona esto?</h2>
-        <p className="mb-4">
-          En esta demostración, el <strong>Machine Learning</strong> "aprende" a reconocer patrones en los datos. 
-          Cada punto en el gráfico representa una "actividad" con una "frecuencia" (eje horizontal) y una "intensidad" (eje vertical). 
+      <div className="mt-6 sm:mt-8 text-left text-gray-700 bg-blue-50 rounded-lg p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">¿Cómo funciona esto?</h2>
+        <p className="mb-3 sm:mb-4 text-sm sm:text-base">
+          En esta demostración, el <strong>Machine Learning</strong> "aprende" a reconocer patrones en los datos.
+          Cada punto en el gráfico representa una "actividad" con una "frecuencia" (eje horizontal) y una "intensidad" (eje vertical).
           Los puntos de colores son los datos que el sistema ya "conoce" (datos de entrenamiento).
         </p>
-        <p className="mb-4">
-          El área verde representa actividades "Normales", el área naranja "Sospechosas" y el área roja "Muy Sospechosas". 
-          Cuando mueves los sliders, el punto azul se mueve y el sistema lo clasifica basándose en qué "región" del gráfico cae, 
+        <p className="mb-3 sm:mb-4 text-sm sm:text-base">
+          El área verde representa actividades "Normales", el área naranja "Sospechosas" y el área roja "Muy Sospechosas".
+          Cuando mueves los sliders, el punto azul se mueve y el sistema lo clasifica basándose en qué "región" del gráfico cae,
           imitando cómo un algoritmo de ML predice una nueva entrada basándose en patrones aprendidos.
         </p>
-        <p className="font-medium text-gray-800">
-          Esta capacidad de clasificar nuevos datos sin reglas explícitas programadas es el núcleo del Machine Learning 
+        <p className="font-medium text-gray-800 text-sm sm:text-base">
+          Esta capacidad de clasificar nuevos datos sin reglas explícitas programadas es el núcleo del Machine Learning
           y lo hace invaluable para detectar anomalías y apoyar la investigación criminal, donde los patrones pueden ser complejos y masivos.
         </p>
       </div>

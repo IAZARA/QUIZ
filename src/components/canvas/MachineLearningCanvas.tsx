@@ -104,6 +104,11 @@ const MachineLearningCanvas: React.FC<MachineLearningCanvasProps> = ({
   const startDrawing = useCallback((event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isInteractive) return;
     
+    // Prevenir scroll y zoom en dispositivos táctiles
+    if ('touches' in event) {
+      event.preventDefault();
+    }
+    
     // Limpiar predicción solo cuando se comienza una nueva acción de dibujo
     setPrediction("");
     setConfidence(0);
@@ -136,6 +141,11 @@ const MachineLearningCanvas: React.FC<MachineLearningCanvasProps> = ({
   const draw = useCallback((event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !isInteractive) return;
 
+    // Prevenir scroll y zoom en dispositivos táctiles
+    if ('touches' in event) {
+      event.preventDefault();
+    }
+
     const canvas = canvasRef.current;
     const context = contextRef.current;
     if (!canvas || !context) return;
@@ -165,6 +175,12 @@ const MachineLearningCanvas: React.FC<MachineLearningCanvasProps> = ({
     contextRef.current.closePath();
     setIsDrawing(false);
   }, []);
+
+  // Función específica para eventos táctiles
+  const stopDrawingTouch = useCallback((event: React.TouchEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    stopDrawing();
+  }, [stopDrawing]);
 
   // Función para limpiar el canvas
   const handleClearCanvas = () => {
@@ -299,22 +315,22 @@ const MachineLearningCanvas: React.FC<MachineLearningCanvasProps> = ({
   };
 
   return (
-    <motion.div 
-      className="bg-white rounded-2xl shadow-xl p-6 max-w-6xl mx-auto"
+    <motion.div
+      className="bg-white rounded-2xl shadow-xl p-3 sm:p-6 max-w-6xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="text-center mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
           Simulador de Machine Learning
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-base sm:text-lg text-gray-600">
           Aprende cómo funciona el entrenamiento y predicción en Machine Learning
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-8">
         {/* Sección Izquierda: Canvas de Dibujo y Controles */}
         <div className="flex flex-col items-center">
           {currentPhase === 'training' ? (
@@ -330,7 +346,7 @@ const MachineLearningCanvas: React.FC<MachineLearningCanvasProps> = ({
             <h2 className="text-3xl font-extrabold text-gray-900 mb-6 text-center">¡Dibuja Algo para Adivinar!</h2>
           )}
 
-          <div className="w-full max-w-lg bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl overflow-hidden shadow-inner aspect-square">
+          <div className="w-full max-w-lg bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl overflow-hidden shadow-inner aspect-square touch-none">
             <canvas
               ref={canvasRef}
               onMouseDown={startDrawing}
@@ -339,20 +355,21 @@ const MachineLearningCanvas: React.FC<MachineLearningCanvasProps> = ({
               onMouseLeave={stopDrawing}
               onTouchStart={startDrawing}
               onTouchMove={draw}
-              onTouchEnd={stopDrawing}
-              onTouchCancel={stopDrawing}
-              className="w-full h-full cursor-crosshair bg-white"
+              onTouchEnd={stopDrawingTouch}
+              onTouchCancel={stopDrawingTouch}
+              className="w-full h-full cursor-crosshair bg-white touch-none"
+              style={{ touchAction: 'none' }}
             />
           </div>
 
           {/* Botones de Control */}
-          <div className="flex gap-4 mt-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 sm:mt-6">
             <motion.button
               onClick={handleAction}
               disabled={!isInteractive || isDrawing}
-              className={`px-6 py-3 font-semibold rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 active:scale-95 ${
-                currentPhase === 'training' 
-                  ? 'bg-green-600 text-white hover:bg-green-700' 
+              className={`px-4 sm:px-6 py-2 sm:py-3 font-semibold rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 active:scale-95 text-sm sm:text-base ${
+                currentPhase === 'training'
+                  ? 'bg-green-600 text-white hover:bg-green-700'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               } ${(!isInteractive || isDrawing) ? 'opacity-50 cursor-not-allowed' : ''}`}
               whileHover={isInteractive && !isDrawing ? { scale: 1.05 } : {}}
@@ -371,7 +388,7 @@ const MachineLearningCanvas: React.FC<MachineLearningCanvasProps> = ({
             <motion.button
               onClick={handleClearCanvas}
               disabled={!isInteractive}
-              className={`px-6 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition duration-300 ease-in-out transform hover:scale-105 active:scale-95 ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-4 sm:px-6 py-2 sm:py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition duration-300 ease-in-out transform hover:scale-105 active:scale-95 text-sm sm:text-base ${!isInteractive ? 'opacity-50 cursor-not-allowed' : ''}`}
               whileHover={isInteractive ? { scale: 1.05 } : {}}
               whileTap={isInteractive ? { scale: 0.95 } : {}}
             >
@@ -382,11 +399,11 @@ const MachineLearningCanvas: React.FC<MachineLearningCanvasProps> = ({
             </motion.button>
           </div>
 
-          <div className="flex gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
             {currentPhase === 'training' && allTrainingComplete && isInteractive && (
               <motion.button
                 onClick={() => handlePhaseChange('prediction')}
-                className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition duration-300 ease-in-out transform hover:scale-105 active:scale-95 text-sm sm:text-base"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -399,7 +416,7 @@ const MachineLearningCanvas: React.FC<MachineLearningCanvasProps> = ({
             {currentPhase === 'prediction' && isInteractive && (
               <motion.button
                 onClick={() => handlePhaseChange('training')}
-                className="px-6 py-3 bg-yellow-600 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-700 transition duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-yellow-600 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-700 transition duration-300 ease-in-out transform hover:scale-105 active:scale-95 text-sm sm:text-base"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >

@@ -126,35 +126,39 @@ const RedCriminalCanvas: React.FC<RedCriminalCanvasProps> = ({
     const centerX = canvasWidth / 2;
     const centerY = canvasHeight / 2;
     
+    // Escalar posiciones basado en el tamaño del canvas
+    const scaleX = canvasWidth / 600; // Escala basada en ancho de referencia
+    const scaleY = canvasHeight / 400; // Escala basada en altura de referencia
+    
     if (levelIndex === 0) {
       // Nivel 1: 5 nodos - líder no está en el centro visual
       return [
-        { x: centerX - 120, y: centerY - 60 }, // A - izquierda arriba
-        { x: centerX - 60, y: centerY + 80 },  // B - izquierda abajo (líder)
-        { x: centerX + 60, y: centerY - 60 },  // C - derecha arriba
-        { x: centerX + 120, y: centerY + 20 }, // D - derecha centro
-        { x: centerX, y: centerY - 120 }       // E - arriba centro
+        { x: centerX - 120 * scaleX, y: centerY - 60 * scaleY }, // A - izquierda arriba
+        { x: centerX - 60 * scaleX, y: centerY + 80 * scaleY },  // B - izquierda abajo (líder)
+        { x: centerX + 60 * scaleX, y: centerY - 60 * scaleY },  // C - derecha arriba
+        { x: centerX + 120 * scaleX, y: centerY + 20 * scaleY }, // D - derecha centro
+        { x: centerX, y: centerY - 120 * scaleY }                // E - arriba centro
       ];
     } else if (levelIndex === 1) {
       // Nivel 2: 6 nodos en dos grupos
       return [
-        { x: centerX - 150, y: centerY - 80 }, // 1 - grupo izquierdo arriba
-        { x: centerX - 80, y: centerY - 40 },  // 2 - grupo izquierdo centro
-        { x: centerX - 120, y: centerY + 60 }, // 3 - grupo izquierdo abajo
-        { x: centerX + 40, y: centerY - 20 },  // 4 - centro (líder)
-        { x: centerX + 120, y: centerY + 40 }, // 5 - grupo derecho centro
-        { x: centerX + 80, y: centerY - 80 }   // 6 - grupo derecho arriba
+        { x: centerX - 150 * scaleX, y: centerY - 80 * scaleY }, // 1 - grupo izquierdo arriba
+        { x: centerX - 80 * scaleX, y: centerY - 40 * scaleY },  // 2 - grupo izquierdo centro
+        { x: centerX - 120 * scaleX, y: centerY + 60 * scaleY }, // 3 - grupo izquierdo abajo
+        { x: centerX + 40 * scaleX, y: centerY - 20 * scaleY },  // 4 - centro (líder)
+        { x: centerX + 120 * scaleX, y: centerY + 40 * scaleY }, // 5 - grupo derecho centro
+        { x: centerX + 80 * scaleX, y: centerY - 80 * scaleY }   // 6 - grupo derecho arriba
       ];
     } else {
       // Nivel 3: 7 nodos en cadena compleja
       return [
-        { x: centerX - 180, y: centerY },      // X - extremo izquierdo
-        { x: centerX - 120, y: centerY - 80 }, // Y - izquierda arriba
-        { x: centerX - 60, y: centerY + 60 },  // Z - izquierda abajo
-        { x: centerX + 20, y: centerY - 20 },  // W - centro (líder)
-        { x: centerX + 100, y: centerY + 80 }, // V - derecha abajo
-        { x: centerX + 140, y: centerY - 60 }, // U - derecha arriba
-        { x: centerX + 60, y: centerY + 120 }  // T - abajo centro
+        { x: centerX - 180 * scaleX, y: centerY },               // X - extremo izquierdo
+        { x: centerX - 120 * scaleX, y: centerY - 80 * scaleY }, // Y - izquierda arriba
+        { x: centerX - 60 * scaleX, y: centerY + 60 * scaleY },  // Z - izquierda abajo
+        { x: centerX + 20 * scaleX, y: centerY - 20 * scaleY },  // W - centro (líder)
+        { x: centerX + 100 * scaleX, y: centerY + 80 * scaleY }, // V - derecha abajo
+        { x: centerX + 140 * scaleX, y: centerY - 60 * scaleY }, // U - derecha arriba
+        { x: centerX + 60 * scaleX, y: centerY + 120 * scaleY }  // T - abajo centro
       ];
     }
   }, []);
@@ -351,13 +355,21 @@ const RedCriminalCanvas: React.FC<RedCriminalCanvasProps> = ({
     loadLevel(0);
   }, [loadLevel]);
 
-  // Redimensionar canvas
+  // Redimensionar canvas responsivamente
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    canvas.width = 600;
-    canvas.height = 400;
+    const container = canvas.parentElement;
+    if (!container) return;
+
+    // Obtener dimensiones del contenedor
+    const containerWidth = container.clientWidth;
+    const containerHeight = Math.min(containerWidth * 0.6, 400); // Mantener aspecto pero limitar altura
+
+    // Ajustar canvas al contenedor
+    canvas.width = containerWidth;
+    canvas.height = containerHeight;
     
     // Recargar el nivel actual para reposicionar nodos
     if (nodes.length > 0) {
@@ -381,28 +393,29 @@ const RedCriminalCanvas: React.FC<RedCriminalCanvasProps> = ({
   return (
     <div className="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 text-center">
-        <h1 className="text-2xl font-bold mb-2">Red Criminal</h1>
-        <p className="text-blue-100">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 sm:p-6 text-center">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2">Red Criminal</h1>
+        <p className="text-blue-100 text-sm sm:text-base">
           Identifica al líder de la red criminal analizando las conexiones.
         </p>
       </div>
 
       {/* Game Area */}
-      <div className="p-6">
-        <div className="bg-gray-50 rounded-lg p-4 mb-4 flex justify-center">
-          <canvas
-            ref={canvasRef}
-            onClick={handleCanvasClick}
-            width={600}
-            height={400}
-            className="bg-white rounded-lg shadow-md cursor-pointer border border-gray-200"
-          />
+      <div className="p-3 sm:p-6">
+        <div className="bg-gray-50 rounded-lg p-2 sm:p-4 mb-4 w-full overflow-hidden">
+          <div className="w-full" style={{ minHeight: '250px' }}>
+            <canvas
+              ref={canvasRef}
+              onClick={handleCanvasClick}
+              className="bg-white rounded-lg shadow-md cursor-pointer border border-gray-200 w-full h-auto max-w-full"
+              style={{ display: 'block', touchAction: 'manipulation' }}
+            />
+          </div>
         </div>
 
         {/* Message Box */}
-        <motion.div 
-          className={`bg-white border rounded-lg p-4 text-center mb-4 ${
+        <motion.div
+          className={`bg-white border rounded-lg p-3 sm:p-4 text-center mb-4 ${
             gameState === 'won' ? 'border-green-400 bg-green-50 text-green-800' :
             'border-gray-300 text-gray-700'
           }`}
@@ -410,26 +423,28 @@ const RedCriminalCanvas: React.FC<RedCriminalCanvasProps> = ({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {gameMessage || "Haz clic en un nodo para seleccionarlo, luego en 'Identificar Líder'."}
+          <p className="text-sm sm:text-base">
+            {gameMessage || "Haz clic en un nodo para seleccionarlo, luego en 'Identificar Líder'."}
+          </p>
         </motion.div>
 
         {/* Info Panel */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 mb-4">
           <div className="text-center">
-            <div className="text-lg font-bold text-blue-600">Nivel {currentLevel + 1}</div>
-            <div className="text-sm text-gray-600">
+            <div className="text-base sm:text-lg font-bold text-blue-600">Nivel {currentLevel + 1}</div>
+            <div className="text-xs sm:text-sm text-gray-600">
               {selectedNode ? `Seleccionado: ${selectedNode.name}` : 'Ningún nodo seleccionado'}
             </div>
           </div>
         </div>
 
         {/* Controls */}
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3">
           {gameState === 'playing' && (
             <motion.button
               onClick={handleIdentifyLeader}
               disabled={!selectedNode}
-              className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-all text-sm sm:text-base ${
                 !selectedNode
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -444,7 +459,7 @@ const RedCriminalCanvas: React.FC<RedCriminalCanvasProps> = ({
           {showNextLevel && (
             <motion.button
               onClick={handleNextLevel}
-              className="px-6 py-3 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700"
+              className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 text-sm sm:text-base"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               whileHover={{ scale: 1.05 }}
@@ -457,7 +472,7 @@ const RedCriminalCanvas: React.FC<RedCriminalCanvasProps> = ({
           {(showReset || gameState === 'completed') && (
             <motion.button
               onClick={handleResetGame}
-              className="px-6 py-3 rounded-lg font-medium bg-gray-600 text-white hover:bg-gray-700"
+              className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium bg-gray-600 text-white hover:bg-gray-700 text-sm sm:text-base"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               whileHover={{ scale: 1.05 }}

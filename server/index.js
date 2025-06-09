@@ -15,6 +15,7 @@ if (missingVars.length > 0) {
 console.log('✅ Variables de entorno validadas correctamente');
 console.log(`🔑 ANTHROPIC_API_KEY configurada: ${process.env.ANTHROPIC_API_KEY ? 'Sí' : 'No'}`);
 console.log(`🗄️ MONGODB_URI configurada: ${process.env.MONGODB_URI ? 'Sí' : 'No'}`);
+console.log(`🔑 ADMIN_PASSWORD configurada: ${process.env.ADMIN_PASSWORD ? 'Sí, con longitud ' + process.env.ADMIN_PASSWORD.length : 'No'}`);
 
 // Ahora importar el resto de módulos
 import express from 'express';
@@ -1107,12 +1108,18 @@ async function getVotesForQuestion(questionId) {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
+    console.log('[ADMIN LOGIN ATTEMPT] Received login request.');
+    console.log(`[ADMIN LOGIN ATTEMPT] process.env.ADMIN_PASSWORD value: "${process.env.ADMIN_PASSWORD}" (Length: ${process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.length : 'undefined'})`);
     const { password } = req.body;
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    console.log(`[ADMIN LOGIN ATTEMPT] Password from request: "${password}" (Length: ${password ? password.length : 'undefined'})`);
+    console.log(`[ADMIN LOGIN ATTEMPT] Effective adminPassword for comparison: "${adminPassword}" (Length: ${adminPassword.length})`);
     
     if (password === adminPassword) {
+      console.log('[ADMIN LOGIN ATTEMPT] Password MATCHED.');
       res.json({ success: true, token: 'admin-token' });
     } else {
+      console.log('[ADMIN LOGIN ATTEMPT] Password MISMATCH.');
       res.status(401).json({ error: 'Contraseña incorrecta' });
     }
   } catch (error) {
